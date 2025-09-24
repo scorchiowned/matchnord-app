@@ -1,0 +1,75 @@
+{
+    "navigation": {
+        "home": "Hem",
+        "tournaments": "Turneringar",
+        "live": "Live",
+        "results": "Resultat",
+        "about": "Om"
+    },
+    "tournament": {
+        "title": "Turneringar",
+        "search": "Sök turneringar...",
+        "noTournaments": "Inga turneringar hittades",
+        "upcoming": "Kommande",
+        "ongoing": "Pågående",
+        "finished": "Avslutad",
+        "divisions": "Divisioner",
+        "groups": "Grupper",
+        "matches": "Matcher",
+        "standings": "Tabell",
+        "teams": "Lag",
+        "schedule": "Schema",
+        "results": "Resultat",
+        "live": "Live"
+    },
+    "match": {
+        "vs": "vs",
+        "live": "LIVE",
+        "finished": "Avslutad",
+        "scheduled": "Schemalagd",
+        "cancelled": "Inställd",
+        "postponed": "Uppskjuten",
+        "score": "Resultat",
+        "time": "Tid",
+        "venue": "Arena",
+        "pitch": "Plan"
+    },
+    "team": {
+        "name": "Namn",
+        "club": "Klubb",
+        "city": "Stad",
+        "country": "Land",
+        "players": "Spelare"
+    },
+    "standing": {
+        "position": "Pos",
+        "team": "Lag",
+        "played": "M",
+        "won": "V",
+        "drawn": "O",
+        "lost": "F",
+        "goalsFor": "GM",
+        "goalsAgainst": "IM",
+        "goalDifference": "MS",
+        "points": "P"
+    },
+    "common": {
+        "loading": "Laddar...",
+        "error": "Fel",
+        "retry": "Försök igen",
+        "search": "Sök",
+        "filter": "Filtrera",
+        "sort": "Sortera",
+        "showMore": "Visa mer",
+        "showLess": "Visa mindre",
+        "back": "Tillbaka",
+        "next": "Nästa",
+        "previous": "Föregående",
+        "close": "Stäng",
+        "save": "Spara",
+        "cancel": "Avbryt",
+        "edit": "Redigera",
+        "delete": "Ta bort",
+        "confirm": "Bekräfta"
+    }
+}

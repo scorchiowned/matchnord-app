@@ -1,0 +1,40 @@
+{
+  "colors": {
+    "primary": "#009944",
+    "primaryDark": "#007a36",
+    "accent": "#ffc107",
+    "background": "#ffffff",
+    "cardBackground": "#f5f5f5",
+    "textPrimary": "#212121",
+    "textSecondary": "#616161"
+  },
+  "font": {
+    "family": "Roboto, Arial, sans-serif",
+    "sizeBase": "14px",
+    "headingWeight": "700",
+    "bodyWeight": "400"
+  },
+  "border": {
+    "radius": "8px",
+    "color": "#e0e0e0",
+    "width": "1px"
+  },
+  "button": {
+    "background": "#009944",
+    "textColor": "#ffffff",
+    "hoverBackground": "#007a36",
+    "padding": "10px 16px",
+    "borderRadius": "6px"
+  },
+  "tab": {
+    "activeBackground": "#009944",
+    "inactiveBackground": "#f5f5f5",
+    "activeTextColor": "#ffffff",
+    "inactiveTextColor": "#212121"
+  },
+  "listItem": {
+    "backgroundAlternate": "#fafafa",
+    "borderBottomColor": "#e0e0e0",
+    "padding": "12px"
+  }
+}

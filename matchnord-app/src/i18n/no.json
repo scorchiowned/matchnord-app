@@ -1,0 +1,75 @@
+{
+    "navigation": {
+        "home": "Hjem",
+        "tournaments": "Turneringer",
+        "live": "Live",
+        "results": "Resultater",
+        "about": "Om"
+    },
+    "tournament": {
+        "title": "Turneringer",
+        "search": "Søk turneringer...",
+        "noTournaments": "Ingen turneringer funnet",
+        "upcoming": "Kommende",
+        "ongoing": "Pågående",
+        "finished": "Avsluttet",
+        "divisions": "Divisjoner",
+        "groups": "Grupper",
+        "matches": "Kamper",
+        "standings": "Tabell",
+        "teams": "Lag",
+        "schedule": "Program",
+        "results": "Resultater",
+        "live": "Live"
+    },
+    "match": {
+        "vs": "vs",
+        "live": "LIVE",
+        "finished": "Avsluttet",
+        "scheduled": "Planlagt",
+        "cancelled": "Avlyst",
+        "postponed": "Utsatt",
+        "score": "Resultat",
+        "time": "Tid",
+        "venue": "Arena",
+        "pitch": "Bane"
+    },
+    "team": {
+        "name": "Navn",
+        "club": "Klubb",
+        "city": "By",
+        "country": "Land",
+        "players": "Spillere"
+    },
+    "standing": {
+        "position": "Pos",
+        "team": "Lag",
+        "played": "K",
+        "won": "V",
+        "drawn": "U",
+        "lost": "T",
+        "goalsFor": "M+",
+        "goalsAgainst": "M-",
+        "goalDifference": "M",
+        "points": "P"
+    },
+    "common": {
+        "loading": "Laster...",
+        "error": "Feil",
+        "retry": "Prøv igjen",
+        "search": "Søk",
+        "filter": "Filtrer",
+        "sort": "Sorter",
+        "showMore": "Vis mer",
+        "showLess": "Vis mindre",
+        "back": "Tilbake",
+        "next": "Neste",
+        "previous": "Forrige",
+        "close": "Lukk",
+        "save": "Lagre",
+        "cancel": "Avbryt",
+        "edit": "Rediger",
+        "delete": "Slett",
+        "confirm": "Bekreft"
+    }
+}

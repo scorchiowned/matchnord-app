@@ -1,0 +1,75 @@
+{
+    "navigation": {
+        "home": "Home",
+        "tournaments": "Tournaments",
+        "live": "Live",
+        "results": "Results",
+        "about": "About"
+    },
+    "tournament": {
+        "title": "Tournaments",
+        "search": "Search tournaments...",
+        "noTournaments": "No tournaments found",
+        "upcoming": "Upcoming",
+        "ongoing": "Ongoing",
+        "finished": "Finished",
+        "divisions": "Divisions",
+        "groups": "Groups",
+        "matches": "Matches",
+        "standings": "Standings",
+        "teams": "Teams",
+        "schedule": "Schedule",
+        "results": "Results",
+        "live": "Live"
+    },
+    "match": {
+        "vs": "vs",
+        "live": "LIVE",
+        "finished": "Finished",
+        "scheduled": "Scheduled",
+        "cancelled": "Cancelled",
+        "postponed": "Postponed",
+        "score": "Score",
+        "time": "Time",
+        "venue": "Venue",
+        "pitch": "Pitch"
+    },
+    "team": {
+        "name": "Name",
+        "club": "Club",
+        "city": "City",
+        "country": "Country",
+        "players": "Players"
+    },
+    "standing": {
+        "position": "Pos",
+        "team": "Team",
+        "played": "P",
+        "won": "W",
+        "drawn": "D",
+        "lost": "L",
+        "goalsFor": "GF",
+        "goalsAgainst": "GA",
+        "goalDifference": "GD",
+        "points": "Pts"
+    },
+    "common": {
+        "loading": "Loading...",
+        "error": "Error",
+        "retry": "Retry",
+        "search": "Search",
+        "filter": "Filter",
+        "sort": "Sort",
+        "showMore": "Show more",
+        "showLess": "Show less",
+        "back": "Back",
+        "next": "Next",
+        "previous": "Previous",
+        "close": "Close",
+        "save": "Save",
+        "cancel": "Cancel",
+        "edit": "Edit",
+        "delete": "Delete",
+        "confirm": "Confirm"
+    }
+}

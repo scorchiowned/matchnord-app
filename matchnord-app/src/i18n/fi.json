@@ -1,0 +1,75 @@
+{
+    "navigation": {
+        "home": "Koti",
+        "tournaments": "Turnaukset",
+        "live": "Live",
+        "results": "Tulokset",
+        "about": "Tietoa"
+    },
+    "tournament": {
+        "title": "Turnaukset",
+        "search": "Hae turnauksia...",
+        "noTournaments": "Turnauksia ei löytynyt",
+        "upcoming": "Tulossa",
+        "ongoing": "Käynnissä",
+        "finished": "Päättynyt",
+        "divisions": "Sarjat",
+        "groups": "Lohkot",
+        "matches": "Ottelut",
+        "standings": "Sijoitukset",
+        "teams": "Joukkueet",
+        "schedule": "Aikataulu",
+        "results": "Tulokset",
+        "live": "Live"
+    },
+    "match": {
+        "vs": "vs",
+        "live": "LIVE",
+        "finished": "Päättynyt",
+        "scheduled": "Ajoitettu",
+        "cancelled": "Peruttu",
+        "postponed": "Lykkääntynyt",
+        "score": "Tulos",
+        "time": "Aika",
+        "venue": "Paikka",
+        "pitch": "Kenttä"
+    },
+    "team": {
+        "name": "Nimi",
+        "club": "Seura",
+        "city": "Kaupunki",
+        "country": "Maa",
+        "players": "Pelaajat"
+    },
+    "standing": {
+        "position": "Sija",
+        "team": "Joukkue",
+        "played": "P",
+        "won": "V",
+        "drawn": "T",
+        "lost": "H",
+        "goalsFor": "TM",
+        "goalsAgainst": "PM",
+        "goalDifference": "E",
+        "points": "P"
+    },
+    "common": {
+        "loading": "Ladataan...",
+        "error": "Virhe",
+        "retry": "Yritä uudelleen",
+        "search": "Hae",
+        "filter": "Suodata",
+        "sort": "Järjestä",
+        "showMore": "Näytä lisää",
+        "showLess": "Näytä vähemmän",
+        "back": "Takaisin",
+        "next": "Seuraava",
+        "previous": "Edellinen",
+        "close": "Sulje",
+        "save": "Tallenna",
+        "cancel": "Peruuta",
+        "edit": "Muokkaa",
+        "delete": "Poista",
+        "confirm": "Vahvista"
+    }
+}
