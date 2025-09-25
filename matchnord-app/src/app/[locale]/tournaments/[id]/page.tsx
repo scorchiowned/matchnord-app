@@ -1,6 +1,5 @@
 "use client";
 
-import { useTranslations } from "next-intl";
 import { useParams } from "next/navigation";
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,11 +23,10 @@ import {
   useTournamentMatches,
   useTournamentTeams,
 } from "@/hooks/use-tournaments";
-import { Link } from "@/i18n/routing";
+import Link from "next/link";
 import { format } from "date-fns";
 
 export default function TournamentDetailPage() {
-  const t = useTranslations();
   const params = useParams();
   const tournamentId = params.id as string;
   const [activeTab, setActiveTab] = useState("overview");
@@ -59,7 +57,7 @@ export default function TournamentDetailPage() {
           <p className="text-gray-600 mb-4">
             The tournament you're looking for doesn't exist or is not available.
           </p>
-          <Link href="/tournaments">
+          <Link href="/fi/tournaments">
             <Button>Back to Tournaments</Button>
           </Link>
         </div>
@@ -89,7 +87,7 @@ export default function TournamentDetailPage() {
           <p className="text-gray-600 mb-4">
             The tournament you're looking for doesn't exist.
           </p>
-          <Link href="/tournaments">
+          <Link href="/fi/tournaments">
             <Button>Back to Tournaments</Button>
           </Link>
         </div>
@@ -149,10 +147,10 @@ export default function TournamentDetailPage() {
               <div className="flex items-start justify-between mb-4">
                 <div>
                   <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">
-                    {tournament.name}
+                    {tournament.name || 'Tournament Name TBD'}
                   </h1>
                   <p className="text-lg text-gray-600 mb-4">
-                    {tournament.season} • {tournament.country.name}
+                    {tournament.season || 'Season TBD'} • {tournament.country?.name || 'Location TBD'}
                   </p>
                 </div>
                 <Badge className={getStatusColor(tournament.status)}>
@@ -184,7 +182,7 @@ export default function TournamentDetailPage() {
                   <div>
                     <div className="font-medium">Location</div>
                     <div className="text-sm">
-                      {tournament.city}, {tournament.country.name}
+                      {tournament.city || 'City TBD'}, {tournament.country?.name || 'Country TBD'}
                     </div>
                   </div>
                 </div>
@@ -351,7 +349,7 @@ export default function TournamentDetailPage() {
                         className="p-4 border rounded-lg hover:shadow-md transition-shadow"
                       >
                         <h3 className="font-semibold text-lg mb-2">
-                          {division.name}
+                          {division.name || 'Division Name TBD'}
                         </h3>
                         <p className="text-gray-600 text-sm mb-3">
                           {division.description}
@@ -364,7 +362,7 @@ export default function TournamentDetailPage() {
                           <div>Format: {division.format || "Standard"}</div>
                         </div>
                         <Link
-                          href={`/tournaments/${tournamentId}/divisions/${division.id}`}
+                          href={`/fi/tournaments/${tournamentId}/divisions/${division.id}`}
                         >
                           <Button className="w-full mt-3" size="sm">
                             View Division
@@ -474,7 +472,7 @@ export default function TournamentDetailPage() {
                         className="p-4 border rounded-lg hover:shadow-md transition-shadow"
                       >
                         <h3 className="font-semibold text-lg mb-2">
-                          {team.name}
+                          {team.name || 'Team Name TBD'}
                         </h3>
                         {team.shortName && (
                           <p className="text-gray-600 text-sm mb-2">
@@ -484,11 +482,11 @@ export default function TournamentDetailPage() {
                         <div className="space-y-1 text-sm text-gray-500">
                           {team.club && <div>Club: {team.club}</div>}
                           {team.city && <div>City: {team.city}</div>}
-                          <div>Country: {team.country.name}</div>
+                          <div>Country: {team.country?.name || 'Unknown'}</div>
                           {team.level && <div>Level: {team.level}</div>}
                         </div>
                         <Link
-                          href={`/tournaments/${tournamentId}/teams/${team.id}`}
+                          href={`/fi/tournaments/${tournamentId}/teams/${team.id}`}
                         >
                           <Button className="w-full mt-3" size="sm">
                             View Team
