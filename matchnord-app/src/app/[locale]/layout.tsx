@@ -4,6 +4,7 @@ import { routing } from "@/i18n/routing";
 import Header from "@/components/layout/header";
 import Footer from "@/components/layout/footer";
 import QueryProvider from "@/components/providers/query-provider";
+import "../globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
 
