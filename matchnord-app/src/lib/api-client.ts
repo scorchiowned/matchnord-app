@@ -72,11 +72,17 @@ export const tournamentApi = {
     if (params?.offset) searchParams.set("offset", params.offset.toString());
 
     const queryString = searchParams.toString();
-    const endpoint = `/api/v1/tournaments${
+    const endpoint = `/api/tournaments/simple${
       queryString ? `?${queryString}` : ""
     }`;
 
-    return fetchApi<Tournament[]>(endpoint);
+    const response = await fetchApi<{
+      success: boolean;
+      tournaments: Tournament[];
+      count: number;
+    }>(endpoint);
+
+    return response.tournaments;
   },
 
   // Get single tournament
