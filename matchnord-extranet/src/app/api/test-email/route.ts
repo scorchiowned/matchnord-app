@@ -10,6 +10,7 @@ const TestEmailInput = z.object({
     'announcement',
     'match',
     'team-manager-welcome',
+    'user-welcome-verification',
   ]),
   to: z.string().email(),
 });
@@ -88,6 +89,17 @@ export async function POST(request: NextRequest) {
         });
         break;
 
+      case 'user-welcome-verification':
+        result = await emailService.sendUserWelcomeVerification({
+          to,
+          userName: 'Test User',
+          email: to,
+          verificationUrl:
+            'http://localhost:3000/en/auth/verify-email?token=test-token-123',
+          role: 'TEAM_MANAGER',
+        });
+        break;
+
       default:
         return NextResponse.json(
           { success: false, error: 'Invalid test type' },
@@ -127,6 +139,7 @@ export async function GET() {
       'announcement',
       'match',
       'team-manager-welcome',
+      'user-welcome-verification',
     ],
     usage: 'POST with { "type": "registration", "to": "manttila83@gmail.com" }',
   });

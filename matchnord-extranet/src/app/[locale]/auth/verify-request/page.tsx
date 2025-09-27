@@ -33,34 +33,40 @@ export default function VerifyRequestPage() {
               <Mail className="h-8 w-8 text-primary" />
             </div>
             <CardTitle className="text-2xl font-bold">
-              {t('checkEmail')}
+              Check Your Email
             </CardTitle>
-            <CardDescription>{t('emailSent')}</CardDescription>
+            <CardDescription>
+              We've sent you a verification email with a link to activate your
+              account.
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="text-center text-sm text-muted-foreground">
-              <p>{t('emailInstructions')}</p>
+              <p>
+                Please check your email inbox and click the verification link to
+                complete your registration. The link will expire in 48 hours.
+              </p>
             </div>
 
             <div className="space-y-2">
               <div className="text-sm text-muted-foreground">
-                <strong>{t('noEmail')}</strong>
+                <strong>Didn't receive the email?</strong>
               </div>
               <ul className="space-y-1 text-sm text-muted-foreground">
-                <li>• {t('checkSpam')}</li>
-                <li>• {t('checkEmailAddress')}</li>
-                <li>• {t('tryAgain')}</li>
+                <li>• Check your spam/junk folder</li>
+                <li>• Verify the email address is correct</li>
+                <li>• Wait a few minutes and try again</li>
               </ul>
             </div>
 
             <div className="flex gap-2">
               <Button variant="outline" className="flex-1" asChild>
                 <LocalizedLink href="/auth/signin">
-                  {t('tryAgain')}
+                  Back to Sign In
                 </LocalizedLink>
               </Button>
               <Button className="flex-1" asChild>
-                <LocalizedLink href="/">{t('goHome')}</LocalizedLink>
+                <LocalizedLink href="/">Go Home</LocalizedLink>
               </Button>
             </div>
           </CardContent>

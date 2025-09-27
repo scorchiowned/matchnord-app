@@ -46,6 +46,15 @@ model User {
   image         String?
   role          UserRole  @default(REFEREE)
   phone         String?
+  // Account status
+  isActive      Boolean   @default(false)  // For team manager approval
+  approvedAt    DateTime? // When admin approved the account
+  approvedBy    String?   // Admin who approved the account
+  // Email verification
+  emailVerificationTokens EmailVerificationToken[]
+  // Invitations
+  sentInvitations UserInvitation[] @relation("InviterUser")
+  receivedInvitations UserInvitation[] @relation("InvitedUser")
   accounts      Account[]
   sessions      Session[]
   // Organization relationships
@@ -67,6 +76,7 @@ enum UserRole {
   ADMIN
   TEAM_MANAGER
   TOURNAMENT_ADMIN
+  TOURNAMENT_MANAGER
   REFEREE
 }
 
@@ -76,6 +86,50 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+model EmailVerificationToken {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  token     String   @unique
+  expires   DateTime
+  used      Boolean  @default(false)
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, token])
+}
+
+model UserInvitation {
+  id            String   @id @default(cuid())
+  inviter       User     @relation("InviterUser", fields: [inviterId], references: [id], onDelete: Cascade)
+  inviterId     String
+  invitedUser   User?    @relation("InvitedUser", fields: [invitedUserId], references: [id], onDelete: Cascade)
+  invitedUserId String?
+  email         String
+  role          UserRole
+  // Optional context
+  tournamentId  String?
+  teamId        String?
+  // Invitation status
+  status        InvitationStatus @default(PENDING)
+  token         String   @unique
+  expires       DateTime
+  acceptedAt    DateTime?
+  rejectedAt    DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([email, token])
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  EXPIRED
 }
 
 model Organization {

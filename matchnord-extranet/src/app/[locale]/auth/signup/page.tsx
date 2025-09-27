@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Link as LocalizedLink } from '@/i18n/routing';
@@ -15,15 +14,26 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, Mail, Chrome } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { ArrowLeft, Mail, Chrome, User, Lock } from 'lucide-react';
 
 export default function SignUpPage() {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
+    password: '',
+    confirmPassword: '',
+    role: 'TEAM_MANAGER' as 'TEAM_MANAGER' | 'TOURNAMENT_MANAGER' | 'REFEREE',
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
   const router = useRouter();
   const t = useTranslations('auth');
 
@@ -31,21 +41,53 @@ export default function SignUpPage() {
     e.preventDefault();
     setIsLoading(true);
     setError('');
+    setSuccess(false);
+
+    // Validate passwords match
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match');
+      setIsLoading(false);
+      return;
+    }
+
+    // Validate password length
+    if (formData.password.length < 8) {
+      setError('Password must be at least 8 characters long');
+      setIsLoading(false);
+      return;
+    }
 
     try {
-      const result = await signIn('email', {
-        email: formData.email,
-        redirect: false,
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
+          role: formData.role,
+        }),
       });
 
-      if (result?.error) {
-        setError(t('signUpError'));
-      } else {
-        // Email sent successfully
-        router.push('/auth/verify-request');
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Registration failed');
       }
+
+      // Registration successful
+      setSuccess(true);
+      setError('');
+
+      // Redirect to verification request page after a longer delay to show success message
+      setTimeout(() => {
+        router.push('/auth/verify-request');
+      }, 3000);
     } catch (error) {
-      setError(t('unexpectedError'));
+      console.error('Registration error:', error);
+      setError(error instanceof Error ? error.message : 'Registration failed');
     } finally {
       setIsLoading(false);
     }
@@ -67,6 +109,13 @@ export default function SignUpPage() {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
+    });
+  };
+
+  const handleRoleChange = (value: string) => {
+    setFormData({
+      ...formData,
+      role: value as 'TEAM_MANAGER' | 'TOURNAMENT_MANAGER' | 'REFEREE',
     });
   };
 
@@ -94,37 +143,104 @@ export default function SignUpPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Success Message */}
+            {success && (
+              <div className="rounded-lg bg-green-50 p-4 text-green-800">
+                <p className="text-sm">
+                  Registration successful! Please check your email to verify
+                  your account.
+                </p>
+              </div>
+            )}
+
+            {/* Error Message */}
+            {error && (
+              <div className="rounded-lg bg-red-50 p-4 text-red-800">
+                <p className="text-sm">{error}</p>
+              </div>
+            )}
+
             {/* Email Sign Up Form */}
             <form onSubmit={handleEmailSignUp} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="name">{t('fullName')}</Label>
+                <Label htmlFor="name">Full Name</Label>
                 <Input
                   id="name"
                   name="name"
                   type="text"
-                  placeholder={t('namePlaceholder')}
+                  placeholder="Enter your full name"
                   value={formData.name}
                   onChange={handleInputChange}
                   required
                   disabled={isLoading}
                 />
               </div>
+
               <div className="space-y-2">
-                <Label htmlFor="email">{t('email')}</Label>
+                <Label htmlFor="email">Email</Label>
                 <Input
                   id="email"
                   name="email"
                   type="email"
-                  placeholder={t('emailPlaceholder')}
+                  placeholder="Enter your email address"
                   value={formData.email}
                   onChange={handleInputChange}
                   required
                   disabled={isLoading}
                 />
               </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  name="password"
+                  type="password"
+                  placeholder="Enter your password"
+                  value={formData.password}
+                  onChange={handleInputChange}
+                  required
+                  disabled={isLoading}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirm Password</Label>
+                <Input
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type="password"
+                  placeholder="Confirm your password"
+                  value={formData.confirmPassword}
+                  onChange={handleInputChange}
+                  required
+                  disabled={isLoading}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="role">Role</Label>
+                <Select
+                  value={formData.role}
+                  onValueChange={handleRoleChange}
+                  disabled={isLoading}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select your role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="TEAM_MANAGER">Team Manager</SelectItem>
+                    <SelectItem value="TOURNAMENT_MANAGER">
+                      Tournament Manager
+                    </SelectItem>
+                    <SelectItem value="REFEREE">Referee</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
               <Button type="submit" className="w-full" disabled={isLoading}>
-                <Mail className="mr-2 h-4 w-4" />
-                {isLoading ? t('creatingAccount') : t('signUpWithEmail')}
+                <User className="mr-2 h-4 w-4" />
+                {isLoading ? 'Creating Account...' : 'Create Account'}
               </Button>
             </form>
 

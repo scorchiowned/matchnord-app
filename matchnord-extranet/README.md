@@ -90,8 +90,57 @@ A comprehensive web platform for organizing, managing, and following tournaments
 
 ### Email & Communications
 
-- **Resend**: Email delivery service
+- **Resend**: Email delivery service with verified domain support
 - **Automated Notifications**: Tournament and match notifications
+- **Email Templates**: Comprehensive email system with 8 different template types
+
+#### Email Templates Available
+
+1. **User Account Emails**
+   - `sendUserWelcomeVerification` - Welcome + Email verification for team managers
+
+2. **Team Manager Emails**
+   - `sendTeamManagerWelcome` - Team manager onboarding
+   - `sendTeamManagerApproval` - Account approval/rejection notifications
+
+3. **Tournament Registration Emails**
+   - `sendRegistrationConfirmation` - Team registration confirmation
+   - `sendRegistrationStatusUpdate` - Registration approval/rejection
+   - `sendTeamParticipationConfirmation` - Final participation confirmation
+
+4. **Tournament Communication Emails**
+   - `sendTournamentAnnouncement` - Tournament announcements
+   - `sendMatchNotification` - Match notifications (upcoming, results, schedule changes)
+
+5. **Invitation Emails**
+   - `sendUserInvitation` - Invite users as tournament managers or referees
+
+#### User Registration & Email Flow
+
+**TEAM_MANAGER Flow:**
+
+1. Self-register → `sendUserWelcomeVerification` (verify email)
+2. Verify email → Account verified but inactive
+3. Admin approves → `sendTeamManagerApproval` (account activated)
+4. Register for tournament → `sendTeamManagerWelcome`
+
+**TOURNAMENT_MANAGER/REFEREE Flow:**
+
+1. Get invited → `sendUserInvitation` (invitation email)
+2. Accept invitation → Set password + verify email
+3. Account active immediately (no admin approval needed)
+
+#### Email Testing
+
+Test all email templates using the test API:
+
+```bash
+curl -s "http://localhost:3000/api/test-email" -X POST \
+  -H "Content-Type: application/json" \
+  -d '{"type": "user-welcome-verification", "to": "email@example.com"}' | jq .
+```
+
+Available test types: `test`, `registration`, `status`, `announcement`, `match`, `team-manager-welcome`, `user-welcome-verification`
 
 ### State Management
 
