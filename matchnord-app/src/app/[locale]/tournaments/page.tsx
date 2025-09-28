@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Calendar,
@@ -10,43 +9,15 @@ import {
   Users,
   Trophy,
   Search,
-  Filter,
   Loader2,
 } from "lucide-react";
 import { useTournaments } from "@/hooks/use-tournaments";
-import { TournamentStatus } from "@/types/api";
 import Link from "next/link";
 import Image from "next/image";
 
-const getStatusColor = (status: string) => {
-  switch (status) {
-    case "PUBLISHED":
-      return "bg-green-100 text-green-800";
-    case "DRAFT":
-      return "bg-blue-100 text-blue-800";
-    case "CANCELLED":
-      return "bg-red-100 text-red-800";
-    default:
-      return "bg-gray-100 text-gray-800";
-  }
-};
-
-const getStatusText = (status: string) => {
-  switch (status) {
-    case "PUBLISHED":
-      return "Published";
-    case "DRAFT":
-      return "Draft";
-    case "CANCELLED":
-      return "Cancelled";
-    default:
-      return "Unknown";
-  }
-};
 
 export default function TournamentsPage() {
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<TournamentStatus | "">("");
   const [locationFilter, setLocationFilter] = useState("");
 
   const {
@@ -55,7 +26,7 @@ export default function TournamentsPage() {
     error,
   } = useTournaments({
     search: search || undefined,
-    status: statusFilter || undefined,
+    country: locationFilter || undefined,
   });
 
   if (error) {
@@ -103,18 +74,6 @@ export default function TournamentsPage() {
               />
             </div>
             <div className="flex gap-2">
-              <select
-                value={statusFilter}
-                onChange={(e) =>
-                  setStatusFilter(e.target.value as TournamentStatus | "")
-                }
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">All Status</option>
-                <option value="PUBLISHED">Published</option>
-                <option value="DRAFT">Draft</option>
-                <option value="CANCELLED">Cancelled</option>
-              </select>
               <select
                 value={locationFilter}
                 onChange={(e) => setLocationFilter(e.target.value)}
@@ -172,13 +131,6 @@ export default function TournamentsPage() {
                       )}
                     </div>
                   </div>
-                  <Badge
-                    className={`absolute top-4 right-4 ${getStatusColor(
-                      tournament.status
-                    )}`}
-                  >
-                    {getStatusText(tournament.status)}
-                  </Badge>
                 </div>
 
                 <CardHeader>

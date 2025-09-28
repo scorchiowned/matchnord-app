@@ -92,12 +92,38 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url);
+    const search = searchParams.get('search');
+    const country = searchParams.get('country');
+
+    // Build where clause
+    const whereClause: any = {
+      status: 'PUBLISHED',
+    };
+
+    // Add search filter
+    if (search) {
+      whereClause.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } },
+        { city: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
+    // Add country filter
+    if (country) {
+      whereClause.country = {
+        OR: [
+          { name: { contains: country, mode: 'insensitive' } },
+          { code: { contains: country, mode: 'insensitive' } },
+        ],
+      };
+    }
+
     const tournaments = await prisma.tournament.findMany({
-      where: {
-        status: 'PUBLISHED',
-      },
+      where: whereClause,
       select: {
         id: true,
         name: true,
