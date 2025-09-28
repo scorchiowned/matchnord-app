@@ -30,13 +30,14 @@ import { Label } from '@/components/ui/label';
 import { Plus, Edit, Trash2, MapPin, Square } from 'lucide-react';
 import { toast } from 'sonner';
 import { PitchesManagement } from './pitches-management';
+import { VenueLocationFormV2 } from './venue-location-form-v2';
 
 interface Venue {
   id: string;
   name: string;
-  streetName?: string;
-  postalCode?: string;
-  city?: string;
+  address?: string;
+  xCoordinate?: number;
+  yCoordinate?: number;
 }
 
 interface VenuesManagementProps {
@@ -60,9 +61,9 @@ export function VenuesManagement({
   // Form state
   const [formData, setFormData] = useState({
     name: '',
-    streetName: '',
-    postalCode: '',
-    city: '',
+    address: '',
+    xCoordinate: undefined as number | undefined,
+    yCoordinate: undefined as number | undefined,
   });
 
   // Fetch venues
@@ -95,14 +96,12 @@ export function VenuesManagement({
     fetchData();
   }, [tournamentId]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!formData.name) {
-      toast.error('Name is required');
-      return;
-    }
-
+  const handleSave = async (data: {
+    name: string;
+    address?: string;
+    xCoordinate?: number;
+    yCoordinate?: number;
+  }) => {
     try {
       setIsSubmitting(true);
 
@@ -118,7 +117,7 @@ export function VenuesManagement({
           'Content-Type': 'application/json',
         },
         credentials: 'include',
-        body: JSON.stringify(formData),
+        body: JSON.stringify(data),
       });
 
       if (response.ok) {
@@ -156,9 +155,9 @@ export function VenuesManagement({
     setEditingVenue(venue);
     setFormData({
       name: venue.name,
-      streetName: venue.streetName || '',
-      postalCode: venue.postalCode || '',
-      city: venue.city || '',
+      address: venue.address || '',
+      xCoordinate: venue.xCoordinate,
+      yCoordinate: venue.yCoordinate,
     });
     setIsDialogOpen(true);
   };
@@ -192,9 +191,9 @@ export function VenuesManagement({
   const resetForm = () => {
     setFormData({
       name: '',
-      streetName: '',
-      postalCode: '',
-      city: '',
+      address: '',
+      xCoordinate: undefined,
+      yCoordinate: undefined,
     });
     setEditingVenue(null);
   };
@@ -231,90 +230,28 @@ export function VenuesManagement({
                   Add Venue
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-h-[80vh] overflow-y-auto sm:max-w-[600px]">
+              <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[800px]">
                 <DialogHeader>
                   <DialogTitle>
                     {editingVenue ? 'Edit Venue' : 'Add New Venue'}
                   </DialogTitle>
                   <DialogDescription>
                     {editingVenue
-                      ? 'Update the venue information below.'
-                      : 'Add a new venue for this tournament.'}
+                      ? 'Update the venue information and location below.'
+                      : 'Add a new venue for this tournament with location details.'}
                   </DialogDescription>
                 </DialogHeader>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Venue Name *</Label>
-                    <Input
-                      id="name"
-                      value={formData.name}
-                      onChange={(e) =>
-                        setFormData({ ...formData, name: e.target.value })
-                      }
-                      placeholder="Enter venue name"
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="streetName">Address</Label>
-                    <Input
-                      id="streetName"
-                      value={formData.streetName}
-                      onChange={(e) =>
-                        setFormData({ ...formData, streetName: e.target.value })
-                      }
-                      placeholder="Enter street address"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="postalCode">Postal Code</Label>
-                      <Input
-                        id="postalCode"
-                        value={formData.postalCode}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            postalCode: e.target.value,
-                          })
-                        }
-                        placeholder="Enter postal code"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="city">City</Label>
-                      <Input
-                        id="city"
-                        value={formData.city}
-                        onChange={(e) =>
-                          setFormData({ ...formData, city: e.target.value })
-                        }
-                        placeholder="Enter city"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex justify-end space-x-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={handleDialogClose}
-                      disabled={isSubmitting}
-                    >
-                      Cancel
-                    </Button>
-                    <Button type="submit" disabled={isSubmitting}>
-                      {isSubmitting
-                        ? 'Saving...'
-                        : editingVenue
-                          ? 'Update Venue'
-                          : 'Add Venue'}
-                    </Button>
-                  </div>
-                </form>
+                <VenueLocationFormV2
+                  initialData={{
+                    name: formData.name,
+                    address: formData.address,
+                    xCoordinate: formData.xCoordinate,
+                    yCoordinate: formData.yCoordinate,
+                  }}
+                  onSave={handleSave}
+                  onCancel={handleDialogClose}
+                  isLoading={isSubmitting}
+                />
               </DialogContent>
             </Dialog>
           </CardTitle>
@@ -340,8 +277,7 @@ export function VenuesManagement({
                   <TableRow>
                     <TableHead>Venue Name</TableHead>
                     <TableHead>Address</TableHead>
-                    <TableHead>Postal Code</TableHead>
-                    <TableHead>City</TableHead>
+                    <TableHead>Location</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -352,13 +288,21 @@ export function VenuesManagement({
                         <div className="font-medium">{venue.name}</div>
                       </TableCell>
                       <TableCell>
-                        <div className="text-sm">{venue.streetName || '-'}</div>
+                        <div
+                          className="max-w-xs truncate text-sm"
+                          title={venue.address}
+                        >
+                          {venue.address || '-'}
+                        </div>
                       </TableCell>
                       <TableCell>
-                        <div className="text-sm">{venue.postalCode || '-'}</div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-sm">{venue.city || '-'}</div>
+                        <div className="text-sm">
+                          {venue.xCoordinate && venue.yCoordinate ? (
+                            <span className="text-green-600">📍 Located</span>
+                          ) : (
+                            <span className="text-gray-400">No location</span>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end space-x-2">

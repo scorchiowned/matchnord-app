@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { SafeHtml } from '@/components/ui/safe-html';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MainNavigation } from '@/components/navigation/main-navigation';
+import { PublicVenueMap } from '@/components/tournament/public-venue-map';
 import {
   Trophy,
   Calendar,
@@ -74,6 +75,21 @@ interface BracketMatch {
   status: 'upcoming' | 'live' | 'finished';
 }
 
+interface Venue {
+  id: string;
+  name: string;
+  streetName?: string;
+  postalCode?: string;
+  city?: string;
+  country?: {
+    id: string;
+    name: string;
+    code: string;
+  };
+  xCoordinate?: number;
+  yCoordinate?: number;
+}
+
 interface Tournament {
   id: string;
   name: string;
@@ -81,6 +97,7 @@ interface Tournament {
   startDate: string;
   endDate: string;
   venue: string;
+  venues: Venue[];
   rulesUrl?: string;
   groups: {
     id: string;
@@ -298,6 +315,29 @@ export default function PublicTournamentPage({
               </div>
             </CardContent>
           </Card>
+
+          {/* Venue Map */}
+          {tournament.venues && tournament.venues.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MapPin className="h-5 w-5" />
+                  {t('tournament.venue')}{' '}
+                  {tournament.venues.length > 1 ? 's' : ''}
+                </CardTitle>
+                <CardDescription>
+                  {t('tournament.venueLocation')}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  {tournament.venues.map((venue) => (
+                    <PublicVenueMap key={venue.id} venue={venue} />
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Main Content */}
           <Tabs

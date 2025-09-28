@@ -255,6 +255,7 @@
         "registerTeam": "Register team",
         "dates": "Dates",
         "venue": "Venue",
+        "venueLocation": "Location",
         "teams": "Teams",
         "groups": "Groups",
         "groupsTab": "Groups",

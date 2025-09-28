@@ -53,6 +53,13 @@ export async function GET(
         venues: {
           include: {
             pitches: true,
+            country: {
+              select: {
+                id: true,
+                name: true,
+                code: true,
+              },
+            },
           },
         },
         rules: {
@@ -96,6 +103,16 @@ export async function GET(
       country: tournament.country,
       city: tournament.city,
       venue: tournament.venues[0]?.name || 'TBD',
+      venues: tournament.venues.map((venue) => ({
+        id: venue.id,
+        name: venue.name,
+        streetName: venue.streetName,
+        postalCode: venue.postalCode,
+        city: venue.city,
+        country: venue.country,
+        xCoordinate: venue.xCoordinate,
+        yCoordinate: venue.yCoordinate,
+      })),
       rulesUrl: tournament.documents.find(
         (doc) => doc.fileType === 'application/pdf'
       )?.fileUrl,
