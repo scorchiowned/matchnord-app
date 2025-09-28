@@ -12,8 +12,6 @@ export default function Header() {
   const navigation = [
     { name: "Home", href: "/fi" },
     { name: "Tournaments", href: "/fi/tournaments" },
-    { name: "Live", href: "/fi/live", isLive: true },
-    { name: "Results", href: "/fi/results" },
     { name: "About", href: "/fi/about" },
   ];
 
@@ -35,15 +33,8 @@ export default function Header() {
               <Link
                 key={item.name}
                 href={item.href}
-                className={`font-medium transition-colors flex items-center ${
-                  item.isLive
-                    ? "text-red-600 hover:text-red-700"
-                    : "text-gray-600 hover:text-gray-900"
-                }`}
+                className="font-medium transition-colors text-gray-600 hover:text-gray-900"
               >
-                {item.isLive && (
-                  <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse mr-2"></div>
-                )}
                 {item.name}
               </Link>
             ))}
@@ -81,16 +72,9 @@ export default function Header() {
                 <Link
                   key={item.name}
                   href={item.href}
-                  className={`font-medium transition-colors px-4 py-2 flex items-center ${
-                    item.isLive
-                      ? "text-red-600 hover:text-red-700"
-                      : "text-gray-600 hover:text-gray-900"
-                  }`}
+                  className="font-medium transition-colors px-4 py-2 text-gray-600 hover:text-gray-900"
                   onClick={() => setIsMenuOpen(false)}
                 >
-                  {item.isLive && (
-                    <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse mr-2"></div>
-                  )}
                   {item.name}
                 </Link>
               ))}
