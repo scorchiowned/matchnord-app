@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import {
   Select,
   SelectContent,
@@ -354,15 +355,13 @@ export default function NewTournamentPage() {
                       <Label htmlFor="description">
                         {t('tournament.description')}
                       </Label>
-                      <Textarea
-                        id="description"
-                        data-testid="tournament-description-input"
-                        value={formData.description}
-                        onChange={(e) =>
-                          handleInputChange('description', e.target.value)
+                      <RichTextEditor
+                        content={formData.description}
+                        onChange={(content) =>
+                          handleInputChange('description', content)
                         }
                         placeholder="Enter tournament description"
-                        rows={4}
+                        className="min-h-[120px]"
                       />
                     </div>
                   </div>

@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { RichTextEditor } from '@/components/ui/rich-text-editor';
+import { SafeHtml } from '@/components/ui/safe-html';
 import {
   Select,
   SelectContent,
@@ -368,14 +370,13 @@ export function TournamentInfoEditor({
                 <Label htmlFor="description" className="text-sm font-medium">
                   Description
                 </Label>
-                <Textarea
-                  id="description"
-                  value={formData.description || ''}
-                  onChange={(e) =>
-                    handleInputChange('description', e.target.value)
+                <RichTextEditor
+                  content={formData.description || ''}
+                  onChange={(content) =>
+                    handleInputChange('description', content)
                   }
                   placeholder="Enter tournament description..."
-                  rows={3}
+                  className="min-h-[120px]"
                 />
               </div>
             </>
@@ -408,9 +409,16 @@ export function TournamentInfoEditor({
                 <Label className="text-sm font-medium text-muted-foreground">
                   Description
                 </Label>
-                <p className="text-sm">
-                  {tournament.description || 'No description'}
-                </p>
+                {tournament.description ? (
+                  <SafeHtml
+                    content={tournament.description}
+                    className="text-sm"
+                  />
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    No description
+                  </p>
+                )}
               </div>
             </>
           )}

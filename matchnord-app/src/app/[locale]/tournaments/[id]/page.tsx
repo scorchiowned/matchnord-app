@@ -175,12 +175,6 @@ export default function TournamentDetailPage() {
                 </Badge>
               </div>
 
-              {tournament.description && (
-                <p className="text-gray-700 mb-6 leading-relaxed">
-                  {tournament.description}
-                </p>
-              )}
-
               {/* Tournament Details */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
                 <div className="flex items-center text-gray-600">
@@ -224,6 +218,13 @@ export default function TournamentDetailPage() {
                   </div>
                 </div>
               </div>
+
+              {tournament.description && (
+                <div 
+                  className="text-gray-700 mb-6 leading-relaxed prose prose-gray max-w-none"
+                  dangerouslySetInnerHTML={{ __html: tournament.description }}
+                />
+              )}
 
               {/* Contact Information */}
               {(tournament.contactEmail || tournament.contactPhone) && (

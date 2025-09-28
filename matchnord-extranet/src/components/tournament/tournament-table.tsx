@@ -12,6 +12,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { SafeHtml } from '@/components/ui/safe-html';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Calendar,
@@ -123,7 +124,7 @@ export function TournamentTable({
             {[...Array(5)].map((_, i) => (
               <div
                 key={i}
-                className="bg-style-card-bg h-16 animate-pulse rounded"
+                className="h-16 animate-pulse rounded bg-style-card-bg"
               />
             ))}
           </div>
@@ -140,11 +141,11 @@ export function TournamentTable({
         </CardHeader>
         <CardContent>
           <div className="py-8 text-center">
-            <Trophy className="text-style-text-secondary mx-auto mb-4 h-12 w-12" />
-            <h3 className="text-style-text-secondary mb-2 text-lg font-medium">
+            <Trophy className="mx-auto mb-4 h-12 w-12 text-style-text-secondary" />
+            <h3 className="mb-2 text-lg font-medium text-style-text-secondary">
               {t('tournament.noTournamentsFound')}
             </h3>
-            <p className="text-style-text-secondary text-sm">
+            <p className="text-sm text-style-text-secondary">
               {t('tournament.noTournamentsDescription')}
             </p>
           </div>
@@ -186,7 +187,7 @@ export function TournamentTable({
                       <div className="font-medium">{tournament.name}</div>
                       {tournament.description && (
                         <div className="line-clamp-2 text-sm text-muted-foreground">
-                          {tournament.description}
+                          <SafeHtml content={tournament.description} />
                         </div>
                       )}
                     </div>

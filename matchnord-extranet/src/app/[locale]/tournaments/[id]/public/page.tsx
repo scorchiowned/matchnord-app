@@ -14,6 +14,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { SafeHtml } from '@/components/ui/safe-html';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MainNavigation } from '@/components/navigation/main-navigation';
 import {
@@ -207,9 +208,16 @@ export default function PublicTournamentPage({
                 <h1 className="text-3xl font-bold tracking-tight">
                   {tournament.name}
                 </h1>
-                <p className="text-muted-foreground">
-                  {tournament.description}
-                </p>
+                {tournament.description ? (
+                  <SafeHtml
+                    content={tournament.description}
+                    className="text-muted-foreground"
+                  />
+                ) : (
+                  <p className="text-muted-foreground">
+                    No description available
+                  </p>
+                )}
               </div>
             </div>
 
