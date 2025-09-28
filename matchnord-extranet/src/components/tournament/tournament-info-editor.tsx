@@ -102,7 +102,7 @@ export function TournamentInfoEditor({
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState<Tournament>(tournament);
-  
+
   // Use tournamentId prop or fallback to tournament.id
   const currentTournamentId = tournamentId || tournament.id;
 
@@ -179,13 +179,17 @@ export function TournamentInfoEditor({
         name: formData.name,
         description: formData.description,
         season: formData.season,
-        startDate: formData.startDate,
-        endDate: formData.endDate,
-        countryId: formData.country.id,
-        city: formData.city,
-        address: formData.address,
-        contactEmail: formData.contactEmail,
-        contactPhone: formData.contactPhone,
+        startDate: formData.startDate
+          ? new Date(formData.startDate).toISOString()
+          : undefined,
+        endDate: formData.endDate
+          ? new Date(formData.endDate).toISOString()
+          : undefined,
+        countryId: formData.country?.id || null,
+        city: formData.city || null,
+        address: formData.address || null,
+        contactEmail: formData.contactEmail || null,
+        contactPhone: formData.contactPhone || null,
         status: formData.status,
         autoAcceptTeams: formData.autoAcceptTeams,
         allowWaitlist: formData.allowWaitlist,
@@ -193,7 +197,9 @@ export function TournamentInfoEditor({
 
       // Only include optional fields if they have values
       if (formData.registrationDeadline) {
-        updateData.registrationDeadline = formData.registrationDeadline;
+        updateData.registrationDeadline = new Date(
+          formData.registrationDeadline
+        ).toISOString();
       }
       if (formData.maxTeams !== null && formData.maxTeams !== undefined) {
         updateData.maxTeams = formData.maxTeams;
@@ -204,6 +210,8 @@ export function TournamentInfoEditor({
       if (formData.heroImage) {
         updateData.heroImage = formData.heroImage;
       }
+
+      console.log('Sending tournament update data:', updateData);
 
       const response = await fetch(`/api/v1/tournaments/${tournament.id}`, {
         method: 'PATCH',
@@ -220,7 +228,14 @@ export function TournamentInfoEditor({
         setIsEditing(false);
       } else {
         const error = await response.json();
-        throw new Error(error.error || 'Failed to update tournament');
+        console.error('Tournament update failed:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: error,
+        });
+        throw new Error(
+          error.error || `Failed to update tournament (${response.status})`
+        );
       }
     } catch (error) {
       console.error('Error updating tournament:', error);

@@ -2,6 +2,7 @@ import createMiddleware from 'next-intl/middleware';
 import { routing } from './src/i18n/routing';
 import { NextRequest, NextResponse } from 'next/server';
 
+// Create the next-intl middleware with our routing configuration
 const handleI18nRouting = createMiddleware(routing);
 
 export default function middleware(request: NextRequest) {
@@ -38,22 +39,7 @@ export default function middleware(request: NextRequest) {
     return response;
   }
 
-  // Handle non-localized routes that should return 404
-  const nonLocalizedRoutes = [
-    '/tournaments',
-    '/teams',
-    '/matches',
-    '/venues',
-    '/profile',
-    '/results',
-    '/live',
-  ];
-  if (nonLocalizedRoutes.includes(pathname)) {
-    // Redirect to the localized version
-    return NextResponse.redirect(new URL(`/fi${pathname}`, request.url));
-  }
-
-  // Handle all other requests with next-intl middleware
+  // Let next-intl handle all locale detection and routing
   return handleI18nRouting(request);
 }
 

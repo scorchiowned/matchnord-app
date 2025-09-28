@@ -517,7 +517,7 @@ export async function testEmailService() {
   try {
     const result = await resend.emails.send({
       //from: env.EMAIL_FROM || 'Tournament System <test@tournament.com>',
-      from: 'Acme <onboarding@resend.dev>',
+      from: 'Braketly <support@braketly.com>',
       to: 'manttila83@gmail.com',
       subject: 'Email Service Test',
       html: '<p>Email service is working correctly!</p>',

@@ -131,11 +131,11 @@ const updateTournamentSchema = z.object({
   season: z.string().optional(),
   startDate: z.string().optional(),
   endDate: z.string().optional(),
-  city: z.string().optional(),
-  address: z.string().optional(),
-  contactEmail: z.string().email().optional().or(z.literal('')),
-  contactPhone: z.string().optional(),
-  countryId: z.string().optional(),
+  city: z.string().optional().or(z.null()),
+  address: z.string().optional().or(z.null()),
+  contactEmail: z.string().email().optional().or(z.literal('')).or(z.null()),
+  contactPhone: z.string().optional().or(z.null()),
+  countryId: z.string().optional().or(z.null()),
   status: z
     .enum([
       'DRAFT',

@@ -12,6 +12,9 @@ import {
 import { locales, localeNames, localeFlags, type Locale } from '@/i18n/config';
 import { useEffect, useState } from 'react';
 
+// localStorage key for language preference
+const LANGUAGE_STORAGE_KEY = 'preferred-language';
+
 export function LanguageSwitcher() {
   const locale = useLocale() as Locale;
   const router = useRouter();
@@ -19,12 +22,27 @@ export function LanguageSwitcher() {
   const t = useTranslations('common');
   const [currentLocale, setCurrentLocale] = useState<Locale>(locale);
 
+  // Load language preference from localStorage on mount
+  useEffect(() => {
+    const savedLanguage = localStorage.getItem(LANGUAGE_STORAGE_KEY) as Locale;
+    if (savedLanguage && locales.includes(savedLanguage)) {
+      setCurrentLocale(savedLanguage);
+      // If the saved language is different from current locale, redirect to it
+      if (savedLanguage !== locale) {
+        handleLocaleChange(savedLanguage);
+      }
+    }
+  }, []);
+
   // Update currentLocale when locale changes
   useEffect(() => {
     setCurrentLocale(locale);
   }, [locale]);
 
   const handleLocaleChange = (newLocale: Locale) => {
+    // Save language preference to localStorage
+    localStorage.setItem(LANGUAGE_STORAGE_KEY, newLocale);
+
     // Remove current locale from pathname if it exists
     const segments = pathname.split('/');
     const currentLocaleInPath = locales.includes(segments[1] as Locale);
@@ -95,12 +113,27 @@ export function LanguageSwitcherCompact() {
   const pathname = usePathname();
   const [currentLocale, setCurrentLocale] = useState<Locale>(locale);
 
+  // Load language preference from localStorage on mount
+  useEffect(() => {
+    const savedLanguage = localStorage.getItem(LANGUAGE_STORAGE_KEY) as Locale;
+    if (savedLanguage && locales.includes(savedLanguage)) {
+      setCurrentLocale(savedLanguage);
+      // If the saved language is different from current locale, redirect to it
+      if (savedLanguage !== locale) {
+        handleLocaleChange(savedLanguage);
+      }
+    }
+  }, []);
+
   // Update currentLocale when locale changes
   useEffect(() => {
     setCurrentLocale(locale);
   }, [locale]);
 
   const handleLocaleChange = (newLocale: Locale) => {
+    // Save language preference to localStorage
+    localStorage.setItem(LANGUAGE_STORAGE_KEY, newLocale);
+
     // Remove current locale from pathname if it exists
     const segments = pathname.split('/');
     const currentLocaleInPath = locales.includes(segments[1] as Locale);

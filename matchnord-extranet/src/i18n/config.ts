@@ -37,4 +37,3 @@ export function addLocaleToUrl(pathname: string, locale: Locale): string {
   const cleanPath = removeLocaleFromUrl(pathname);
   return `/${locale}${cleanPath}`;
 }
-

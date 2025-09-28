@@ -10,6 +10,7 @@
         "typecheck": "tsc --noEmit",
         "test": "vitest --run",
         "e2e": "npx playwright test e2e/tournaments/tournament-management.spec.ts --project=chromium --reporter=list --workers=1",
+        "e2e:email": "npx playwright test e2e/email/email-system.spec.ts --project=chromium --reporter=list",
         "e2e:ui": "playwright test --ui",
         "e2e:headed": "playwright test --headed",
         "e2e:debug": "playwright test --debug",
