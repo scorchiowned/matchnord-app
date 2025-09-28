@@ -50,6 +50,8 @@ export async function GET(
             streetName: true,
             postalCode: true,
             city: true,
+            xCoordinate: true,
+            yCoordinate: true,
             pitches: {
               select: {
                 id: true,
@@ -65,7 +67,13 @@ export async function GET(
           orderBy: { name: 'asc' },
         });
 
-        return NextResponse.json(venues);
+        // Transform venues to include address field
+        const transformedVenues = venues.map((venue) => ({
+          ...venue,
+          address: venue.streetName || '-',
+        }));
+
+        return NextResponse.json(transformedVenues);
       }
 
       // Check if user created this tournament or has assignments
@@ -89,6 +97,8 @@ export async function GET(
             streetName: true,
             postalCode: true,
             city: true,
+            xCoordinate: true,
+            yCoordinate: true,
             pitches: {
               select: {
                 id: true,
@@ -104,7 +114,13 @@ export async function GET(
           orderBy: { name: 'asc' },
         });
 
-        return NextResponse.json(venues);
+        // Transform venues to include address field
+        const transformedVenues = venues.map((venue) => ({
+          ...venue,
+          address: venue.streetName || '-',
+        }));
+
+        return NextResponse.json(transformedVenues);
       }
     }
 
@@ -202,9 +218,11 @@ export async function POST(
     const venue = await db.venue.create({
       data: {
         name: body.name,
-        streetName: body.streetName || '',
+        streetName: body.address || body.streetName || '',
         postalCode: body.postalCode || '',
         city: body.city || '',
+        xCoordinate: body.xCoordinate || null,
+        yCoordinate: body.yCoordinate || null,
         countryId: finland.id,
         tournamentId: tournamentId,
       },

@@ -29,11 +29,8 @@ export async function PUT(
     const body = await request.json();
 
     // Validate required fields
-    if (!body.name || !body.countryId) {
-      return NextResponse.json(
-        { error: 'Name and country are required' },
-        { status: 400 }
-      );
+    if (!body.name) {
+      return NextResponse.json({ error: 'Name is required' }, { status: 400 });
     }
 
     // Get the venue and check permissions
@@ -74,15 +71,31 @@ export async function PUT(
       );
     }
 
+    // Get Finland as the default country if not provided
+    let countryId = body.countryId;
+    if (!countryId) {
+      const finland = await db.country.findFirst({
+        where: { code: 'FI' },
+        select: { id: true },
+      });
+      if (!finland) {
+        return NextResponse.json(
+          { error: 'Default country not found' },
+          { status: 500 }
+        );
+      }
+      countryId = finland.id;
+    }
+
     // Update the venue
     const updatedVenue = await db.venue.update({
       where: { id: venueId },
       data: {
         name: body.name,
-        streetName: body.streetName || '',
+        streetName: body.address || body.streetName || '',
         postalCode: body.postalCode || '',
         city: body.city || '',
-        countryId: body.countryId,
+        countryId: countryId,
         capacity: body.capacity ? parseInt(body.capacity) : null,
         description: body.description || '',
         facilities: body.facilities || '',
