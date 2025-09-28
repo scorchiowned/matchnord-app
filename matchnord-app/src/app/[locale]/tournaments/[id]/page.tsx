@@ -195,6 +195,11 @@ export default function TournamentDetailPage() {
                     <div className="text-sm">
                       {tournament.city || 'City TBD'}, {tournament.country?.name || 'Country TBD'}
                     </div>
+                    {tournament.venues && tournament.venues.length > 0 && (
+                      <div className="text-xs text-gray-500 mt-1">
+                        Venue: {tournament.venues[0].name}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -224,6 +229,43 @@ export default function TournamentDetailPage() {
                   className="text-gray-700 mb-6 leading-relaxed prose prose-gray max-w-none"
                   dangerouslySetInnerHTML={{ __html: tournament.description }}
                 />
+              )}
+
+              {/* Venue Map */}
+              {tournament.venues && tournament.venues.length > 0 && tournament.venues[0].xCoordinate && tournament.venues[0].yCoordinate && (
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Venue Location</h3>
+                  <div className="bg-gray-100 rounded-lg p-4">
+                    <div className="mb-3">
+                      <h4 className="font-medium text-gray-900">{tournament.venues[0].name}</h4>
+                      {tournament.venues[0].streetName && (
+                        <p className="text-sm text-gray-600 mt-1">{tournament.venues[0].streetName}</p>
+                      )}
+                    </div>
+                    <div className="aspect-video bg-gray-200 rounded-lg overflow-hidden">
+                      <iframe
+                        src={`https://www.openstreetmap.org/export/embed.html?bbox=${tournament.venues[0].xCoordinate - 0.01},${tournament.venues[0].yCoordinate - 0.01},${tournament.venues[0].xCoordinate + 0.01},${tournament.venues[0].yCoordinate + 0.01}&layer=mapnik&marker=${tournament.venues[0].yCoordinate},${tournament.venues[0].xCoordinate}`}
+                        width="100%"
+                        height="100%"
+                        style={{ border: 0 }}
+                        allowFullScreen
+                        loading="lazy"
+                        referrerPolicy="no-referrer-when-downgrade"
+                        title={`Map of ${tournament.venues[0].name}`}
+                      />
+                    </div>
+                    <div className="mt-3 text-center">
+                      <a
+                        href={`https://www.openstreetmap.org/?mlat=${tournament.venues[0].yCoordinate}&mlon=${tournament.venues[0].xCoordinate}&zoom=15`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-blue-600 hover:text-blue-800 underline"
+                      >
+                        View larger map
+                      </a>
+                    </div>
+                  </div>
+                </div>
               )}
 
               {/* Contact Information */}
