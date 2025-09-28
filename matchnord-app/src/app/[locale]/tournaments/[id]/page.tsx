@@ -11,7 +11,6 @@ import {
   MapPin,
   Users,
   Trophy,
-  Clock,
   Phone,
   Mail,
   Loader2,
@@ -140,27 +139,20 @@ export default function TournamentDetailPage() {
               </div>
             </div>
           )}
-          
-          <div className="flex flex-col lg:flex-row gap-6">
-            {/* Tournament Logo */}
-            <div className="lg:w-1/3">
-              <div className="aspect-square bg-gradient-to-br from-blue-100 to-green-100 rounded-lg flex items-center justify-center p-8 relative">
-                {tournament.logo ? (
-                  <Image
-                    src={tournament.logo}
-                    alt={`${tournament.name} logo`}
-                    width={200}
-                    height={200}
-                    className="max-w-full max-h-full object-contain"
-                  />
-                ) : (
-                  <Trophy className="w-24 h-24 text-blue-600" />
-                )}
-              </div>
-            </div>
+        </div>
 
-            {/* Tournament Info */}
-            <div className="lg:w-2/3">
+        {/* Tournament Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full mb-8">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="divisions">Divisions</TabsTrigger>
+            <TabsTrigger value="matches">Matches</TabsTrigger>
+            <TabsTrigger value="teams">Teams</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="overview" className="mt-6">
+            {/* Tournament Summary */}
+            <div className="mb-6">
               <div className="flex items-start justify-between mb-4">
                 <div>
                   <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">
@@ -175,220 +167,184 @@ export default function TournamentDetailPage() {
                 </Badge>
               </div>
 
-              {/* Tournament Details */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-                <div className="flex items-center text-gray-600">
-                  <Calendar className="w-5 h-5 mr-3" />
-                  <div>
-                    <div className="font-medium">Tournament Dates</div>
-                    <div className="text-sm">
-                      {format(new Date(tournament.startDate), "MMM d, yyyy")} -{" "}
-                      {format(new Date(tournament.endDate), "MMM d, yyyy")}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center text-gray-600">
-                  <MapPin className="w-5 h-5 mr-3" />
-                  <div>
-                    <div className="font-medium">Location</div>
-                    <div className="text-sm">
-                      {tournament.city || 'City TBD'}, {tournament.country?.name || 'Country TBD'}
-                    </div>
-                    {tournament.venues && tournament.venues.length > 0 && (
-                      <div className="text-xs text-gray-500 mt-1">
-                        Venue: {tournament.venues[0].name}
+              {/* Tournament Details with Logo */}
+              <div className="flex flex-col lg:flex-row gap-6 mb-6">
+                {/* Basic Information */}
+                <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="flex items-center text-gray-600">
+                    <Calendar className="w-5 h-5 mr-3" />
+                    <div>
+                      <div className="font-medium">Tournament Dates</div>
+                      <div className="text-sm">
+                        {format(new Date(tournament.startDate), "MMM d, yyyy")} -{" "}
+                        {format(new Date(tournament.endDate), "MMM d, yyyy")}
                       </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center text-gray-600">
+                    <MapPin className="w-5 h-5 mr-3" />
+                    <div>
+                      <div className="font-medium">Location</div>
+                      <div className="text-sm">
+                        {tournament.city || 'City TBD'}, {tournament.country?.name || 'Country TBD'}
+                      </div>
+                      {tournament.venues && tournament.venues.length > 0 && (
+                        <div className="text-xs text-gray-500 mt-1">
+                          Venue: {tournament.venues[0].name}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center text-gray-600">
+                    <Users className="w-5 h-5 mr-3" />
+                    <div>
+                      <div className="font-medium">Teams</div>
+                      <div className="text-sm">
+                        {teams?.length || 0} registered
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center text-gray-600">
+                    <Trophy className="w-5 h-5 mr-3" />
+                    <div>
+                      <div className="font-medium">Divisions</div>
+                      <div className="text-sm">
+                        {divisions?.length || 0} divisions
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Tournament Logo */}
+                <div className="lg:w-48 flex-shrink-0">
+                  <div className="aspect-square bg-gradient-to-br from-blue-100 to-green-100 rounded-lg flex items-center justify-center p-4 relative">
+                    {tournament.logo ? (
+                      <Image
+                        src={tournament.logo}
+                        alt={`${tournament.name} logo`}
+                        width={150}
+                        height={150}
+                        className="max-w-full max-h-full object-contain"
+                      />
+                    ) : (
+                      <Trophy className="w-16 h-16 text-blue-600" />
                     )}
-                  </div>
-                </div>
-
-                <div className="flex items-center text-gray-600">
-                  <Users className="w-5 h-5 mr-3" />
-                  <div>
-                    <div className="font-medium">Teams</div>
-                    <div className="text-sm">
-                      {teams?.length || 0} registered
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center text-gray-600">
-                  <Trophy className="w-5 h-5 mr-3" />
-                  <div>
-                    <div className="font-medium">Divisions</div>
-                    <div className="text-sm">
-                      {divisions?.length || 0} divisions
-                    </div>
                   </div>
                 </div>
               </div>
+            </div>
 
-              {tournament.description && (
+            {/* Tournament Description */}
+            {tournament.description && (
+              <div className="mb-6">
                 <div 
-                  className="text-gray-700 mb-6 leading-relaxed prose prose-gray max-w-none"
+                  className="text-gray-700 leading-relaxed prose prose-gray max-w-none"
                   dangerouslySetInnerHTML={{ __html: tournament.description }}
                 />
-              )}
+              </div>
+            )}
 
-              {/* Venue Map */}
-              {tournament.venues && tournament.venues.length > 0 && tournament.venues[0].xCoordinate && tournament.venues[0].yCoordinate && (
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Venue Location</h3>
-                  <div className="bg-gray-100 rounded-lg p-4">
-                    <div className="mb-3">
-                      <h4 className="font-medium text-gray-900">{tournament.venues[0].name}</h4>
-                      {tournament.venues[0].streetName && (
-                        <p className="text-sm text-gray-600 mt-1">{tournament.venues[0].streetName}</p>
-                      )}
-                    </div>
-                    <div className="aspect-video bg-gray-200 rounded-lg overflow-hidden">
-                      <iframe
-                        src={`https://www.openstreetmap.org/export/embed.html?bbox=${tournament.venues[0].xCoordinate - 0.01},${tournament.venues[0].yCoordinate - 0.01},${tournament.venues[0].xCoordinate + 0.01},${tournament.venues[0].yCoordinate + 0.01}&layer=mapnik&marker=${tournament.venues[0].yCoordinate},${tournament.venues[0].xCoordinate}`}
-                        width="100%"
-                        height="100%"
-                        style={{ border: 0 }}
-                        allowFullScreen
-                        loading="lazy"
-                        referrerPolicy="no-referrer-when-downgrade"
-                        title={`Map of ${tournament.venues[0].name}`}
-                      />
-                    </div>
-                    <div className="mt-3 text-center">
-                      <a
-                        href={`https://www.openstreetmap.org/?mlat=${tournament.venues[0].yCoordinate}&mlon=${tournament.venues[0].xCoordinate}&zoom=15`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm text-blue-600 hover:text-blue-800 underline"
-                      >
-                        View larger map
-                      </a>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Contact Information */}
-              {(tournament.contactEmail || tournament.contactPhone) && (
-                <div className="border-t pt-4">
-                  <h3 className="font-semibold text-gray-900 mb-2">
-                    Contact Information
-                  </h3>
-                  <div className="flex flex-wrap gap-4">
-                    {tournament.contactEmail && (
-                      <a
-                        href={`mailto:${tournament.contactEmail}`}
-                        className="flex items-center text-blue-600 hover:text-blue-800"
-                      >
-                        <Mail className="w-4 h-4 mr-2" />
-                        {tournament.contactEmail}
-                      </a>
-                    )}
-                    {tournament.contactPhone && (
-                      <a
-                        href={`tel:${tournament.contactPhone}`}
-                        className="flex items-center text-blue-600 hover:text-blue-800"
-                      >
-                        <Phone className="w-4 h-4 mr-2" />
-                        {tournament.contactPhone}
-                      </a>
+            {/* Venue Map */}
+            {tournament.venues && tournament.venues.length > 0 && tournament.venues[0].xCoordinate && tournament.venues[0].yCoordinate && (
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">Venue Location</h3>
+                <div className="bg-gray-100 rounded-lg p-4">
+                  <div className="mb-3">
+                    <h4 className="font-medium text-gray-900">{tournament.venues[0].name}</h4>
+                    {tournament.venues[0].streetName && (
+                      <p className="text-sm text-gray-600 mt-1">{tournament.venues[0].streetName}</p>
                     )}
                   </div>
+                  <div className="aspect-video bg-gray-200 rounded-lg overflow-hidden">
+                    <iframe
+                      src={`https://www.openstreetmap.org/export/embed.html?bbox=${tournament.venues[0].xCoordinate - 0.01},${tournament.venues[0].yCoordinate - 0.01},${tournament.venues[0].xCoordinate + 0.01},${tournament.venues[0].yCoordinate + 0.01}&layer=mapnik&marker=${tournament.venues[0].yCoordinate},${tournament.venues[0].xCoordinate}`}
+                      width="100%"
+                      height="100%"
+                      style={{ border: 0 }}
+                      allowFullScreen
+                      loading="lazy"
+                      referrerPolicy="no-referrer-when-downgrade"
+                      title={`Map of ${tournament.venues[0].name}`}
+                    />
+                  </div>
+                  <div className="mt-3 text-center">
+                    <a
+                      href={`https://www.openstreetmap.org/?mlat=${tournament.venues[0].yCoordinate}&mlon=${tournament.venues[0].xCoordinate}&zoom=15`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-blue-600 hover:text-blue-800 underline"
+                    >
+                      View larger map
+                    </a>
+                  </div>
                 </div>
-              )}
-            </div>
-          </div>
-        </div>
+              </div>
+            )}
 
-        {/* Tournament Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="divisions">Divisions</TabsTrigger>
-            <TabsTrigger value="matches">Matches</TabsTrigger>
-            <TabsTrigger value="teams">Teams</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="overview" className="mt-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Recent Matches */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <Clock className="w-5 h-5 mr-2" />
-                    Recent Matches
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {matchesLoading ? (
-                    <div className="flex items-center justify-center py-4">
-                      <Loader2 className="w-6 h-6 animate-spin" />
-                    </div>
-                  ) : matches && matches.length > 0 ? (
-                    <div className="space-y-3">
-                      {matches.slice(0, 5).map((match) => (
-                        <div
-                          key={match.id}
-                          className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-                        >
-                          <div className="flex items-center space-x-3">
-                            <div className="text-sm font-medium">
-                              {match.homeTeam?.name || "TBD"}
-                            </div>
-                            <div className="text-gray-500">vs</div>
-                            <div className="text-sm font-medium">
-                              {match.awayTeam?.name || "TBD"}
-                            </div>
-                          </div>
-                          <div className="text-sm text-gray-600">
-                            {format(new Date(match.startTime), "MMM d, HH:mm")}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-gray-500 text-center py-4">
-                      No matches scheduled yet
-                    </p>
+            {/* Contact Information */}
+            {(tournament.contactEmail || tournament.contactPhone) && (
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">Contact Information</h3>
+                <div className="flex flex-wrap gap-4">
+                  {tournament.contactEmail && (
+                    <a
+                      href={`mailto:${tournament.contactEmail}`}
+                      className="flex items-center text-blue-600 hover:text-blue-800"
+                    >
+                      <Mail className="w-4 h-4 mr-2" />
+                      {tournament.contactEmail}
+                    </a>
                   )}
-                </CardContent>
-              </Card>
+                  {tournament.contactPhone && (
+                    <a
+                      href={`tel:${tournament.contactPhone}`}
+                      className="flex items-center text-blue-600 hover:text-blue-800"
+                    >
+                      <Phone className="w-4 h-4 mr-2" />
+                      {tournament.contactPhone}
+                    </a>
+                  )}
+                </div>
+              </div>
+            )}
 
-              {/* Tournament Stats */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Tournament Statistics</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Total Teams</span>
-                      <span className="font-semibold">
-                        {teams?.length || 0}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Divisions</span>
-                      <span className="font-semibold">
-                        {divisions?.length || 0}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Total Matches</span>
-                      <span className="font-semibold">
-                        {matches?.length || 0}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Status</span>
-                      <Badge className={getStatusColor(tournament.status)}>
-                        {getStatusText(tournament.status)}
-                      </Badge>
-                    </div>
+            {/* Tournament Stats */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Tournament Statistics</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Total Teams</span>
+                    <span className="font-semibold">
+                      {teams?.length || 0}
+                    </span>
                   </div>
-                </CardContent>
-              </Card>
-            </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Divisions</span>
+                    <span className="font-semibold">
+                      {divisions?.length || 0}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Total Matches</span>
+                    <span className="font-semibold">
+                      {matches?.length || 0}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Status</span>
+                    <Badge className={getStatusColor(tournament.status)}>
+                      {getStatusText(tournament.status)}
+                    </Badge>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="divisions" className="mt-6">
