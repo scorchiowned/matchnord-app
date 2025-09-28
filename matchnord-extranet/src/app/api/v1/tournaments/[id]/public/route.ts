@@ -13,6 +13,13 @@ export async function GET(
     const tournament = await db.tournament.findUnique({
       where: { id: params.id },
       include: {
+        country: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+          },
+        },
         divisions: {
           include: {
             groups: {
@@ -84,6 +91,10 @@ export async function GET(
       description: tournament.description,
       startDate: tournament.startDate,
       endDate: tournament.endDate,
+      logo: tournament.logo,
+      heroImage: tournament.heroImage,
+      country: tournament.country,
+      city: tournament.city,
       venue: tournament.venues[0]?.name || 'TBD',
       rulesUrl: tournament.documents.find(
         (doc) => doc.fileType === 'application/pdf'

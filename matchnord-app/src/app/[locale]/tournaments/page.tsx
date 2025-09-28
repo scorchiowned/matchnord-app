@@ -16,6 +16,7 @@ import {
 import { useTournaments } from "@/hooks/use-tournaments";
 import { TournamentStatus } from "@/types/api";
 import Link from "next/link";
+import Image from "next/image";
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -146,16 +147,30 @@ export default function TournamentsPage() {
                 className="hover:shadow-lg transition-shadow"
               >
                 <div className="relative">
-                  <div className="h-48 bg-gradient-to-br from-blue-100 to-green-100 rounded-t-lg flex items-center justify-center">
-                    {tournament.logo ? (
-                      <img
-                        src={tournament.logo}
-                        alt={tournament.name}
-                        className="w-16 h-16 object-contain"
+                  <div className="h-48 bg-gradient-to-br from-blue-100 to-green-100 rounded-t-lg overflow-hidden relative">
+                    {tournament.heroImage ? (
+                      <Image
+                        src={tournament.heroImage}
+                        alt={`${tournament.name} hero image`}
+                        fill
+                        className="object-cover"
                       />
-                    ) : (
-                      <Trophy className="w-16 h-16 text-blue-600" />
-                    )}
+                    ) : null}
+                    
+                    {/* Logo overlay */}
+                    <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-20">
+                      {tournament.logo ? (
+                        <Image
+                          src={tournament.logo}
+                          alt={`${tournament.name} logo`}
+                          width={120}
+                          height={120}
+                          className="max-w-full max-h-full object-contain drop-shadow-lg"
+                        />
+                      ) : (
+                        <Trophy className="w-16 h-16 text-white drop-shadow-lg" />
+                      )}
+                    </div>
                   </div>
                   <Badge
                     className={`absolute top-4 right-4 ${getStatusColor(

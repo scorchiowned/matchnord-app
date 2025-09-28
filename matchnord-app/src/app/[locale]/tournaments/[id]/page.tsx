@@ -24,6 +24,7 @@ import {
   useTournamentTeams,
 } from "@/hooks/use-tournaments";
 import Link from "next/link";
+import Image from "next/image";
 import { format } from "date-fns";
 
 export default function TournamentDetailPage() {
@@ -55,7 +56,7 @@ export default function TournamentDetailPage() {
             Tournament Not Found
           </h2>
           <p className="text-gray-600 mb-4">
-            The tournament you're looking for doesn't exist or is not available.
+            The tournament you&apos;re looking for doesn&apos;t exist or is not available.
           </p>
           <Link href="/fi/tournaments">
             <Button>Back to Tournaments</Button>
@@ -85,7 +86,7 @@ export default function TournamentDetailPage() {
             Tournament Not Found
           </h2>
           <p className="text-gray-600 mb-4">
-            The tournament you're looking for doesn't exist.
+            The tournament you&apos;re looking for doesn&apos;t exist.
           </p>
           <Link href="/fi/tournaments">
             <Button>Back to Tournaments</Button>
@@ -126,15 +127,31 @@ export default function TournamentDetailPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Tournament Header */}
         <div className="mb-8">
+          {/* Hero Image */}
+          {tournament.heroImage && (
+            <div className="mb-6">
+              <div className="aspect-video bg-gradient-to-br from-blue-100 to-green-100 rounded-lg overflow-hidden relative">
+                <Image
+                  src={tournament.heroImage}
+                  alt={`${tournament.name} hero image`}
+                  fill
+                  className="object-cover"
+                />
+              </div>
+            </div>
+          )}
+          
           <div className="flex flex-col lg:flex-row gap-6">
-            {/* Tournament Image */}
+            {/* Tournament Logo */}
             <div className="lg:w-1/3">
-              <div className="aspect-video bg-gradient-to-br from-blue-100 to-green-100 rounded-lg flex items-center justify-center">
+              <div className="aspect-square bg-gradient-to-br from-blue-100 to-green-100 rounded-lg flex items-center justify-center p-8 relative">
                 {tournament.logo ? (
-                  <img
+                  <Image
                     src={tournament.logo}
-                    alt={tournament.name}
-                    className="w-24 h-24 object-contain"
+                    alt={`${tournament.name} logo`}
+                    width={200}
+                    height={200}
+                    className="max-w-full max-h-full object-contain"
                   />
                 ) : (
                   <Trophy className="w-24 h-24 text-blue-600" />

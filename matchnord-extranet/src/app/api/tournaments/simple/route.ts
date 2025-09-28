@@ -109,6 +109,8 @@ export async function GET() {
         status: true,
         maxTeams: true,
         city: true,
+        logo: true,
+        heroImage: true,
         country: {
           select: {
             id: true,

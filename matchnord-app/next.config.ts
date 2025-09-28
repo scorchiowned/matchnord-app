@@ -12,6 +12,16 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'matchnordstorage.blob.core.windows.net',
+        port: '',
+        pathname: '/**',
+      },
+    ],
+  },
   /* config options here */
 };
 

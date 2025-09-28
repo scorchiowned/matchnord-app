@@ -75,7 +75,8 @@ export async function getTournamentVisibility(
 
   return {
     canViewTournament: isTournamentPublished,
-    canViewInfo: isTournamentPublished && tournament.infoPublished,
+    // For public site, show basic info if tournament is published (even if infoPublished is false)
+    canViewInfo: isTournamentPublished,
     canViewTeams: isTournamentPublished && tournament.teamsPublished,
     canViewSchedule: isTournamentPublished && tournament.schedulePublished,
     canViewMatches: isTournamentPublished && tournament.schedulePublished,
