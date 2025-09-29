@@ -88,3 +88,4 @@ echo -e "1. Verify your domain at ${YELLOW}resend.com/domains${NC}"
 echo -e "2. Update ${YELLOW}EMAIL_FROM${NC} to use your verified domain"
 echo -e "3. Test with any email address"
 echo ""
+

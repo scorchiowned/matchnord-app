@@ -173,3 +173,4 @@ export function PublicVenueMap({ venue, className = '' }: PublicVenueMapProps) {
     </div>
   );
 }
+

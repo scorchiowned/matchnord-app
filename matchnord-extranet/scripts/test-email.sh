@@ -60,3 +60,4 @@ fi
 echo ""
 echo -e "${YELLOW}💡 Tip: Check your email inbox and spam folder${NC}"
 echo -e "${YELLOW}💡 To check Resend logs, run: ./scripts/check-email-logs.sh${NC}"
+

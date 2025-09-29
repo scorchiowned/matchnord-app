@@ -172,3 +172,4 @@ For production use:
 2. **Update EMAIL_FROM** to use your verified domain
 3. **Test with various email providers**
 4. **Monitor delivery rates** in Resend dashboard
+
