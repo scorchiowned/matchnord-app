@@ -12,13 +12,36 @@ const CreateRegistrationInput = z.object({
   city: z.string().min(1).max(255),
   country: z.string().min(1).max(255),
   level: z.string().optional(),
-  managerName: z.string().min(1).max(255),
-  managerEmail: z.string().email(),
-  managerPhone: z.string().min(1).max(255),
-  playerCount: z.number().min(1).max(25),
-  ageRange: z.string().optional(),
-  specialNotes: z.string().optional(),
-  paymentMethod: z.enum(['CARD', 'BANK_TRANSFER', 'INVOICE']),
+  // Contact person details
+  contactFirstName: z.string().min(1).max(255),
+  contactLastName: z.string().min(1).max(255),
+  contactEmail: z.string().email(),
+  contactPhone: z.string().min(1).max(255),
+  contactAddress: z.string().min(1).max(500),
+  contactPostalCode: z.string().min(1).max(20),
+  contactCity: z.string().min(1).max(255),
+  // Billing address (optional)
+  billingName: z.preprocess(
+    (val) => (val === '' ? undefined : val),
+    z.string().max(255).optional()
+  ),
+  billingAddress: z.preprocess(
+    (val) => (val === '' ? undefined : val),
+    z.string().max(500).optional()
+  ),
+  billingPostalCode: z.preprocess(
+    (val) => (val === '' ? undefined : val),
+    z.string().max(20).optional()
+  ),
+  billingCity: z.preprocess(
+    (val) => (val === '' ? undefined : val),
+    z.string().max(255).optional()
+  ),
+  billingEmail: z.preprocess(
+    (val) => (val === '' ? undefined : val),
+    z.string().email().optional()
+  ),
+  // Terms and conditions
   acceptTerms: z.boolean(),
   acceptPrivacy: z.boolean(),
   marketingConsent: z.boolean().optional(),
@@ -37,10 +60,12 @@ export async function POST(request: NextRequest) {
           where: { id: input.divisionId },
           include: {
             _count: {
-              select: { registrations: true },
+              select: { teams: true },
             },
+            fees: true,
           },
         },
+        country: true,
       },
     });
 
@@ -51,7 +76,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!tournament.isPublished) {
+    if (tournament.status !== 'PUBLISHED') {
       return NextResponse.json(
         { error: 'Tournament is not accepting registrations' },
         { status: 400 }
@@ -67,7 +92,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if division is full
-    if (division._count.registrations >= division.maxTeams) {
+    if (division._count.teams >= division.maxTeams) {
       return NextResponse.json({ error: 'Division is full' }, { status: 400 });
     }
 
@@ -82,40 +107,39 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create or find user for the manager
-    let user = await db.user.findUnique({
-      where: { email: input.managerEmail },
-    });
+    // For public registrations, we don't create application users
+    // The team registration is standalone and doesn't require user authentication
 
-    let isNewUser = false;
-    if (!user) {
-      user = await db.user.create({
-        data: {
-          name: input.managerName,
-          email: input.managerEmail,
-          phone: input.managerPhone,
-          role: 'TEAM_MANAGER',
-        },
-      });
-      isNewUser = true;
-    }
-
-    // Create the registration
-    const registration = await db.registration.create({
+    // Create the team directly
+    const team = await db.team.create({
       data: {
         tournamentId: input.tournamentId,
         divisionId: input.divisionId,
-        managerId: user.id,
-        teamName: input.teamName,
+        managerId: null, // No user account required for public registrations
+        name: input.teamName,
         club: input.club,
         city: input.city,
-        country: input.country,
+        countryId: tournament.countryId, // Use tournament's country
         level: input.level,
-        contactEmail: input.managerEmail,
-        contactPhone: input.managerPhone,
-        notes: input.specialNotes,
+        // Contact person details
+        contactFirstName: input.contactFirstName,
+        contactLastName: input.contactLastName,
+        contactEmail: input.contactEmail,
+        contactPhone: input.contactPhone,
+        contactAddress: input.contactAddress,
+        contactPostalCode: input.contactPostalCode,
+        contactCity: input.contactCity,
+        // Billing address (optional)
+        billingName: input.billingName,
+        billingAddress: input.billingAddress,
+        billingPostalCode: input.billingPostalCode,
+        billingCity: input.billingCity,
+        billingEmail: input.billingEmail,
+        // Registration status
         status: tournament.autoAcceptTeams ? 'APPROVED' : 'PENDING',
-        isWaitlisted: division._count.registrations >= division.maxTeams,
+        isWaitlisted: division._count.teams >= division.maxTeams,
+        submittedAt: new Date(),
+        approvedAt: tournament.autoAcceptTeams ? new Date() : null,
       },
       include: {
         tournament: {
@@ -130,20 +154,30 @@ export async function POST(request: NextRequest) {
             fees: true,
           },
         },
+        country: {
+          select: {
+            name: true,
+          },
+        },
       },
     });
 
-    // Create payment record
-    const payment = await db.payment.create({
-      data: {
-        tournamentId: input.tournamentId,
-        registrationId: registration.id,
-        amount: (division as any).fees || 0,
-        currency: 'EUR',
-        status: 'PENDING',
-        method: input.paymentMethod,
-      },
-    });
+    // Create payment record if there are fees
+    let payment = null;
+    if (division.fees && division.fees.length > 0) {
+      const totalFee = division.fees.reduce((sum, fee) => sum + fee.amount, 0);
+      if (totalFee > 0) {
+        payment = await db.payment.create({
+          data: {
+            tournamentId: input.tournamentId,
+            teamId: team.id,
+            amount: totalFee,
+            currency: 'EUR',
+            status: 'PENDING',
+          },
+        });
+      }
+    }
 
     // Update division team count
     await db.division.update({
@@ -155,41 +189,19 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Send welcome email to new Team Manager
-    if (isNewUser) {
-      try {
-        await emailService.sendTeamManagerWelcome({
-          to: input.managerEmail,
-          managerName: input.managerName,
-          email: input.managerEmail,
-          loginUrl: `${env.NEXTAUTH_URL}/auth/signin`,
-          isNewUser: true,
-        });
-        console.log('✅ Team Manager welcome email sent successfully');
-      } catch (emailError) {
-        console.error(
-          '❌ Failed to send Team Manager welcome email:',
-          emailError
-        );
-        // Don't fail the registration if email fails
-      }
-    }
-
     // Send confirmation email to manager
     try {
       await emailService.sendRegistrationConfirmation({
-        to: input.managerEmail,
-        teamName: registration.teamName,
-        tournamentName:
-          (registration as any).tournament?.name || 'Unknown Tournament',
-        divisionName:
-          (registration as any).division?.name || 'Unknown Division',
-        managerName: input.managerName,
-        registrationId: registration.id,
-        paymentAmount: payment.amount,
-        paymentMethod: payment.method || undefined,
+        to: input.contactEmail,
+        teamName: team.name,
+        tournamentName: team.tournament?.name || 'Unknown Tournament',
+        divisionName: team.division?.name || 'Unknown Division',
+        managerName: `${input.contactFirstName} ${input.contactLastName}`,
+        registrationId: team.id,
+        paymentAmount: payment?.amount || 0,
+        paymentMethod: payment?.method || undefined,
         tournamentStartDate: tournament.startDate.toLocaleDateString(),
-        tournamentLocation: `${tournament.city || 'TBD'}, ${(tournament as any).country?.name || 'TBD'}`,
+        tournamentLocation: `${tournament.city || 'TBD'}, ${tournament.country?.name || 'TBD'}`,
       });
       console.log('✅ Registration confirmation email sent successfully');
     } catch (emailError) {
@@ -207,15 +219,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       registration: {
-        id: registration.id,
-        teamName: registration.teamName,
-        division: (registration as any).division?.name || 'Unknown Division',
-        tournament:
-          (registration as any).tournament?.name || 'Unknown Tournament',
-        status: registration.status,
-        amount: payment.amount,
-        paymentMethod: payment.method || undefined,
-        submittedAt: registration.submittedAt,
+        id: team.id,
+        teamName: team.name,
+        division: team.division?.name || 'Unknown Division',
+        tournament: team.tournament?.name || 'Unknown Tournament',
+        status: team.status,
+        amount: payment?.amount || 0,
+        paymentMethod: payment?.method || undefined,
+        submittedAt: team.submittedAt,
       },
     });
   } catch (error) {
@@ -258,7 +269,7 @@ export async function GET(request: NextRequest) {
       where.status = status;
     }
 
-    const registrations = await db.registration.findMany({
+    const teams = await db.team.findMany({
       where,
       include: {
         tournament: {
@@ -284,6 +295,12 @@ export async function GET(request: NextRequest) {
             method: true,
           },
         },
+        country: {
+          select: {
+            name: true,
+            code: true,
+          },
+        },
       },
       orderBy: {
         submittedAt: 'desc',
@@ -292,10 +309,10 @@ export async function GET(request: NextRequest) {
       skip: offset,
     });
 
-    const total = await db.registration.count({ where });
+    const total = await db.team.count({ where });
 
     return NextResponse.json({
-      registrations,
+      registrations: teams, // Keep the same response structure for compatibility
       pagination: {
         total,
         limit,

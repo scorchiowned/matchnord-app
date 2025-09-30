@@ -63,8 +63,6 @@ model User {
   managedTournaments Tournament[]
   // Team management
   managedTeams Team[]
-  // Registration management
-  registrations Registration[]
   // Role-based assignments
   tournamentAssignments TournamentAssignment[]
   matchAssignments MatchAssignment[]
@@ -200,6 +198,8 @@ model Tournament {
   // Contact information
   contactEmail   String?
   contactPhone   String?
+  // Registration information
+  registrationInfo String? @db.Text // Rich text content for registration form
   // Media
   logo           String?
   heroImage      String?
@@ -221,7 +221,6 @@ model Tournament {
   venues         Venue[]
   teams          Team[]
   matches        Match[]
-  registrations  Registration[]
   scheduleSlots  ScheduleSlot[]
   rules          Rule[]
   announcements  Announcement[]
@@ -261,7 +260,7 @@ model Division {
   // Fee settings
   fees         Fee[]
   groups       Group[]
-  registrations Registration[]
+  teams        Team[]
   // Format configuration
   metadata     Json?      // Tournament format configuration
   // Lock management
@@ -310,14 +309,43 @@ model Team {
   country      Country      @relation(fields: [countryId], references: [id])
   countryId    String
   level        String?
-  // Registration info
-  registrations Registration[]
+  
+  // Registration status and workflow
+  status       TeamStatus   @default(PENDING)
+  isWaitlisted Boolean      @default(false)
+  submittedAt  DateTime     @default(now())
+  approvedAt   DateTime?
+  rejectedAt   DateTime?
+  notes        String?
+  
+  // Contact person details (from registration)
+  contactFirstName String?
+  contactLastName  String?
+  contactEmail     String?
+  contactPhone     String?
+  contactAddress   String?
+  contactPostalCode String?
+  contactCity      String?
+  
+  // Billing address (optional - if different from contact)
+  billingName      String?
+  billingAddress   String?
+  billingPostalCode String?
+  billingCity      String?
+  billingEmail     String?
+  
+  // Division assignment
+  division     Division?    @relation(fields: [divisionId], references: [id])
+  divisionId   String?
+  
+  // Team relationships
   players      Player[]
   groups       Group[]      @relation("GroupTeams")
   homeMatches  Match[]      @relation("HomeTeam")
   awayMatches  Match[]      @relation("AwayTeam")
   standings    Standing[]
   events       MatchEvent[]
+  payments     Payment[]
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 }
@@ -482,37 +510,8 @@ enum OfficialType {
   FOURTH_OFFICIAL
 }
 
-model Registration {
-  id           String           @id @default(cuid())
-  tournament   Tournament       @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
-  tournamentId String
-  division     Division?        @relation(fields: [divisionId], references: [id])
-  divisionId   String?
-  team         Team?            @relation(fields: [teamId], references: [id])
-  teamId       String?
-  manager      User             @relation(fields: [managerId], references: [id])
-  managerId    String
-  teamName     String
-  club         String?
-  city         String?
-  country      String?
-  level        String?
-  contactEmail String
-  contactPhone String?
-  // Registration details
-  status       RegistrationStatus @default(PENDING)
-  isWaitlisted Boolean          @default(false)
-  notes        String?
-  // Payment
-  payments     Payment[]
-  // Timestamps
-  submittedAt  DateTime         @default(now())
-  processedAt  DateTime?
-  createdAt    DateTime         @default(now())
-  updatedAt    DateTime         @updatedAt
-}
 
-enum RegistrationStatus {
+enum TeamStatus {
   PENDING
   APPROVED
   REJECTED
@@ -603,8 +602,8 @@ model Payment {
   id             String        @id @default(cuid())
   tournament     Tournament    @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
   tournamentId   String
-  registration   Registration? @relation(fields: [registrationId], references: [id])
-  registrationId String?
+  team           Team?         @relation(fields: [teamId], references: [id])
+  teamId         String?
   fee            Fee?          @relation(fields: [feeId], references: [id])
   feeId          String?
   amount         Float

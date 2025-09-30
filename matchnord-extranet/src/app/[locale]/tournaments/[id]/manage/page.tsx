@@ -35,6 +35,7 @@ import {
 } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 import { TeamsManagement } from '@/components/tournament/teams-management';
+import { TeamManagement } from '@/components/tournament/team-management';
 import { VenuesManagement } from '@/components/tournament/venues-management';
 import { DivisionsManagement } from '@/components/tournament/divisions-management';
 import { GroupsManagement } from '@/components/tournament/groups-management';
@@ -502,6 +503,7 @@ export default function TournamentManagePage() {
           <Tabs defaultValue="overview" className="space-y-6">
             <TabsList>
               <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="registrations">Registrations</TabsTrigger>
               <TabsTrigger value="teams">Teams ({teamCount})</TabsTrigger>
               <TabsTrigger value="venues">Venues ({venueCount})</TabsTrigger>
               <TabsTrigger value="divisions">
@@ -686,6 +688,19 @@ export default function TournamentManagePage() {
                   </Card>
                 </div>
               </div>
+            </TabsContent>
+
+            <TabsContent value="registrations">
+              <TeamManagement
+                tournamentId={tournamentId}
+                onTeamsChange={(teams) => {
+                  // Update team count based on approved teams
+                  const approvedCount = teams.filter(
+                    (t) => t.status === 'APPROVED'
+                  ).length;
+                  setTeamCount(approvedCount);
+                }}
+              />
             </TabsContent>
 
             <TabsContent value="teams">

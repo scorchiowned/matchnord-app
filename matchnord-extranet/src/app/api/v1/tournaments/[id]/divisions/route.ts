@@ -47,7 +47,7 @@ export async function GET(
           include: {
             _count: {
               select: {
-                registrations: true,
+                teams: true,
                 groups: true,
               },
             },
@@ -76,7 +76,7 @@ export async function GET(
           include: {
             _count: {
               select: {
-                registrations: true,
+                teams: true,
                 groups: true,
               },
             },
