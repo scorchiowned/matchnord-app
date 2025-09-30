@@ -22,6 +22,18 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  async rewrites() {
+    return [
+      {
+        source: '/api/v1/:path*',
+        destination: 'http://localhost:3000/api/v1/:path*',
+      },
+      {
+        source: '/api/tournaments/:path*',
+        destination: 'http://localhost:3000/api/tournaments/:path*',
+      },
+    ];
+  },
   /* config options here */
 };
 

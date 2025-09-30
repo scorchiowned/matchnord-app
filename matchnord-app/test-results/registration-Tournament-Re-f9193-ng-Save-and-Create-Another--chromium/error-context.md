@@ -1,0 +1,113 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e5]:
+        - link "M MatchNord" [ref=e6] [cursor=pointer]:
+          - /url: /fi
+          - generic [ref=e8] [cursor=pointer]: M
+          - generic [ref=e9] [cursor=pointer]: MatchNord
+        - navigation [ref=e10]:
+          - link "Home" [ref=e11] [cursor=pointer]:
+            - /url: /fi
+          - link "Tournaments" [ref=e12] [cursor=pointer]:
+            - /url: /fi/tournaments
+          - link "About" [ref=e13] [cursor=pointer]:
+            - /url: /fi/about
+        - link "Tournaments" [ref=e15] [cursor=pointer]:
+          - /url: /fi/tournaments
+          - button "Tournaments" [ref=e16] [cursor=pointer]
+    - main [ref=e17]:
+      - generic [ref=e19]:
+        - img [ref=e20]
+        - heading "Registration Submitted Successfully!" [level=2] [ref=e23]
+        - paragraph [ref=e24]: Thank you for registering your team. You will receive a confirmation email shortly.
+        - link "Back to Tournament" [ref=e25] [cursor=pointer]:
+          - /url: /fi/tournaments/cmg1tk8z4000marfd6rneywbs
+          - button "Back to Tournament" [ref=e26] [cursor=pointer]
+    - contentinfo [ref=e27]:
+      - generic [ref=e28]:
+        - generic [ref=e29]:
+          - generic [ref=e30]:
+            - link "M MatchNord" [ref=e31] [cursor=pointer]:
+              - /url: /fi
+              - generic [ref=e33] [cursor=pointer]: M
+              - generic [ref=e34] [cursor=pointer]: MatchNord
+            - paragraph [ref=e35]: The ultimate platform for following tournaments across the Nordic region. Real-time scores, live updates, and comprehensive tournament information.
+            - generic [ref=e36]:
+              - link "Facebook" [ref=e37] [cursor=pointer]:
+                - /url: "#"
+                - img [ref=e38] [cursor=pointer]
+              - link "Twitter" [ref=e40] [cursor=pointer]:
+                - /url: "#"
+                - img [ref=e41] [cursor=pointer]
+              - link "Instagram" [ref=e43] [cursor=pointer]:
+                - /url: "#"
+                - img [ref=e44] [cursor=pointer]
+              - link "Email" [ref=e47] [cursor=pointer]:
+                - /url: mailto:info@matchnord.com
+                - img [ref=e48] [cursor=pointer]
+          - generic [ref=e51]:
+            - heading "Product" [level=3] [ref=e52]
+            - list [ref=e53]:
+              - listitem [ref=e54]:
+                - link "Tournaments" [ref=e55] [cursor=pointer]:
+                  - /url: /fi/tournaments
+              - listitem [ref=e56]:
+                - link "Live Scores" [ref=e57] [cursor=pointer]:
+                  - /url: /fi/live
+              - listitem [ref=e58]:
+                - link "Results" [ref=e59] [cursor=pointer]:
+                  - /url: /fi/results
+              - listitem [ref=e60]:
+                - link "Mobile App" [ref=e61] [cursor=pointer]:
+                  - /url: /fi/app
+          - generic [ref=e62]:
+            - heading "Support" [level=3] [ref=e63]
+            - list [ref=e64]:
+              - listitem [ref=e65]:
+                - link "Help Center" [ref=e66] [cursor=pointer]:
+                  - /url: /fi/help
+              - listitem [ref=e67]:
+                - link "Contact Us" [ref=e68] [cursor=pointer]:
+                  - /url: /fi/contact
+              - listitem [ref=e69]:
+                - link "API Documentation" [ref=e70] [cursor=pointer]:
+                  - /url: /fi/api
+              - listitem [ref=e71]:
+                - link "Status" [ref=e72] [cursor=pointer]:
+                  - /url: /fi/status
+          - generic [ref=e73]:
+            - heading "Company" [level=3] [ref=e74]
+            - list [ref=e75]:
+              - listitem [ref=e76]:
+                - link "About Us" [ref=e77] [cursor=pointer]:
+                  - /url: /fi/about
+              - listitem [ref=e78]:
+                - link "Privacy Policy" [ref=e79] [cursor=pointer]:
+                  - /url: /fi/privacy
+              - listitem [ref=e80]:
+                - link "Terms of Service" [ref=e81] [cursor=pointer]:
+                  - /url: /fi/terms
+              - listitem [ref=e82]:
+                - link "Careers" [ref=e83] [cursor=pointer]:
+                  - /url: /fi/careers
+        - generic [ref=e84]:
+          - paragraph [ref=e85]: © 2025 MatchNord. All rights reserved.
+          - generic [ref=e86]:
+            - link "Privacy" [ref=e87] [cursor=pointer]:
+              - /url: /fi/privacy
+            - link "Terms" [ref=e88] [cursor=pointer]:
+              - /url: /fi/terms
+            - link "Cookies" [ref=e89] [cursor=pointer]:
+              - /url: /fi/cookies
+  - generic [ref=e90]:
+    - img [ref=e92]
+    - button "Open Tanstack query devtools" [ref=e140] [cursor=pointer]:
+      - img [ref=e141] [cursor=pointer]
+  - button "Open Next.js Dev Tools" [ref=e194] [cursor=pointer]:
+    - img [ref=e195] [cursor=pointer]
+  - alert [ref=e198]
+```

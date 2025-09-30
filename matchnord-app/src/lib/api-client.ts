@@ -1,6 +1,6 @@
 // API Client for consuming matchnord-extranet APIs
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
 class ApiError extends Error {
   constructor(
@@ -142,6 +142,53 @@ export const tournamentApi = {
   getPublic: async (id: string) => {
     return fetchApi<Tournament>(`/api/v1/tournaments/${id}/public`);
   },
+
+  // Get tournament registration information
+  getRegistrationInfo: async (id: string) => {
+    return fetchApi<{
+      success: boolean;
+      tournament: {
+        id: string;
+        name: string;
+        description?: string;
+        registrationInfo?: string;
+        registrationDeadline?: string;
+        autoAcceptTeams: boolean;
+        allowWaitlist: boolean;
+        startDate: string;
+        endDate: string;
+        location: {
+          city?: string;
+          country: {
+            name: string;
+            code: string;
+          };
+        };
+        divisions: Array<{
+          id: string;
+          name: string;
+          description?: string;
+          birthYear?: number;
+          format?: string;
+          level: string;
+          minTeams: number;
+          maxTeams: number;
+          currentTeams: number;
+          registrationFee?: {
+            id: string;
+            name: string;
+            description?: string;
+            amount: number;
+            currency: string;
+          };
+          availableSpots: number;
+          isFull: boolean;
+          isWaitlistAvailable: boolean;
+        }>;
+        isRegistrationOpen: boolean;
+      };
+    }>(`/api/v1/tournaments/${id}/registration-info`);
+  },
 };
 
 // Match API
@@ -224,6 +271,54 @@ export const venueApi = {
   },
 };
 
+// Registration API
+export const registrationApi = {
+  // Submit team registration
+  submit: async (data: {
+    tournamentId: string;
+    divisionId: string;
+    teamName: string;
+    club: string;
+    city: string;
+    country: string;
+    level?: string;
+    contactFirstName: string;
+    contactLastName: string;
+    contactEmail: string;
+    contactPhone: string;
+    contactAddress: string;
+    contactPostalCode: string;
+    contactCity: string;
+    billingName?: string;
+    billingAddress?: string;
+    billingPostalCode?: string;
+    billingCity?: string;
+    billingEmail?: string;
+    acceptTerms: boolean;
+    acceptPrivacy: boolean;
+  }) => {
+    return fetchApi<{
+      success: boolean;
+      registration: {
+        id: string;
+        teamName: string;
+        division: string;
+        tournament: string;
+        status: string;
+        amount: number;
+        paymentMethod?: string;
+        submittedAt: string;
+      };
+    }>('/api/v1/registrations', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+  },
+};
+
 // Export all APIs
 export const api = {
   tournaments: tournamentApi,
@@ -232,6 +327,7 @@ export const api = {
   groups: groupApi,
   teams: teamApi,
   venues: venueApi,
+  registrations: registrationApi,
 };
 
 export { ApiError };
