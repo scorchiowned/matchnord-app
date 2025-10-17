@@ -173,7 +173,13 @@
         "generateFixtures": "Generera matcher från fliken Grupper för att skapa schemat.",
         "accessDenied": "Åtkomst nekad",
         "needAdminRole": "Du behöver ADMIN eller TEAM_MANAGER roll för att komma åt denna sida.",
-        "currentRole": "Nuvarande roll"
+        "currentRole": "Nuvarande roll",
+        "tabs": {
+            "overview": "Översikt",
+            "divisions": "Divisioner", 
+            "matches": "Matcher",
+            "teams": "Lag"
+        }
     },
     "match": {
         "title": "Match",

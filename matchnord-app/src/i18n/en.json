@@ -236,7 +236,29 @@
         "generateFixtures": "Generate fixtures from the Groups tab to create the schedule.",
         "accessDenied": "Access denied",
         "needAdminRole": "You need ADMIN or TEAM_MANAGER role to access this page.",
-        "currentRole": "Current role"
+        "currentRole": "Current role",
+        "tabs": {
+            "overview": "Overview",
+            "divisions": "Divisions", 
+            "matches": "Matches",
+            "teams": "Teams"
+        },
+        "details": {
+            "tournamentDates": "Tournament Dates",
+            "location": "Location",
+            "teams": "Teams",
+            "divisions": "Divisions",
+            "venue": "Venue",
+            "contactInformation": "Contact Information",
+            "tournamentStatistics": "Tournament Statistics",
+            "totalTeams": "Total Teams",
+            "totalMatches": "Total Matches",
+            "status": "Status",
+            "noDivisionsAvailable": "No divisions available",
+            "noMatchesScheduled": "No matches scheduled",
+            "noTeamsRegistered": "No teams registered yet",
+            "viewLargerMap": "View larger map"
+        }
     },
     "match": {
         "title": "Match",

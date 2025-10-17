@@ -173,7 +173,13 @@
         "generateFixtures": "Generer kamper fra Grupper-fanen for å lage skjemaet.",
         "accessDenied": "Tilgang nektet",
         "needAdminRole": "Du trenger ADMIN eller TEAM_MANAGER rolle for å få tilgang til denne siden.",
-        "currentRole": "Nåværende rolle"
+        "currentRole": "Nåværende rolle",
+        "tabs": {
+            "overview": "Oversikt",
+            "divisions": "Divisjoner", 
+            "matches": "Kamper",
+            "teams": "Lag"
+        }
     },
     "match": {
         "title": "Kamp",

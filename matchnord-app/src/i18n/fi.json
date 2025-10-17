@@ -171,7 +171,29 @@
         "generateFixtures": "Luo ottelut Lohkot-välilehdeltä luodaksesi ohjelman.",
         "accessDenied": "Pääsy kielletty",
         "needAdminRole": "Tarvitset ADMIN tai TEAM_MANAGER roolin päästäksesi tälle sivulle.",
-        "currentRole": "Nykyinen rooli"
+        "currentRole": "Nykyinen rooli",
+        "tabs": {
+            "overview": "Yleiskatsaus",
+            "divisions": "Sarjat", 
+            "matches": "Ottelut",
+            "teams": "Joukkueet"
+        },
+        "details": {
+            "tournamentDates": "Turnauksen päivämäärät",
+            "location": "Sijainti",
+            "teams": "Joukkueet",
+            "divisions": "Sarjat",
+            "venue": "Pelikenttä",
+            "contactInformation": "Yhteystiedot",
+            "tournamentStatistics": "Turnauksen tilastot",
+            "totalTeams": "Joukkueita yhteensä",
+            "totalMatches": "Otteluita yhteensä",
+            "status": "Tila",
+            "noDivisionsAvailable": "Sarjoja ei ole saatavilla",
+            "noMatchesScheduled": "Otteluita ei ole aikataulutettu",
+            "noTeamsRegistered": "Joukkueita ei ole vielä rekisteröity",
+            "viewLargerMap": "Näytä suurempi kartta"
+        }
     },
     "match": {
         "title": "Ottelu",

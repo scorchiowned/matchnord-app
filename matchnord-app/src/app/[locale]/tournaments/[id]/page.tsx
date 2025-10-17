@@ -149,10 +149,10 @@ export default function TournamentDetailPage() {
         {/* Tournament Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full mb-8">
           <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="divisions">Divisions</TabsTrigger>
-            <TabsTrigger value="matches">Matches</TabsTrigger>
-            <TabsTrigger value="teams">Teams</TabsTrigger>
+            <TabsTrigger value="overview">{t('tournament.tabs.overview')}</TabsTrigger>
+            <TabsTrigger value="divisions">{t('tournament.tabs.divisions')}</TabsTrigger>
+            <TabsTrigger value="matches">{t('tournament.tabs.matches')}</TabsTrigger>
+            <TabsTrigger value="teams">{t('tournament.tabs.teams')}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="mt-6">
@@ -179,7 +179,7 @@ export default function TournamentDetailPage() {
                   <div className="flex items-center text-gray-600">
                     <Calendar className="w-5 h-5 mr-3" />
                     <div>
-                      <div className="font-medium">Tournament Dates</div>
+                      <div className="font-medium">{t('tournament.details.tournamentDates')}</div>
                       <div className="text-sm">
                         {format(new Date(tournament.startDate), "MMM d, yyyy")} -{" "}
                         {format(new Date(tournament.endDate), "MMM d, yyyy")}
@@ -190,13 +190,13 @@ export default function TournamentDetailPage() {
                   <div className="flex items-center text-gray-600">
                     <MapPin className="w-5 h-5 mr-3" />
                     <div>
-                      <div className="font-medium">Location</div>
+                      <div className="font-medium">{t('tournament.details.location')}</div>
                       <div className="text-sm">
                         {tournament.city || 'City TBD'}, {tournament.country?.name || 'Country TBD'}
                       </div>
                       {tournament.venues && tournament.venues.length > 0 && (
                         <div className="text-xs text-gray-500 mt-1">
-                          Venue: {tournament.venues[0].name}
+                          {t('tournament.details.venue')}: {tournament.venues[0].name}
                         </div>
                       )}
                     </div>
@@ -205,7 +205,7 @@ export default function TournamentDetailPage() {
                   <div className="flex items-center text-gray-600">
                     <Users className="w-5 h-5 mr-3" />
                     <div>
-                      <div className="font-medium">Teams</div>
+                      <div className="font-medium">{t('tournament.details.teams')}</div>
                       <div className="text-sm">
                         {teams?.length || 0} registered
                       </div>
@@ -215,7 +215,7 @@ export default function TournamentDetailPage() {
                   <div className="flex items-center text-gray-600">
                     <Trophy className="w-5 h-5 mr-3" />
                     <div>
-                      <div className="font-medium">Divisions</div>
+                      <div className="font-medium">{t('tournament.details.divisions')}</div>
                       <div className="text-sm">
                         {divisions?.length || 0} divisions
                       </div>
@@ -255,7 +255,7 @@ export default function TournamentDetailPage() {
             {/* Venue Map */}
             {tournament.venues && tournament.venues.length > 0 && tournament.venues[0].xCoordinate && tournament.venues[0].yCoordinate && (
               <div className="mb-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-3">Venue Location</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">{t('tournament.details.venue')} {t('tournament.details.location')}</h3>
                 <div className="bg-gray-100 rounded-lg p-4">
                   <div className="mb-3">
                     <h4 className="font-medium text-gray-900">{tournament.venues[0].name}</h4>
@@ -282,7 +282,7 @@ export default function TournamentDetailPage() {
                       rel="noopener noreferrer"
                       className="text-sm text-blue-600 hover:text-blue-800 underline"
                     >
-                      View larger map
+                      {t('tournament.details.viewLargerMap')}
                     </a>
                   </div>
                 </div>
@@ -292,7 +292,7 @@ export default function TournamentDetailPage() {
             {/* Contact Information */}
             {(tournament.contactEmail || tournament.contactPhone) && (
               <div className="mb-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-3">Contact Information</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">{t('tournament.details.contactInformation')}</h3>
                 <div className="flex flex-wrap gap-4">
                   {tournament.contactEmail && (
                     <a

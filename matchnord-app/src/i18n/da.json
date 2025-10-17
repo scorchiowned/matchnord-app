@@ -173,7 +173,13 @@
         "generateFixtures": "Generer kampe fra Grupper-fanen for at oprette skemaet.",
         "accessDenied": "Adgang nægtet",
         "needAdminRole": "Du har brug for ADMIN eller TEAM_MANAGER rolle for at få adgang til denne side.",
-        "currentRole": "Nuværende rolle"
+        "currentRole": "Nuværende rolle",
+        "tabs": {
+            "overview": "Oversigt",
+            "divisions": "Divisioner", 
+            "matches": "Kampe",
+            "teams": "Hold"
+        }
     },
     "match": {
         "title": "Kamp",
