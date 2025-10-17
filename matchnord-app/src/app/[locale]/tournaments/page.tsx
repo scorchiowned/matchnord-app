@@ -14,9 +14,11 @@ import {
 import { useTournaments } from "@/hooks/use-tournaments";
 import Link from "next/link";
 import Image from "next/image";
-
+import { useTranslations } from 'next-intl';
+import { Link as I18nLink } from '@/i18n/routing';
 
 export default function TournamentsPage() {
+  const t = useTranslations();
   const [search, setSearch] = useState("");
   const [locationFilter, setLocationFilter] = useState("");
 
@@ -34,14 +36,14 @@ export default function TournamentsPage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">
-            Error Loading Tournaments
+            {t('pages.tournaments.errorLoading')}
           </h2>
           <p className="text-gray-600 mb-4">
             {error instanceof Error
               ? error.message
               : "An unexpected error occurred"}
           </p>
-          <Button onClick={() => window.location.reload()}>Try Again</Button>
+          <Button onClick={() => window.location.reload()}>{t('pages.tournaments.tryAgain')}</Button>
         </div>
       </div>
     );
@@ -53,10 +55,10 @@ export default function TournamentsPage() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
-            Tournaments
+            {t('pages.tournaments.title')}
           </h1>
           <p className="text-lg text-gray-600">
-            Discover and follow tournaments across the Nordic region
+            {t('pages.tournaments.subtitle')}
           </p>
         </div>
 
@@ -67,7 +69,7 @@ export default function TournamentsPage() {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <input
                 type="text"
-                placeholder="Search tournaments..."
+                placeholder={t('pages.tournaments.searchPlaceholder')}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -79,7 +81,7 @@ export default function TournamentsPage() {
                 onChange={(e) => setLocationFilter(e.target.value)}
                 className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               >
-                <option value="">All Locations</option>
+                <option value="">{t('pages.tournaments.allLocations')}</option>
                 <option value="finland">Finland</option>
                 <option value="sweden">Sweden</option>
                 <option value="norway">Norway</option>
@@ -93,7 +95,7 @@ export default function TournamentsPage() {
         {isLoading && (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-            <span className="ml-2 text-gray-600">Loading tournaments...</span>
+            <span className="ml-2 text-gray-600">{t('pages.tournaments.loadingTournaments')}</span>
           </div>
         )}
 
@@ -158,16 +160,16 @@ export default function TournamentsPage() {
 
                   <div className="flex items-center text-gray-600">
                     <Users className="w-4 h-4 mr-2" />
-                    {tournament.teams?.length || 0} teams
+                    {tournament.teams?.length || 0} {t('pages.tournaments.teams')}
                     {tournament.divisions &&
-                      ` • ${tournament.divisions.length} divisions`}
+                      ` • ${tournament.divisions.length} ${t('pages.tournaments.divisions')}`}
                   </div>
 
-                  <Link href={`/fi/tournaments/${tournament.id}`}>
+                  <I18nLink href={`/tournaments/${tournament.id}`}>
                     <Button className="w-full mt-4 bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700">
-                      View Tournament
+                      {t('pages.tournaments.viewTournament')}
                     </Button>
-                  </Link>
+                  </I18nLink>
                 </CardContent>
               </Card>
             ))}
@@ -179,10 +181,10 @@ export default function TournamentsPage() {
           <div className="text-center py-12">
             <Trophy className="w-16 h-16 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              No tournaments found
+              {t('pages.tournaments.noTournamentsFound')}
             </h3>
             <p className="text-gray-600">
-              Try adjusting your search or filter criteria.
+              {t('pages.tournaments.noTournamentsDescription')}
             </p>
           </div>
         )}

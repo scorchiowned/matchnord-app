@@ -1,8 +1,23 @@
-// This file is intentionally minimal since the locale layout handles the HTML structure
+import { Inter } from "next/font/google";
+import "./globals.css";
+
+const inter = Inter({ subsets: ["latin"] });
+
+export const metadata = {
+  title: "MatchNord - Tournament Management",
+  description: "The ultimate platform for following tournaments across the Nordic region",
+};
+
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return children;
+  return (
+    <html lang="en">
+      <body className={inter.className}>
+        {children}
+      </body>
+    </html>
+  );
 }

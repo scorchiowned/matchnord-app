@@ -25,11 +25,16 @@ import {
 import Link from "next/link";
 import Image from "next/image";
 import { format } from "date-fns";
+import { useTranslations } from 'next-intl';
+import { useLocale } from 'next-intl';
+import { Link as I18nLink } from '@/i18n/routing';
 
 export default function TournamentDetailPage() {
   const params = useParams();
   const tournamentId = params.id as string;
   const [activeTab, setActiveTab] = useState("overview");
+  const t = useTranslations();
+  const locale = useLocale();
 
   const {
     data: tournament,
@@ -55,11 +60,11 @@ export default function TournamentDetailPage() {
             Tournament Not Found
           </h2>
           <p className="text-gray-600 mb-4">
-            The tournament you&apos;re looking for doesn&apos;t exist or is not available.
+            {t('tournament.tournamentNotFound')}
           </p>
-          <Link href="/fi/tournaments">
-            <Button>Back to Tournaments</Button>
-          </Link>
+          <I18nLink href="/tournaments">
+            <Button>{t('common.back')} {t('navigation.tournaments')}</Button>
+          </I18nLink>
         </div>
       </div>
     );
@@ -85,11 +90,11 @@ export default function TournamentDetailPage() {
             Tournament Not Found
           </h2>
           <p className="text-gray-600 mb-4">
-            The tournament you&apos;re looking for doesn&apos;t exist.
+            {t('tournament.tournamentNotFound')}
           </p>
-          <Link href="/fi/tournaments">
-            <Button>Back to Tournaments</Button>
-          </Link>
+          <I18nLink href="/tournaments">
+            <Button>{t('common.back')} {t('navigation.tournaments')}</Button>
+          </I18nLink>
         </div>
       </div>
     );
@@ -377,13 +382,13 @@ export default function TournamentDetailPage() {
                           </div>
                           <div>Format: {division.format || "Standard"}</div>
                         </div>
-                        <Link
-                          href={`/fi/tournaments/${tournamentId}/divisions/${division.id}`}
+                        <I18nLink
+                          href={`/tournaments/${tournamentId}/divisions/${division.id}`}
                         >
                           <Button className="w-full mt-3" size="sm">
-                            View Division
+                            {t('common.view')} {t('tournament.divisions')}
                           </Button>
-                        </Link>
+                        </I18nLink>
                       </div>
                     ))}
                   </div>
@@ -501,13 +506,13 @@ export default function TournamentDetailPage() {
                           <div>Country: {team.country?.name || 'Unknown'}</div>
                           {team.level && <div>Level: {team.level}</div>}
                         </div>
-                        <Link
-                          href={`/fi/tournaments/${tournamentId}/teams/${team.id}`}
+                        <I18nLink
+                          href={`/tournaments/${tournamentId}/teams/${team.id}`}
                         >
                           <Button className="w-full mt-3" size="sm">
-                            View Team
+                            {t('common.view')} {t('team.title')}
                           </Button>
-                        </Link>
+                        </I18nLink>
                       </div>
                     ))}
                   </div>

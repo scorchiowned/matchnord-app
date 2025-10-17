@@ -1,74 +1,67 @@
 "use client";
 
-import { useLocale } from "next-intl";
-import { useRouter, usePathname } from "../../i18n/routing";
-import { Button } from "../ui/button";
-import { Globe, Check } from "lucide-react";
-import { useState } from "react";
-
-const languages = [
-  { code: "fi", name: "Suomi", flag: "🇫🇮" },
-  { code: "en", name: "English", flag: "🇬🇧" },
-  { code: "sv", name: "Svenska", flag: "🇸🇪" },
-  { code: "no", name: "Norsk", flag: "🇳🇴" },
-  { code: "da", name: "Dansk", flag: "🇩🇰" },
-];
+import { useLocale } from 'next-intl';
+import { useRouter, usePathname } from '@/i18n/routing';
+import { locales, localeNames, localeFlags } from '@/i18n/shared';
+import { Button } from "@/components/ui/button";
+import { Globe } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
 
 export default function LanguageSwitcher() {
   const locale = useLocale();
   const router = useRouter();
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const currentLanguage = languages.find((lang) => lang.code === locale);
-
-  const handleLanguageChange = (newLocale: string) => {
-    router.push(pathname, { locale: newLocale });
+  const handleLocaleChange = (newLocale: string) => {
+    router.replace(pathname, { locale: newLocale });
     setIsOpen(false);
   };
 
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
   return (
-    <div className="relative">
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => setIsOpen(!isOpen)}
+    <div className="relative" ref={dropdownRef}>
+      <Button 
+        variant="ghost" 
+        size="sm" 
         className="flex items-center space-x-2"
+        onClick={() => setIsOpen(!isOpen)}
       >
         <Globe className="w-4 h-4" />
-        <span className="hidden sm:inline">{currentLanguage?.flag}</span>
-        <span className="hidden md:inline">{currentLanguage?.name}</span>
+        <span className="hidden sm:inline">{localeFlags[locale as keyof typeof localeFlags]}</span>
       </Button>
-
+      
       {isOpen && (
         <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-50">
           <div className="py-1">
-            {languages.map((language) => (
+            {locales.map((loc) => (
               <button
-                key={language.code}
-                onClick={() => handleLanguageChange(language.code)}
-                className={`w-full flex items-center justify-between px-4 py-2 text-sm hover:bg-gray-100 transition-colors ${
-                  locale === language.code ? "bg-blue-50" : ""
-                }`}
+                key={loc}
+                onClick={() => handleLocaleChange(loc)}
+                className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
               >
-                <div className="flex items-center space-x-3">
-                  <span className="text-lg">{language.flag}</span>
-                  <span className="text-gray-900">{language.name}</span>
-                </div>
-                {locale === language.code && (
-                  <Check className="w-4 h-4 text-blue-600" />
-                )}
+                <span>{localeFlags[loc]}</span>
+                <span>{localeNames[loc]}</span>
+                {locale === loc && <span className="ml-auto text-blue-600">✓</span>}
               </button>
             ))}
           </div>
         </div>
       )}
-
-      {/* Overlay to close dropdown */}
-      {isOpen && (
-        <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
-      )}
     </div>
   );
 }
-

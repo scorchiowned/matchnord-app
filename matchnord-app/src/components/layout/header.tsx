@@ -1,18 +1,20 @@
 "use client";
 
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Menu, X, Globe } from "lucide-react";
 import { useState } from "react";
-// import LanguageSwitcher from "./language-switcher";
+import { useTranslations } from 'next-intl';
+import { Link, usePathname } from '@/i18n/routing';
+import LanguageSwitcher from "./language-switcher";
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const t = useTranslations();
 
   const navigation = [
-    { name: "Home", href: "/fi" },
-    { name: "Tournaments", href: "/fi/tournaments" },
-    { name: "About", href: "/fi/about" },
+    { name: t('navigation.home'), href: "/" },
+    { name: t('navigation.tournaments'), href: "/tournaments" },
+    { name: t('navigation.about'), href: "/about" },
   ];
 
   return (
@@ -20,11 +22,11 @@ export default function Header() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <Link href="/fi" className="flex items-center space-x-2">
+          <Link href="/" className="flex items-center space-x-2">
             <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-green-600 rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-sm">M</span>
             </div>
-            <span className="text-xl font-bold text-gray-900">MatchNord</span>
+            <span className="text-xl font-bold text-gray-900">{t('common.appName')}</span>
           </Link>
 
           {/* Desktop Navigation */}
@@ -42,10 +44,10 @@ export default function Header() {
 
           {/* Right side actions */}
           <div className="flex items-center space-x-4">
-            {/* <LanguageSwitcher /> */}
+            <LanguageSwitcher />
 
-            <Link href="/fi/tournaments">
-              <Button className="hidden sm:inline-flex">Tournaments</Button>
+            <Link href="/tournaments">
+              <Button className="hidden sm:inline-flex">{t('navigation.tournaments')}</Button>
             </Link>
 
             {/* Mobile menu button */}
@@ -79,8 +81,8 @@ export default function Header() {
                 </Link>
               ))}
               <div className="px-4 pt-4 border-t border-gray-200">
-                <Link href="/fi/tournaments">
-                  <Button className="w-full">Tournaments</Button>
+                <Link href="/tournaments">
+                  <Button className="w-full">{t('navigation.tournaments')}</Button>
                 </Link>
               </div>
             </nav>
