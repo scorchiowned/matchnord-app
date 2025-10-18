@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -84,26 +85,36 @@ interface TournamentInfoEditorProps {
   tournamentId?: string;
 }
 
-const statusOptions = [
-  { value: 'DRAFT', label: 'Draft' },
-  { value: 'PUBLISHED', label: 'Published' },
-  { value: 'REGISTRATION_OPEN', label: 'Registration Open' },
-  { value: 'REGISTRATION_CLOSED', label: 'Registration Closed' },
-  { value: 'IN_PROGRESS', label: 'In Progress' },
-  { value: 'COMPLETED', label: 'Completed' },
-  { value: 'CANCELLED', label: 'Cancelled' },
-];
+// Status options will be created inside the component to use translations
 
 export function TournamentInfoEditor({
   tournament,
   onUpdate,
   tournamentId,
 }: TournamentInfoEditorProps) {
+  const t = useTranslations();
   const [countries, setCountries] = useState<Country[]>([]);
   const [isLoadingCountries, setIsLoadingCountries] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState<Tournament>(tournament);
+
+  // Status options with translations
+  const statusOptions = [
+    { value: 'DRAFT', label: t('tournament.status.draft') },
+    { value: 'PUBLISHED', label: t('tournament.status.published') },
+    {
+      value: 'REGISTRATION_OPEN',
+      label: t('tournament.status.registrationOpen'),
+    },
+    {
+      value: 'REGISTRATION_CLOSED',
+      label: t('tournament.status.registrationClosed'),
+    },
+    { value: 'IN_PROGRESS', label: t('tournament.status.inProgress') },
+    { value: 'COMPLETED', label: t('tournament.status.completed') },
+    { value: 'CANCELLED', label: t('tournament.status.cancelled') },
+  ];
 
   // Use tournamentId prop or fallback to tournament.id
   const currentTournamentId = tournamentId || tournament.id;
@@ -285,12 +296,14 @@ export function TournamentInfoEditor({
     <div className="space-y-4">
       {/* Header with Edit/Save/Cancel buttons */}
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Tournament Information</h2>
+        <h2 className="text-lg font-semibold">
+          {t('tournament.tournamentInformation')}
+        </h2>
         <div className="flex items-center space-x-2">
           {!isEditing ? (
             <Button onClick={handleEdit} size="sm" variant="outline">
               <Edit2 className="mr-2 h-4 w-4" />
-              Edit
+              {t('common.edit')}
             </Button>
           ) : (
             <>
@@ -301,11 +314,11 @@ export function TournamentInfoEditor({
                 disabled={isSaving}
               >
                 <X className="mr-2 h-4 w-4" />
-                Cancel
+                {t('common.cancel')}
               </Button>
               <Button onClick={handleSave} size="sm" disabled={isSaving}>
                 <Save className="mr-2 h-4 w-4" />
-                {isSaving ? 'Saving...' : 'Save'}
+                {isSaving ? t('common.saving') : t('common.save')}
               </Button>
             </>
           )}
@@ -316,25 +329,27 @@ export function TournamentInfoEditor({
       <div className="space-y-3">
         <div className="flex items-center space-x-2 border-b pb-2">
           <Trophy className="h-4 w-4 text-muted-foreground" />
-          <h3 className="text-sm font-medium">Basic Information</h3>
+          <h3 className="text-sm font-medium">
+            {t('tournament.basicInformation')}
+          </h3>
         </div>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           {isEditing ? (
             <>
               <div className="space-y-1">
                 <Label htmlFor="name" className="text-sm font-medium">
-                  Name *
+                  {t('tournament.name')} *
                 </Label>
                 <Input
                   id="name"
                   value={formData.name}
                   onChange={(e) => handleInputChange('name', e.target.value)}
-                  placeholder="Enter tournament name"
+                  placeholder={t('tournament.enterName')}
                 />
               </div>
               <div className="space-y-1">
                 <Label htmlFor="season" className="text-sm font-medium">
-                  Season *
+                  {t('tournament.season')} *
                 </Label>
                 <Input
                   id="season"
@@ -348,14 +363,14 @@ export function TournamentInfoEditor({
               </div>
               <div className="space-y-1">
                 <Label htmlFor="status" className="text-sm font-medium">
-                  Status *
+                  {t('tournament.status')} *
                 </Label>
                 <Select
                   value={formData.status}
                   onValueChange={(value) => handleInputChange('status', value)}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select status" />
+                    <SelectValue placeholder={t('tournament.selectStatus')} />
                   </SelectTrigger>
                   <SelectContent>
                     {statusOptions.map((option) => (
@@ -368,14 +383,14 @@ export function TournamentInfoEditor({
               </div>
               <div className="space-y-1 md:col-span-2">
                 <Label htmlFor="description" className="text-sm font-medium">
-                  Description
+                  {t('tournament.description')}
                 </Label>
                 <RichTextEditor
                   content={formData.description || ''}
                   onChange={(content) =>
                     handleInputChange('description', content)
                   }
-                  placeholder="Enter tournament description..."
+                  placeholder={t('tournament.enterDescription')}
                   className="min-h-[120px]"
                 />
               </div>
@@ -384,19 +399,19 @@ export function TournamentInfoEditor({
             <>
               <div className="space-y-1">
                 <Label className="text-sm font-medium text-muted-foreground">
-                  Name
+                  {t('tournament.name')}
                 </Label>
                 <p className="text-sm">{tournament.name}</p>
               </div>
               <div className="space-y-1">
                 <Label className="text-sm font-medium text-muted-foreground">
-                  Season
+                  {t('tournament.season')}
                 </Label>
                 <p className="text-sm">{tournament.season}</p>
               </div>
               <div className="space-y-1">
                 <Label className="text-sm font-medium text-muted-foreground">
-                  Status
+                  {t('tournament.status')}
                 </Label>
                 <p className="text-sm">
                   {
@@ -407,7 +422,7 @@ export function TournamentInfoEditor({
               </div>
               <div className="space-y-1 md:col-span-2">
                 <Label className="text-sm font-medium text-muted-foreground">
-                  Description
+                  {t('tournament.description')}
                 </Label>
                 {tournament.description ? (
                   <SafeHtml
@@ -416,7 +431,7 @@ export function TournamentInfoEditor({
                   />
                 ) : (
                   <p className="text-sm text-muted-foreground">
-                    No description
+                    {t('tournament.noDescription')}
                   </p>
                 )}
               </div>
@@ -429,14 +444,16 @@ export function TournamentInfoEditor({
       <div className="space-y-3">
         <div className="flex items-center space-x-2 border-b pb-2">
           <MapPin className="h-4 w-4 text-muted-foreground" />
-          <h3 className="text-sm font-medium">Location & Contact</h3>
+          <h3 className="text-sm font-medium">
+            {t('tournament.locationContact')}
+          </h3>
         </div>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           {isEditing ? (
             <>
               <div className="space-y-1">
                 <Label htmlFor="country" className="text-sm font-medium">
-                  Country *
+                  {t('tournament.country')} *
                 </Label>
                 <Select
                   value={formData.country.id}
@@ -447,7 +464,9 @@ export function TournamentInfoEditor({
                   <SelectTrigger>
                     <SelectValue
                       placeholder={
-                        isLoadingCountries ? 'Loading...' : 'Select country'
+                        isLoadingCountries
+                          ? t('common.loading')
+                          : t('tournament.selectCountry')
                       }
                     />
                   </SelectTrigger>
@@ -462,29 +481,29 @@ export function TournamentInfoEditor({
               </div>
               <div className="space-y-1">
                 <Label htmlFor="city" className="text-sm font-medium">
-                  City
+                  {t('tournament.city')}
                 </Label>
                 <Input
                   id="city"
                   value={formData.city || ''}
                   onChange={(e) => handleInputChange('city', e.target.value)}
-                  placeholder="Enter city name"
+                  placeholder={t('tournament.enterCity')}
                 />
               </div>
               <div className="space-y-1">
                 <Label htmlFor="address" className="text-sm font-medium">
-                  Address
+                  {t('tournament.address')}
                 </Label>
                 <Input
                   id="address"
                   value={formData.address || ''}
                   onChange={(e) => handleInputChange('address', e.target.value)}
-                  placeholder="Enter full address"
+                  placeholder={t('tournament.enterAddress')}
                 />
               </div>
               <div className="space-y-1">
                 <Label htmlFor="contactEmail" className="text-sm font-medium">
-                  Contact Email
+                  {t('tournament.contactEmail')}
                 </Label>
                 <Input
                   id="contactEmail"
@@ -493,12 +512,12 @@ export function TournamentInfoEditor({
                   onChange={(e) =>
                     handleInputChange('contactEmail', e.target.value)
                   }
-                  placeholder="Enter contact email"
+                  placeholder={t('tournament.enterContactEmail')}
                 />
               </div>
               <div className="space-y-1">
                 <Label htmlFor="contactPhone" className="text-sm font-medium">
-                  Contact Phone
+                  {t('tournament.contactPhone')}
                 </Label>
                 <Input
                   id="contactPhone"
@@ -507,7 +526,7 @@ export function TournamentInfoEditor({
                   onChange={(e) =>
                     handleInputChange('contactPhone', e.target.value)
                   }
-                  placeholder="Enter contact phone"
+                  placeholder={t('tournament.enterContactPhone')}
                 />
               </div>
             </>
@@ -515,36 +534,40 @@ export function TournamentInfoEditor({
             <>
               <div className="space-y-1">
                 <Label className="text-sm font-medium text-muted-foreground">
-                  Country
+                  {t('tournament.country')}
                 </Label>
                 <p className="text-sm">{tournament.country.name}</p>
               </div>
               <div className="space-y-1">
                 <Label className="text-sm font-medium text-muted-foreground">
-                  City
-                </Label>
-                <p className="text-sm">{tournament.city || 'Not set'}</p>
-              </div>
-              <div className="space-y-1">
-                <Label className="text-sm font-medium text-muted-foreground">
-                  Address
-                </Label>
-                <p className="text-sm">{tournament.address || 'Not set'}</p>
-              </div>
-              <div className="space-y-1">
-                <Label className="text-sm font-medium text-muted-foreground">
-                  Contact Email
+                  {t('tournament.city')}
                 </Label>
                 <p className="text-sm">
-                  {tournament.contactEmail || 'Not set'}
+                  {tournament.city || t('tournament.notSet')}
                 </p>
               </div>
               <div className="space-y-1">
                 <Label className="text-sm font-medium text-muted-foreground">
-                  Contact Phone
+                  {t('tournament.address')}
                 </Label>
                 <p className="text-sm">
-                  {tournament.contactPhone || 'Not set'}
+                  {tournament.address || t('tournament.notSet')}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-sm font-medium text-muted-foreground">
+                  {t('tournament.contactEmail')}
+                </Label>
+                <p className="text-sm">
+                  {tournament.contactEmail || t('tournament.notSet')}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-sm font-medium text-muted-foreground">
+                  {t('tournament.contactPhone')}
+                </Label>
+                <p className="text-sm">
+                  {tournament.contactPhone || t('tournament.notSet')}
                 </p>
               </div>
             </>
@@ -556,14 +579,16 @@ export function TournamentInfoEditor({
       <div className="space-y-3">
         <div className="flex items-center space-x-2 border-b pb-2">
           <Calendar className="h-4 w-4 text-muted-foreground" />
-          <h3 className="text-sm font-medium">Tournament Dates</h3>
+          <h3 className="text-sm font-medium">
+            {t('tournament.tournamentDates')}
+          </h3>
         </div>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
           {isEditing ? (
             <>
               <div className="space-y-1">
                 <Label htmlFor="startDate" className="text-sm font-medium">
-                  Start Date *
+                  {t('tournament.startDate')} *
                 </Label>
                 <Input
                   id="startDate"
@@ -576,7 +601,7 @@ export function TournamentInfoEditor({
               </div>
               <div className="space-y-1">
                 <Label htmlFor="endDate" className="text-sm font-medium">
-                  End Date *
+                  {t('tournament.endDate')} *
                 </Label>
                 <Input
                   id="endDate"
@@ -590,7 +615,7 @@ export function TournamentInfoEditor({
                   htmlFor="registrationDeadline"
                   className="text-sm font-medium"
                 >
-                  Registration Deadline
+                  {t('tournament.registrationDeadline')}
                 </Label>
                 <Input
                   id="registrationDeadline"
@@ -610,7 +635,7 @@ export function TournamentInfoEditor({
             <>
               <div className="space-y-1">
                 <Label className="text-sm font-medium text-muted-foreground">
-                  Start Date
+                  {t('tournament.startDate')}
                 </Label>
                 <p className="text-sm">
                   {new Date(tournament.startDate).toLocaleDateString()}
@@ -618,7 +643,7 @@ export function TournamentInfoEditor({
               </div>
               <div className="space-y-1">
                 <Label className="text-sm font-medium text-muted-foreground">
-                  End Date
+                  {t('tournament.endDate')}
                 </Label>
                 <p className="text-sm">
                   {new Date(tournament.endDate).toLocaleDateString()}
@@ -626,12 +651,12 @@ export function TournamentInfoEditor({
               </div>
               <div className="space-y-1">
                 <Label className="text-sm font-medium text-muted-foreground">
-                  Registration Deadline
+                  {t('tournament.registrationDeadline')}
                 </Label>
                 <p className="text-sm">
                   {tournament.registrationDeadline
                     ? new Date(tournament.registrationDeadline).toLocaleString()
-                    : 'Not set'}
+                    : t('tournament.notSet')}
                 </p>
               </div>
             </>
@@ -643,14 +668,16 @@ export function TournamentInfoEditor({
       <div className="space-y-3">
         <div className="flex items-center space-x-2 border-b pb-2">
           <Users className="h-4 w-4 text-muted-foreground" />
-          <h3 className="text-sm font-medium">Registration Settings</h3>
+          <h3 className="text-sm font-medium">
+            {t('tournament.registrationSettings')}
+          </h3>
         </div>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
           {isEditing ? (
             <>
               <div className="space-y-1">
                 <Label htmlFor="maxTeams" className="text-sm font-medium">
-                  Maximum Teams
+                  {t('tournament.maximumTeams')}
                 </Label>
                 <Input
                   id="maxTeams"
@@ -662,7 +689,7 @@ export function TournamentInfoEditor({
                       e.target.value ? parseInt(e.target.value) : null
                     )
                   }
-                  placeholder="Enter maximum number of teams"
+                  placeholder={t('tournament.enterMaxTeams')}
                   min={1}
                   max={1000}
                 />
@@ -679,7 +706,7 @@ export function TournamentInfoEditor({
                   htmlFor="autoAcceptTeams"
                   className="text-sm font-medium"
                 >
-                  Auto Accept Teams
+                  {t('tournament.autoAcceptTeams')}
                 </Label>
               </div>
               <div className="flex items-center space-x-2">
@@ -691,7 +718,7 @@ export function TournamentInfoEditor({
                   }
                 />
                 <Label htmlFor="allowWaitlist" className="text-sm font-medium">
-                  Allow Waitlist
+                  {t('tournament.allowWaitlist')}
                 </Label>
               </div>
             </>
@@ -699,24 +726,28 @@ export function TournamentInfoEditor({
             <>
               <div className="space-y-1">
                 <Label className="text-sm font-medium text-muted-foreground">
-                  Maximum Teams
-                </Label>
-                <p className="text-sm">{tournament.maxTeams || 'No limit'}</p>
-              </div>
-              <div className="space-y-1">
-                <Label className="text-sm font-medium text-muted-foreground">
-                  Auto Accept Teams
+                  {t('tournament.maximumTeams')}
                 </Label>
                 <p className="text-sm">
-                  {tournament.autoAcceptTeams ? 'Yes' : 'No'}
+                  {tournament.maxTeams || t('tournament.noLimit')}
                 </p>
               </div>
               <div className="space-y-1">
                 <Label className="text-sm font-medium text-muted-foreground">
-                  Allow Waitlist
+                  {t('tournament.autoAcceptTeams')}
                 </Label>
                 <p className="text-sm">
-                  {tournament.allowWaitlist ? 'Yes' : 'No'}
+                  {tournament.autoAcceptTeams
+                    ? t('common.yes')
+                    : t('common.no')}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-sm font-medium text-muted-foreground">
+                  {t('tournament.allowWaitlist')}
+                </Label>
+                <p className="text-sm">
+                  {tournament.allowWaitlist ? t('common.yes') : t('common.no')}
                 </p>
               </div>
             </>
@@ -728,13 +759,15 @@ export function TournamentInfoEditor({
       <div className="space-y-3">
         <div className="flex items-center space-x-2 border-b pb-2">
           <Image className="h-4 w-4 text-muted-foreground" />
-          <h3 className="text-sm font-medium">Media</h3>
+          <h3 className="text-sm font-medium">{t('tournament.media')}</h3>
         </div>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           {isEditing ? (
             <>
               <div className="space-y-1">
-                <Label className="text-sm font-medium">Logo</Label>
+                <Label className="text-sm font-medium">
+                  {t('tournament.logo')}
+                </Label>
                 <InlineEditImage
                   label=""
                   value={formData.logo || ''}
@@ -746,7 +779,9 @@ export function TournamentInfoEditor({
                 />
               </div>
               <div className="space-y-1">
-                <Label className="text-sm font-medium">Hero Image</Label>
+                <Label className="text-sm font-medium">
+                  {t('tournament.heroImage')}
+                </Label>
                 <InlineEditImage
                   label=""
                   value={formData.heroImage || ''}
@@ -762,38 +797,40 @@ export function TournamentInfoEditor({
             <>
               <div className="space-y-1">
                 <Label className="text-sm font-medium text-muted-foreground">
-                  Logo
+                  {t('tournament.logo')}
                 </Label>
                 <div className="aspect-square rounded border p-2">
                   {tournament.logo ? (
                     <img
                       src={tournament.logo}
-                      alt="Tournament logo"
+                      alt={t('tournament.tournamentLogo')}
                       className="h-full w-full rounded object-cover"
                     />
                   ) : (
                     <div className="flex h-24 flex-col items-center justify-center text-muted-foreground">
                       <Image className="mb-2 h-8 w-8" />
-                      <span className="text-sm">No logo</span>
+                      <span className="text-sm">{t('tournament.noLogo')}</span>
                     </div>
                   )}
                 </div>
               </div>
               <div className="space-y-1">
                 <Label className="text-sm font-medium text-muted-foreground">
-                  Hero Image
+                  {t('tournament.heroImage')}
                 </Label>
                 <div className="aspect-video rounded border p-2">
                   {tournament.heroImage ? (
                     <img
                       src={tournament.heroImage}
-                      alt="Tournament hero image"
+                      alt={t('tournament.tournamentHeroImage')}
                       className="h-full w-full rounded object-cover"
                     />
                   ) : (
                     <div className="flex h-24 flex-col items-center justify-center text-muted-foreground">
                       <Image className="mb-2 h-8 w-8" />
-                      <span className="text-sm">No hero image</span>
+                      <span className="text-sm">
+                        {t('tournament.noHeroImage')}
+                      </span>
                     </div>
                   )}
                 </div>

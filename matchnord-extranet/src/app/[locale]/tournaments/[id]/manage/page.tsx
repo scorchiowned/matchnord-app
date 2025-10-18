@@ -374,10 +374,10 @@ export default function TournamentManagePage() {
           <Card>
             <CardContent className="py-12 text-center">
               <p className="text-muted-foreground">
-                Please log in to manage tournaments.
+                {t('tournament.pleaseLogIn')}
               </p>
               <Button asChild className="mt-4">
-                <Link href="/auth/signin">Sign In</Link>
+                <Link href="/auth/signin">{t('auth.signIn')}</Link>
               </Button>
             </CardContent>
           </Card>
@@ -393,9 +393,13 @@ export default function TournamentManagePage() {
         <main className="container mx-auto py-6">
           <Card>
             <CardContent className="py-12 text-center">
-              <p className="text-muted-foreground">Tournament not found.</p>
+              <p className="text-muted-foreground">
+                {t('tournament.tournamentNotFound')}
+              </p>
               <Button asChild className="mt-4">
-                <Link href="/tournaments">Back to Tournaments</Link>
+                <Link href="/tournaments">
+                  {t('tournament.backToTournaments')}
+                </Link>
               </Button>
             </CardContent>
           </Card>
@@ -412,11 +416,11 @@ export default function TournamentManagePage() {
           <Card>
             <CardContent className="py-12 text-center">
               <p className="text-muted-foreground">
-                You don&apos;t have permission to manage this tournament.
+                {t('tournament.noPermission')}
               </p>
               <Button asChild className="mt-4">
                 <Link href={`/tournaments/${tournamentId}`}>
-                  View Tournament
+                  {t('tournament.viewTournament')}
                 </Link>
               </Button>
             </CardContent>
@@ -450,9 +454,11 @@ export default function TournamentManagePage() {
           <div className="flex min-h-[400px] items-center justify-center">
             <div className="text-center">
               <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-style-primary"></div>
-              <h3 className="mb-2 text-lg font-semibold">Loading Tournament</h3>
+              <h3 className="mb-2 text-lg font-semibold">
+                {t('tournament.loading')}
+              </h3>
               <p className="text-style-text-secondary">
-                Please wait while we load the tournament data...
+                {t('tournament.loadingDescription')}
               </p>
             </div>
           </div>
@@ -471,14 +477,15 @@ export default function TournamentManagePage() {
             <div className="text-center">
               <Trophy className="mx-auto mb-4 h-12 w-12 text-style-text-secondary" />
               <h3 className="mb-2 text-lg font-semibold">
-                Tournament Not Found
+                {t('tournament.tournamentNotFound')}
               </h3>
               <p className="mb-4 text-style-text-secondary">
-                Unable to load tournament data. Please check the URL and try
-                again.
+                {t('tournament.unableToLoad')}
               </p>
               <Button asChild>
-                <Link href="/tournaments">Back to Tournaments</Link>
+                <Link href="/tournaments">
+                  {t('tournament.backToTournaments')}
+                </Link>
               </Button>
             </div>
           </div>
@@ -516,12 +523,12 @@ export default function TournamentManagePage() {
                 title="Refresh counts"
               >
                 <RefreshCw className="mr-2 h-4 w-4" />
-                Refresh
+                {t('common.refresh')}
               </Button>
               <Button asChild variant="outline">
                 <Link href={`/tournaments/${tournamentId}`}>
                   <Eye className="mr-2 h-4 w-4" />
-                  View Public
+                  {t('tournament.viewPublic')}
                 </Link>
               </Button>
             </div>
@@ -530,16 +537,30 @@ export default function TournamentManagePage() {
           {/* Management Tabs */}
           <Tabs defaultValue="overview" className="space-y-6">
             <TabsList>
-              <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="registrations">Registrations</TabsTrigger>
-              <TabsTrigger value="teams">Teams ({teamCount})</TabsTrigger>
-              <TabsTrigger value="venues">Venues ({venueCount})</TabsTrigger>
-              <TabsTrigger value="divisions">
-                Divisions ({divisionCount})
+              <TabsTrigger value="overview">
+                {t('tournament.tabs.overview')}
               </TabsTrigger>
-              <TabsTrigger value="groups">Groups ({groupCount})</TabsTrigger>
-              <TabsTrigger value="matches">Matches ({matchCount})</TabsTrigger>
-              <TabsTrigger value="schedule">Schedule</TabsTrigger>
+              <TabsTrigger value="registrations">
+                {t('tournament.tabs.registrations')}
+              </TabsTrigger>
+              <TabsTrigger value="teams">
+                {t('tournament.teams')} ({teamCount})
+              </TabsTrigger>
+              <TabsTrigger value="venues">
+                {t('tournament.venues')} ({venueCount})
+              </TabsTrigger>
+              <TabsTrigger value="divisions">
+                {t('tournament.divisions')} ({divisionCount})
+              </TabsTrigger>
+              <TabsTrigger value="groups">
+                {t('tournament.groups')} ({groupCount})
+              </TabsTrigger>
+              <TabsTrigger value="matches">
+                {t('tournament.matches')} ({matchCount})
+              </TabsTrigger>
+              <TabsTrigger value="schedule">
+                {t('tournament.schedule')}
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="overview" className="space-y-3">
@@ -562,14 +583,18 @@ export default function TournamentManagePage() {
                   {/* Quick Stats */}
                   <Card>
                     <CardHeader className="px-3 pb-2 pt-3">
-                      <CardTitle className="text-sm">Stats</CardTitle>
+                      <CardTitle className="text-sm">
+                        {t('tournament.stats.title')}
+                      </CardTitle>
                     </CardHeader>
                     <CardContent className="px-3 pb-3 pt-0">
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-1">
                             <Users className="h-3 w-3 text-muted-foreground" />
-                            <span className="text-xs">Teams</span>
+                            <span className="text-xs">
+                              {t('tournament.teams')}
+                            </span>
                           </div>
                           <span className="text-sm font-bold">
                             {tournament._count.teams}
@@ -578,7 +603,9 @@ export default function TournamentManagePage() {
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-1">
                             <MapPin className="h-3 w-3 text-muted-foreground" />
-                            <span className="text-xs">Venues</span>
+                            <span className="text-xs">
+                              {t('tournament.venues')}
+                            </span>
                           </div>
                           <span className="text-sm font-bold">
                             {tournament._count.venues}
@@ -587,7 +614,9 @@ export default function TournamentManagePage() {
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-1">
                             <Trophy className="h-3 w-3 text-muted-foreground" />
-                            <span className="text-xs">Divisions</span>
+                            <span className="text-xs">
+                              {t('tournament.divisions')}
+                            </span>
                           </div>
                           <span className="text-sm font-bold">
                             {tournament._count.divisions}
@@ -596,7 +625,9 @@ export default function TournamentManagePage() {
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-1">
                             <Calendar className="h-3 w-3 text-muted-foreground" />
-                            <span className="text-xs">Matches</span>
+                            <span className="text-xs">
+                              {t('tournament.matches')}
+                            </span>
                           </div>
                           <span className="text-sm font-bold">
                             {tournament._count.matches}
@@ -611,7 +642,7 @@ export default function TournamentManagePage() {
                     <CardHeader className="px-3 pb-2 pt-3">
                       <CardTitle className="flex items-center space-x-1 text-sm">
                         <Settings className="h-3 w-3" />
-                        <span>Settings</span>
+                        <span>{t('common.settings')}</span>
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="px-3 pb-3 pt-0">
@@ -619,10 +650,10 @@ export default function TournamentManagePage() {
                         <div className="flex items-center justify-between">
                           <div>
                             <p className="text-xs font-medium">
-                              Tournament Status
+                              {t('tournament.settings.tournamentStatus')}
                             </p>
                             <p className="text-xs text-muted-foreground">
-                              Current tournament status
+                              {t('tournament.settings.currentStatus')}
                             </p>
                           </div>
                           <Select
@@ -633,12 +664,14 @@ export default function TournamentManagePage() {
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="DRAFT">Draft</SelectItem>
+                              <SelectItem value="DRAFT">
+                                {t('tournament.status.draft')}
+                              </SelectItem>
                               <SelectItem value="PUBLISHED">
-                                Published
+                                {t('tournament.status.published')}
                               </SelectItem>
                               <SelectItem value="CANCELLED">
-                                Cancelled
+                                {t('tournament.status.cancelled')}
                               </SelectItem>
                             </SelectContent>
                           </Select>
@@ -646,10 +679,10 @@ export default function TournamentManagePage() {
                         <div className="flex items-center justify-between">
                           <div>
                             <p className="text-xs font-medium">
-                              Info Published
+                              {t('tournament.settings.infoPublished')}
                             </p>
                             <p className="text-xs text-muted-foreground">
-                              Show tournament details publicly
+                              {t('tournament.settings.showInfoPublicly')}
                             </p>
                           </div>
                           <Switch
@@ -662,10 +695,10 @@ export default function TournamentManagePage() {
                         <div className="flex items-center justify-between">
                           <div>
                             <p className="text-xs font-medium">
-                              Teams Published
+                              {t('tournament.settings.teamsPublished')}
                             </p>
                             <p className="text-xs text-muted-foreground">
-                              Show teams publicly
+                              {t('tournament.settings.showTeamsPublicly')}
                             </p>
                           </div>
                           <Switch
@@ -678,10 +711,10 @@ export default function TournamentManagePage() {
                         <div className="flex items-center justify-between">
                           <div>
                             <p className="text-xs font-medium">
-                              Schedule Published
+                              {t('tournament.settings.schedulePublished')}
                             </p>
                             <p className="text-xs text-muted-foreground">
-                              Show schedule publicly
+                              {t('tournament.settings.showSchedulePublicly')}
                             </p>
                           </div>
                           <Switch
@@ -694,10 +727,10 @@ export default function TournamentManagePage() {
                         <div className="flex items-center justify-between">
                           <div>
                             <p className="text-xs font-medium">
-                              Tournament Locked
+                              {t('tournament.settings.tournamentLocked')}
                             </p>
                             <p className="text-xs text-muted-foreground">
-                              Prevent new registrations
+                              {t('tournament.settings.preventRegistrations')}
                             </p>
                           </div>
                           <Switch
@@ -707,9 +740,11 @@ export default function TournamentManagePage() {
                         </div>
                         <div className="flex items-center justify-between">
                           <div>
-                            <p className="text-xs font-medium">Edit</p>
+                            <p className="text-xs font-medium">
+                              {t('common.edit')}
+                            </p>
                             <p className="text-xs text-muted-foreground">
-                              Modify details
+                              {t('tournament.settings.modifyDetails')}
                             </p>
                           </div>
                           <Button
@@ -720,7 +755,7 @@ export default function TournamentManagePage() {
                           >
                             <Link href={`/tournaments/${tournamentId}/edit`}>
                               <Edit className="mr-1 h-3 w-3" />
-                              Edit
+                              {t('common.edit')}
                             </Link>
                           </Button>
                         </div>
@@ -791,14 +826,15 @@ export default function TournamentManagePage() {
                   <CardContent className="py-12 text-center">
                     <Trophy className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
                     <h3 className="mb-2 text-lg font-semibold">
-                      No divisions found
+                      {t('tournament.noDivisionsFound')}
                     </h3>
                     <p className="mb-4 text-muted-foreground">
-                      Please create divisions and groups first to enable match
-                      scheduling.
+                      {t('tournament.createDivisionsFirst')}
                     </p>
                     <Button asChild>
-                      <a href="#divisions">Go to Divisions Tab</a>
+                      <a href="#divisions">
+                        {t('tournament.goToDivisionsTab')}
+                      </a>
                     </Button>
                   </CardContent>
                 </Card>
