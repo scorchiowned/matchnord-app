@@ -42,7 +42,6 @@ import { GroupsManagement } from '@/components/tournament/groups-management';
 import { MatchesManagementSimple } from '@/components/tournament/matches-management-simple';
 import { MatchScheduling } from '@/components/tournament/match-scheduling';
 import { TournamentInfoEditor } from '@/components/tournament/tournament-info-editor';
-import { LockManagement } from '@/components/tournament/lock-management';
 
 interface Tournament {
   id: string;
@@ -129,7 +128,7 @@ export default function TournamentManagePage() {
 
   // Function to update tournament publication status
   const updatePublicationStatus = async (
-    field: 'teamsPublished' | 'schedulePublished'
+    field: 'infoPublished' | 'teamsPublished' | 'schedulePublished'
   ) => {
     if (!tournament) return;
 
@@ -183,6 +182,35 @@ export default function TournamentManagePage() {
       }
     } catch (error) {
       console.error('Error updating tournament status:', error);
+    }
+  };
+
+  // Function to update tournament lock status
+  const updateLockStatus = async () => {
+    if (!tournament) return;
+
+    const newLockStatus = !tournament.isLocked;
+
+    try {
+      const response = await fetch(`/api/v1/tournaments/${tournamentId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          isLocked: newLockStatus,
+        }),
+      });
+
+      if (response.ok) {
+        const updatedTournament = await response.json();
+        setTournament(updatedTournament);
+      } else {
+        console.error('Failed to update lock status');
+      }
+    } catch (error) {
+      console.error('Error updating lock status:', error);
     }
   };
 
@@ -510,7 +538,6 @@ export default function TournamentManagePage() {
                 Divisions ({divisionCount})
               </TabsTrigger>
               <TabsTrigger value="groups">Groups ({groupCount})</TabsTrigger>
-              <TabsTrigger value="lock">Lock & Matches</TabsTrigger>
               <TabsTrigger value="matches">Matches ({matchCount})</TabsTrigger>
               <TabsTrigger value="schedule">Schedule</TabsTrigger>
             </TabsList>
@@ -666,6 +693,20 @@ export default function TournamentManagePage() {
                         </div>
                         <div className="flex items-center justify-between">
                           <div>
+                            <p className="text-xs font-medium">
+                              Tournament Locked
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              Prevent new registrations
+                            </p>
+                          </div>
+                          <Switch
+                            checked={tournament.isLocked}
+                            onCheckedChange={updateLockStatus}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div>
                             <p className="text-xs font-medium">Edit</p>
                             <p className="text-xs text-muted-foreground">
                               Modify details
@@ -728,17 +769,6 @@ export default function TournamentManagePage() {
               <GroupsManagement
                 tournamentId={tournamentId}
                 onGroupsChange={onGroupsChange}
-              />
-            </TabsContent>
-
-            <TabsContent value="lock">
-              <LockManagement
-                tournamentId={tournamentId}
-                divisions={tournament?.divisions || []}
-                onLockChange={() => {
-                  // Refresh tournament data when lock status changes
-                  window.location.reload();
-                }}
               />
             </TabsContent>
 

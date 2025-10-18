@@ -158,6 +158,7 @@ const updateTournamentSchema = z.object({
   longitude: z.number().optional(),
   logo: z.string().optional(),
   heroImage: z.string().optional(),
+  isLocked: z.boolean().optional(),
 });
 
 export async function PATCH(
@@ -254,6 +255,19 @@ export async function PATCH(
     }
     if (validatedData.maxTeams === null) {
       updateData.maxTeams = null;
+    }
+
+    // Handle lock status update
+    if (validatedData.isLocked !== undefined) {
+      if (validatedData.isLocked) {
+        // Locking tournament
+        updateData.lockedAt = new Date();
+        updateData.lockedBy = user.id;
+      } else {
+        // Unlocking tournament
+        updateData.lockedAt = null;
+        updateData.lockedBy = null;
+      }
     }
 
     // Update tournament

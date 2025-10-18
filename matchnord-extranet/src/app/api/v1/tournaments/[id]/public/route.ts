@@ -103,6 +103,7 @@ export async function GET(
       country: tournament.country,
       city: tournament.city,
       venue: tournament.venues[0]?.name || 'TBD',
+      isLocked: tournament.isLocked,
       venues: tournament.venues.map((venue) => ({
         id: venue.id,
         name: venue.name,

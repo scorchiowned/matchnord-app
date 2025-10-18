@@ -9,8 +9,9 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertCircle, Loader2, CheckCircle } from "lucide-react";
-import Link from "next/link";
 import { api } from "@/lib/api-client";
+import { Link as I18nLink } from '@/i18n/routing';
+import { useTranslations } from 'next-intl';
 
 // Types for the registration data
 interface RegistrationInfo {
@@ -53,6 +54,9 @@ interface RegistrationInfo {
       isWaitlistAvailable: boolean;
     }>;
     isRegistrationOpen: boolean;
+    isLocked: boolean;
+    lockedAt?: string;
+    lockedBy?: string;
   };
 }
 
@@ -84,6 +88,7 @@ interface RegistrationFormData {
 }
 
 export default function TournamentRegistrationPage() {
+  const t = useTranslations('registration');
   const params = useParams();
   const tournamentId = params.id as string;
   
@@ -122,7 +127,28 @@ export default function TournamentRegistrationPage() {
         const data = await api.tournaments.getRegistrationInfo(tournamentId);
         setRegistrationInfo(data);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load tournament information');
+        // Check if the error is a tournament lock error
+        if (err instanceof Error && err.message.includes('Tournament is locked')) {
+          // Set a special flag to indicate tournament is locked
+          setRegistrationInfo({
+            tournament: {
+              id: tournamentId,
+              name: 'Tournament',
+              autoAcceptTeams: false,
+              allowWaitlist: false,
+              startDate: '',
+              endDate: '',
+              location: {
+                country: { name: '', code: '' }
+              },
+              divisions: [],
+              isRegistrationOpen: false,
+              isLocked: true
+            }
+          });
+        } else {
+          setError(err instanceof Error ? err.message : 'Failed to load tournament information');
+        }
       } finally {
         setLoading(false);
       }
@@ -197,7 +223,7 @@ export default function TournamentRegistrationPage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
-          <p>Loading tournament information...</p>
+          <p>{t('loading')}</p>
         </div>
       </div>
     );
@@ -209,14 +235,37 @@ export default function TournamentRegistrationPage() {
         <div className="text-center">
           <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-gray-900 mb-4">
-            Registration Not Available
+            {t('registrationNotAvailable')}
           </h2>
           <p className="text-gray-600 mb-4">
-            {error || 'Tournament registration is not available at this time.'}
+            {error || t('registrationUnavailable')}
           </p>
-          <Link href={`/fi/tournaments/${tournamentId}`}>
-            <Button>Back to Tournament</Button>
-          </Link>
+          <I18nLink href={`/tournaments/${tournamentId}`}>
+            <Button>{t('backToTournament')}</Button>
+          </I18nLink>
+        </div>
+      </div>
+    );
+  }
+
+  // Check if tournament is locked
+  if (registrationInfo.tournament.isLocked) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <AlertCircle className="w-16 h-16 text-orange-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">
+            {t('tournamentLocked')}
+          </h2>
+          <p className="text-gray-600 mb-4">
+            {t('tournamentLockedDescription')}
+          </p>
+          <p className="text-sm text-gray-500 mb-6">
+            {t('tournamentLockedReason')}
+          </p>
+          <I18nLink href={`/tournaments/${tournamentId}`}>
+            <Button>{t('backToTournament')}</Button>
+          </I18nLink>
         </div>
       </div>
     );
@@ -228,14 +277,14 @@ export default function TournamentRegistrationPage() {
         <div className="text-center">
           <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-gray-900 mb-4">
-            Registration Submitted Successfully!
+            {t('registrationSuccess')}
           </h2>
           <p className="text-gray-600 mb-4">
-            Thank you for registering your team. You will receive a confirmation email shortly.
+            {t('confirmationEmailSoon')}
           </p>
-          <Link href={`/fi/tournaments/${tournamentId}`}>
-            <Button>Back to Tournament</Button>
-          </Link>
+          <I18nLink href={`/tournaments/${tournamentId}`}>
+            <Button>{t('backToTournament')}</Button>
+          </I18nLink>
         </div>
       </div>
     );
@@ -261,7 +310,7 @@ export default function TournamentRegistrationPage() {
         {registrationInfo.tournament.registrationInfo && (
           <Card className="mb-8">
             <CardHeader>
-              <CardTitle>Registration Information</CardTitle>
+              <CardTitle>{t('registrationInformation')}</CardTitle>
             </CardHeader>
             <CardContent>
               <div 
@@ -278,7 +327,7 @@ export default function TournamentRegistrationPage() {
             <CardContent className="pt-6">
               <div className="flex items-center text-green-800">
                 <CheckCircle className="w-5 h-5 mr-2" />
-                <span className="font-medium">Registration submitted successfully! You can now register another team.</span>
+                <span className="font-medium">{t('registrationSubmittedAnotherTeam')}</span>
               </div>
             </CardContent>
           </Card>
@@ -287,33 +336,33 @@ export default function TournamentRegistrationPage() {
         {/* Registration Form */}
         <Card>
           <CardHeader>
-            <CardTitle>Team Registration Form</CardTitle>
+            <CardTitle>{t('teamRegistrationForm')}</CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-8">
               {/* Team Information Section */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-900">Joukkue (Team)</h3>
+                <h3 className="text-lg font-semibold text-gray-900">{t('team')}</h3>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="club">Seura (Club)</Label>
+                    <Label htmlFor="club">{t('club')}</Label>
                     <Input
                       id="club"
                       name="club"
                       data-testid="club-input"
                       value={formData.club}
                       onChange={(e) => handleInputChange('club', e.target.value)}
-                      placeholder="Enter club name"
+                      placeholder={t('enterClubName')}
                       required
                     />
                   </div>
                   
                   <div>
-                    <Label htmlFor="division">Sarja (Series)</Label>
+                    <Label htmlFor="division">{t('series')}</Label>
                     <Select value={formData.divisionId} onValueChange={(value) => handleInputChange('divisionId', value)}>
                       <SelectTrigger data-testid="division-select">
-                        <SelectValue placeholder="Select division" />
+                        <SelectValue placeholder={t('selectDivision')} />
                       </SelectTrigger>
                       <SelectContent>
                         {registrationInfo.tournament.divisions.map((division) => (
@@ -321,8 +370,8 @@ export default function TournamentRegistrationPage() {
                             <div className="flex flex-col">
                               <span className="font-medium">{division.name}</span>
                               <span className="text-sm text-gray-500">
-                                {division.level} • {division.birthYear ? `Born ${division.birthYear}` : ''} • {division.format || 'Standard'}
-                                {division.registrationFee ? ` • ${division.registrationFee.amount} ${division.registrationFee.currency}` : ' • Free'}
+                                {division.level} • {division.birthYear ? t('bornYear', { year: division.birthYear }) : ''} • {division.format || t('standard')}
+                                {division.registrationFee ? ` • ${division.registrationFee.amount} ${division.registrationFee.currency}` : ` • ${t('free')}`}
                               </span>
                             </div>
                           </SelectItem>
@@ -332,14 +381,14 @@ export default function TournamentRegistrationPage() {
                   </div>
                   
                   <div className="md:col-span-2">
-                    <Label htmlFor="teamName">Joukkue (Team)</Label>
+                    <Label htmlFor="teamName">{t('team')}</Label>
                     <Input
                       id="teamName"
                       name="teamName"
                       data-testid="team-name-input"
                       value={formData.teamName}
                       onChange={(e) => handleInputChange('teamName', e.target.value)}
-                      placeholder="Enter team name"
+                      placeholder={t('enterTeamName')}
                       required
                     />
                   </div>
@@ -348,11 +397,11 @@ export default function TournamentRegistrationPage() {
 
               {/* Contact Person Section */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-900">Joukkueen yhdyshenkilö (Team Contact Person)</h3>
+                <h3 className="text-lg font-semibold text-gray-900">{t('teamContactPerson')}</h3>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="contactFirstName">Etunimi (First Name)</Label>
+                    <Label htmlFor="contactFirstName">{t('firstName')}</Label>
                     <Input
                       id="contactFirstName"
                       name="contactFirstName"
@@ -364,7 +413,7 @@ export default function TournamentRegistrationPage() {
                   </div>
                   
                   <div>
-                    <Label htmlFor="contactLastName">Sukunimi (Last Name)</Label>
+                    <Label htmlFor="contactLastName">{t('lastName')}</Label>
                     <Input
                       id="contactLastName"
                       name="contactLastName"
@@ -376,7 +425,7 @@ export default function TournamentRegistrationPage() {
                   </div>
                   
                   <div className="md:col-span-2">
-                    <Label htmlFor="contactAddress">Osoite (Address)</Label>
+                    <Label htmlFor="contactAddress">{t('address')}</Label>
                     <Input
                       id="contactAddress"
                       name="contactAddress"
@@ -388,7 +437,7 @@ export default function TournamentRegistrationPage() {
                   </div>
                   
                   <div>
-                    <Label htmlFor="contactPostalCode">Postinumero (Postal Code)</Label>
+                    <Label htmlFor="contactPostalCode">{t('postalCode')}</Label>
                     <Input
                       id="contactPostalCode"
                       name="contactPostalCode"
@@ -400,7 +449,7 @@ export default function TournamentRegistrationPage() {
                   </div>
                   
                   <div>
-                    <Label htmlFor="contactCity">Toimipaikka (City)</Label>
+                    <Label htmlFor="contactCity">{t('city')}</Label>
                     <Input
                       id="contactCity"
                       name="contactCity"
@@ -412,7 +461,7 @@ export default function TournamentRegistrationPage() {
                   </div>
                   
                   <div>
-                    <Label htmlFor="contactPhone">Puhelin (Phone)</Label>
+                    <Label htmlFor="contactPhone">{t('phone')}</Label>
                     <Input
                       id="contactPhone"
                       name="contactPhone"
@@ -425,7 +474,7 @@ export default function TournamentRegistrationPage() {
                   </div>
                   
                   <div>
-                    <Label htmlFor="contactEmail">Email</Label>
+                    <Label htmlFor="contactEmail">{t('email')}</Label>
                     <Input
                       id="contactEmail"
                       name="contactEmail"
@@ -441,7 +490,7 @@ export default function TournamentRegistrationPage() {
 
               {/* Terms Section */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-900">Käyttöehdot (Terms of Use)</h3>
+                <h3 className="text-lg font-semibold text-gray-900">{t('termsOfUse')}</h3>
                 
                 <div className="space-y-2">
                   <div className="flex items-start space-x-2">
@@ -454,24 +503,24 @@ export default function TournamentRegistrationPage() {
                       required
                     />
                     <Label htmlFor="acceptTerms" className="text-sm">
-                      Olen oikeutettu ylläpitämään ilmoittamani joukkueen tietoja tietosuojaselosteen mukaisesti.
+                      {t('termsAcceptance')}
                     </Label>
                   </div>
-                  <Link href="/privacy-policy" className="text-sm text-blue-600 hover:underline">
-                    Katso tietosuojaseloste
-                  </Link>
+                  <I18nLink href="/privacy-policy" className="text-sm text-blue-600 hover:underline">
+                    {t('viewPrivacyPolicy')}
+                  </I18nLink>
                 </div>
               </div>
 
               {/* Billing Address Section */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-gray-900">
-                  Laskutusosoite (jos muu kuin yhdyshenkilö) (Billing Address - if different from contact person)
+                  {t('billingAddressDifferent')}
                 </h3>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="billingName">Nimi (Name)</Label>
+                    <Label htmlFor="billingName">{t('name')}</Label>
                     <Input
                       id="billingName"
                       name="billingName"
@@ -482,7 +531,7 @@ export default function TournamentRegistrationPage() {
                   </div>
                   
                   <div className="md:col-span-2">
-                    <Label htmlFor="billingAddress">Osoite (Address)</Label>
+                    <Label htmlFor="billingAddress">{t('address')}</Label>
                     <Input
                       id="billingAddress"
                       name="billingAddress"
@@ -493,7 +542,7 @@ export default function TournamentRegistrationPage() {
                   </div>
                   
                   <div>
-                    <Label htmlFor="billingPostalCode">Postinumero (Postal Code)</Label>
+                    <Label htmlFor="billingPostalCode">{t('postalCode')}</Label>
                     <Input
                       id="billingPostalCode"
                       name="billingPostalCode"
@@ -504,7 +553,7 @@ export default function TournamentRegistrationPage() {
                   </div>
                   
                   <div>
-                    <Label htmlFor="billingCity">Toimipaikka (City)</Label>
+                    <Label htmlFor="billingCity">{t('city')}</Label>
                     <Input
                       id="billingCity"
                       name="billingCity"
@@ -515,7 +564,7 @@ export default function TournamentRegistrationPage() {
                   </div>
                   
                   <div>
-                    <Label htmlFor="billingEmail">Email</Label>
+                    <Label htmlFor="billingEmail">{t('email')}</Label>
                     <Input
                       id="billingEmail"
                       name="billingEmail"
@@ -528,17 +577,17 @@ export default function TournamentRegistrationPage() {
                 </div>
                 
                 <p className="text-sm text-gray-500">
-                  (Alustava määrä, muutoksia voi tehdä myöhemmin)
+                  {t('preliminaryAmount')}
                 </p>
               </div>
 
               {/* Cost Summary */}
               {selectedDivision && (
                 <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-gray-900">Cost Summary</h3>
+                  <h3 className="text-lg font-semibold text-gray-900">{t('costSummary')}</h3>
                   <div className="bg-gray-50 p-4 rounded-lg">
                     <div className="flex justify-between items-center">
-                      <span>Joukkuemaksu (Team Fee)</span>
+                      <span>{t('teamFee')}</span>
                       <span className="font-semibold">
                         {selectedDivision.registrationFee 
                           ? `${selectedDivision.registrationFee.amount} ${selectedDivision.registrationFee.currency}`
@@ -547,7 +596,7 @@ export default function TournamentRegistrationPage() {
                       </span>
                     </div>
                     <div className="flex justify-between items-center mt-2 pt-2 border-t">
-                      <span className="font-semibold">Yhteensä (Total)</span>
+                      <span className="font-semibold">{t('total')}</span>
                       <span className="font-semibold text-lg">
                         {selectedDivision.registrationFee 
                           ? `${selectedDivision.registrationFee.amount} ${selectedDivision.registrationFee.currency}`
@@ -564,12 +613,12 @@ export default function TournamentRegistrationPage() {
                 <div className="flex items-center space-x-2">
                   <Checkbox id="recaptcha" />
                   <Label htmlFor="recaptcha" className="text-sm">
-                    En ole robotti (I am not a robot)
+                    {t('notARobot')}
                   </Label>
                 </div>
                 <div className="text-xs text-gray-500">
-                  <Link href="/privacy" className="hover:underline">Tietosuoja</Link> | 
-                  <Link href="/terms" className="hover:underline ml-1">Ehdot</Link>
+                  <I18nLink href="/privacy" className="hover:underline">{t('privacy')}</I18nLink> | 
+                  <I18nLink href="/terms" className="hover:underline ml-1">{t('terms')}</I18nLink>
                 </div>
               </div>
 
@@ -594,10 +643,10 @@ export default function TournamentRegistrationPage() {
                   {submitting ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Submitting...
+                      {t('submitting')}
                     </>
                   ) : (
-                    'Lähetä ilmoittautuminen (Send registration)'
+                    t('sendRegistration')
                   )}
                 </Button>
                 
@@ -619,10 +668,10 @@ export default function TournamentRegistrationPage() {
                   {submitting ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Submitting...
+                      {t('submitting')}
                     </>
                   ) : (
-                    'Lähetä ja luo uusi (Send and create another)'
+                    t('sendAndCreateAnother')
                   )}
                 </Button>
               </div>

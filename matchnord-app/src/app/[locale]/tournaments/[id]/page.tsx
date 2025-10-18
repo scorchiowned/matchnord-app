@@ -15,6 +15,7 @@ import {
   Mail,
   Loader2,
   AlertCircle,
+  UserPlus,
 } from "lucide-react";
 import {
   usePublicTournament,
@@ -75,7 +76,7 @@ export default function TournamentDetailPage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-4" />
-          <p className="text-gray-600">Loading tournament...</p>
+          <p className="text-gray-600">{t('common.loading')}...</p>
         </div>
       </div>
     );
@@ -148,11 +149,12 @@ export default function TournamentDetailPage() {
 
         {/* Tournament Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full mb-8">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="overview">{t('tournament.tabs.overview')}</TabsTrigger>
             <TabsTrigger value="divisions">{t('tournament.tabs.divisions')}</TabsTrigger>
             <TabsTrigger value="matches">{t('tournament.tabs.matches')}</TabsTrigger>
             <TabsTrigger value="teams">{t('tournament.tabs.teams')}</TabsTrigger>
+            <TabsTrigger value="register">{t('tournament.tabs.register')}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="mt-6">
@@ -319,30 +321,30 @@ export default function TournamentDetailPage() {
             {/* Tournament Stats */}
             <Card>
               <CardHeader>
-                <CardTitle>Tournament Statistics</CardTitle>
+                <CardTitle>{t('tournament.details.tournamentStatistics')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Total Teams</span>
+                    <span className="text-gray-600">{t('tournament.details.totalTeams')}</span>
                     <span className="font-semibold">
                       {teams?.length || 0}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Divisions</span>
+                    <span className="text-gray-600">{t('tournament.details.divisions')}</span>
                     <span className="font-semibold">
                       {divisions?.length || 0}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Total Matches</span>
+                    <span className="text-gray-600">{t('tournament.details.totalMatches')}</span>
                     <span className="font-semibold">
                       {matches?.length || 0}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Status</span>
+                    <span className="text-gray-600">{t('tournament.details.status')}</span>
                     <Badge className={getStatusColor(tournament.status)}>
                       {getStatusText(tournament.status)}
                     </Badge>
@@ -355,7 +357,7 @@ export default function TournamentDetailPage() {
           <TabsContent value="divisions" className="mt-6">
             <Card>
               <CardHeader>
-                <CardTitle>Divisions</CardTitle>
+                <CardTitle>{t('tournament.tabs.divisions')}</CardTitle>
               </CardHeader>
               <CardContent>
                 {divisionsLoading ? (
@@ -394,7 +396,7 @@ export default function TournamentDetailPage() {
                   </div>
                 ) : (
                   <p className="text-gray-500 text-center py-8">
-                    No divisions available
+                    {t('tournament.details.noDivisionsAvailable')}
                   </p>
                 )}
               </CardContent>
@@ -404,7 +406,7 @@ export default function TournamentDetailPage() {
           <TabsContent value="matches" className="mt-6">
             <Card>
               <CardHeader>
-                <CardTitle>Matches</CardTitle>
+                <CardTitle>{t('tournament.tabs.matches')}</CardTitle>
               </CardHeader>
               <CardContent>
                 {matchesLoading ? (
@@ -468,7 +470,7 @@ export default function TournamentDetailPage() {
                   </div>
                 ) : (
                   <p className="text-gray-500 text-center py-8">
-                    No matches scheduled
+                    {t('tournament.details.noMatchesScheduled')}
                   </p>
                 )}
               </CardContent>
@@ -478,7 +480,7 @@ export default function TournamentDetailPage() {
           <TabsContent value="teams" className="mt-6">
             <Card>
               <CardHeader>
-                <CardTitle>Teams</CardTitle>
+                <CardTitle>{t('tournament.tabs.teams')}</CardTitle>
               </CardHeader>
               <CardContent>
                 {teamsLoading ? (
@@ -518,8 +520,50 @@ export default function TournamentDetailPage() {
                   </div>
                 ) : (
                   <p className="text-gray-500 text-center py-8">
-                    No teams registered yet
+                    {t('tournament.details.noTeamsRegistered')}
                   </p>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="register" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <UserPlus className="w-5 h-5 mr-2" />
+                  {t('tournament.tabs.register')}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {tournament.isLocked ? (
+                  <div className="text-center py-8">
+                    <AlertCircle className="w-16 h-16 text-orange-500 mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                      {t('registration.tournamentLocked')}
+                    </h3>
+                    <p className="text-gray-600 mb-6">
+                      {t('registration.tournamentLockedDescription')}
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      {t('registration.tournamentLockedReason')}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <UserPlus className="w-16 h-16 text-blue-600 mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                      {t('tournament.registration.title')}
+                    </h3>
+                    <p className="text-gray-600 mb-6">
+                      {t('tournament.registration.description')}
+                    </p>
+                    <I18nLink href={`/tournaments/${tournamentId}/register`}>
+                      <Button className="bg-blue-600 hover:bg-blue-700">
+                        {t('tournament.registration.registerTeam')}
+                      </Button>
+                    </I18nLink>
+                  </div>
                 )}
               </CardContent>
             </Card>

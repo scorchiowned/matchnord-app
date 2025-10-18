@@ -239,9 +239,10 @@
         "currentRole": "Current role",
         "tabs": {
             "overview": "Overview",
-            "divisions": "Divisions", 
+            "divisions": "Divisions",
             "matches": "Matches",
-            "teams": "Teams"
+            "teams": "Teams",
+            "register": "Register"
         },
         "details": {
             "tournamentDates": "Tournament Dates",
@@ -258,7 +259,58 @@
             "noMatchesScheduled": "No matches scheduled",
             "noTeamsRegistered": "No teams registered yet",
             "viewLargerMap": "View larger map"
+        },
+        "registration": {
+            "title": "Team Registration",
+            "description": "Register your team for this tournament. Fill out the registration form to secure your spot.",
+            "registerTeam": "Register Team"
         }
+    },
+    "registration": {
+        "loading": "Loading tournament information...",
+        "registrationNotAvailable": "Registration Not Available",
+        "registrationUnavailable": "Tournament registration is not available at this time.",
+        "backToTournament": "Back to Tournament",
+        "registrationSuccess": "Registration Submitted Successfully!",
+        "confirmationEmailSoon": "Thank you for registering your team. You will receive a confirmation email shortly.",
+        "registrationInformation": "Registration Information",
+        "registrationSubmittedAnotherTeam": "Registration submitted successfully! You can now register another team.",
+        "teamRegistrationForm": "Team Registration Form",
+        "team": "Team",
+        "club": "Club",
+        "enterClubName": "Enter club name",
+        "series": "Series",
+        "selectDivision": "Select division",
+        "bornYear": "Born {year}",
+        "standard": "Standard",
+        "free": "Free",
+        "enterTeamName": "Enter team name",
+        "teamContactPerson": "Team Contact Person",
+        "firstName": "First Name",
+        "lastName": "Last Name",
+        "address": "Address",
+        "postalCode": "Postal Code",
+        "city": "City",
+        "phone": "Phone",
+        "email": "Email",
+        "termsOfUse": "Terms of Use",
+        "termsAcceptance": "I am authorized to maintain the team information I have provided in accordance with the privacy policy.",
+        "viewPrivacyPolicy": "View privacy policy",
+        "billingAddressDifferent": "Billing Address (if different from contact person)",
+        "name": "Name",
+        "preliminaryAmount": "(Preliminary amount, changes can be made later)",
+        "costSummary": "Cost Summary",
+        "teamFee": "Team Fee",
+        "total": "Total",
+        "notARobot": "I am not a robot",
+        "privacy": "Privacy",
+        "terms": "Terms",
+        "submitting": "Submitting...",
+        "sendRegistration": "Send registration",
+        "sendAndCreateAnother": "Send and create another",
+        "tournamentLocked": "Tournament Locked",
+        "tournamentLockedDescription": "This tournament is currently locked and not accepting new registrations.",
+        "tournamentLockedReason": "The tournament has been locked by the organizers and registration is no longer available."
     },
     "match": {
         "title": "Match",
@@ -451,7 +503,10 @@
         "submit": "Submit Registration",
         "confirm": "Confirm Registration",
         "success": "Registration Successful",
-        "error": "Registration Error"
+        "error": "Registration Error",
+        "tournamentLocked": "Tournament Locked",
+        "tournamentLockedDescription": "This tournament is not accepting new registrations at this time.",
+        "tournamentLockedReason": "The tournament has been locked by the organizer."
     },
     "email": {
         "welcome": "Welcome",

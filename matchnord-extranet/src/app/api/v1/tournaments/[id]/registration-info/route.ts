@@ -21,6 +21,9 @@ export async function GET(
         allowWaitlist: true,
         maxTeams: true,
         status: true,
+        isLocked: true,
+        lockedAt: true,
+        lockedBy: true,
         startDate: true,
         endDate: true,
         city: true,
@@ -85,6 +88,14 @@ export async function GET(
       );
     }
 
+    // Check if tournament is locked
+    if (tournament.isLocked) {
+      return NextResponse.json(
+        { error: 'Tournament is locked and not accepting new registrations' },
+        { status: 400 }
+      );
+    }
+
     // Check if registration deadline has passed
     const isRegistrationOpen =
       !tournament.registrationDeadline ||
@@ -136,6 +147,9 @@ export async function GET(
         },
         divisions: divisionsWithAvailability,
         isRegistrationOpen,
+        isLocked: tournament.isLocked,
+        lockedAt: tournament.lockedAt,
+        lockedBy: tournament.lockedBy,
       },
     });
   } catch (error) {

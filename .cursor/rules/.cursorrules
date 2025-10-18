@@ -1,0 +1,301 @@
+# MatchNord Tournament Software - Cursor Rules
+
+## Project Overview
+
+This is a comprehensive tournament management platform with two main applications:
+
+- **matchnord-extranet** (Port 3000): Backend API and tournament management interface
+- **matchnord-app** (Port 3001): Public-facing application for users
+
+## Architecture
+
+### Application Structure
+
+- **matchnord-extranet**: Next.js 14 app with App Router, serves as the main API backend and admin interface
+- **matchnord-app**: Next.js 15 app with App Router, public-facing frontend that consumes extranet APIs
+- **Shared Database**: PostgreSQL with Prisma ORM
+- **Communication**: matchnord-app makes HTTP requests to matchnord-extranet APIs
+
+### Key Technologies
+
+- **Frontend**: Next.js 14/15, React 18/19, TypeScript, Tailwind CSS, shadcn/ui
+- **Backend**: Next.js API routes, Prisma ORM, PostgreSQL
+- **Authentication**: NextAuth.js with role-based access control
+- **Internationalization**: next-intl (5 languages: EN, FI, SV, NO, DA)
+- **Testing**: Vitest, Playwright, Testing Library
+- **Email**: Resend service with comprehensive email templates
+
+## Development Guidelines
+
+### Port Configuration
+
+- **matchnord-extranet**: Runs on port 3000 (backend/API)
+- **matchnord-app**: Runs on port 3001 (public frontend)
+- **Database**: PostgreSQL on port 5434 (development), 5433 (test)
+
+### Environment Variables
+
+- **matchnord-extranet**: Requires DATABASE_URL, NEXTAUTH_SECRET, NEXTAUTH_URL
+- **matchnord-app**: Requires NEXT_PUBLIC_API_URL pointing to extranet (http://localhost:3000)
+
+### File Structure Rules
+
+#### matchnord-extranet (Backend)
+
+```
+src/
+├── app/
+│   ├── [locale]/           # Internationalized routes
+│   │   ├── admin/          # Admin dashboard
+│   │   ├── tournaments/    # Tournament management
+│   │   └── auth/           # Authentication pages
+│   └── api/                # API routes
+│       └── v1/             # Versioned API endpoints
+├── components/             # React components
+├── lib/                    # Utilities and configurations
+├── i18n/                   # Internationalization files
+└── types/                  # TypeScript definitions
+```
+
+#### matchnord-app (Frontend)
+
+```
+src/
+├── app/
+│   └── [locale]/           # Internationalized routes
+│       ├── tournaments/    # Public tournament pages
+│       ├── teams/          # Team pages
+│       └── venues/         # Venue pages
+├── components/             # React components
+├── lib/                    # API client and utilities
+└── i18n/                   # Internationalization files
+```
+
+### API Communication
+
+- **matchnord-app** consumes **matchnord-extranet** APIs via HTTP
+- API base URL: `NEXT_PUBLIC_API_URL` (defaults to http://localhost:3000)
+- All API calls use the `/api/v1/` prefix
+- Authentication handled via cookies/sessions
+
+### Database Schema
+
+- **Prisma ORM** with PostgreSQL
+- **Core Models**: User, Tournament, Division, Group, Team, Match, Venue, Registration
+- **Role System**: ADMIN, TEAM_MANAGER, TOURNAMENT_ADMIN, REFEREE
+- **Relationships**: Complex tournament hierarchy with divisions → groups → teams → matches
+
+### Internationalization
+
+- **Supported Languages**: English (en), Finnish (fi), Swedish (sv), Norwegian (no), Danish (da)
+- **Implementation**: next-intl with locale-based routing
+- **File Structure**: Each app has its own i18n folder with language JSON files
+- **Routing**: All routes are prefixed with locale (e.g., `/en/tournaments`, `/fi/tournaments`)
+
+## Development Commands
+
+### Starting Development Environment
+
+```bash
+# Quick start (recommended)
+./start-dev.sh
+
+# Manual start
+cd matchnord-extranet && npm run dev  # Port 3000
+cd matchnord-app && npm run dev       # Port 3001
+```
+
+### Database Management
+
+```bash
+# Start database
+npm run db:up
+
+# Run migrations
+npm run prisma:migrate
+
+# Seed database
+npm run prisma:seed
+
+# Reset database
+npm run db:reset
+```
+
+### Testing
+
+```bash
+# Unit tests
+npm run test
+
+# E2E tests
+npm run e2e
+
+# E2E with UI
+npm run e2e:ui
+```
+
+## Code Style & Standards
+
+### TypeScript
+
+- **Strict Mode**: Always use strict TypeScript configuration
+- **Type Safety**: Prefer explicit types over `any`
+- **Interfaces**: Use interfaces for object shapes, types for unions/primitives
+- **API Types**: Generate types from Prisma schema and API responses
+
+### React Components
+
+- **Functional Components**: Use function components with hooks
+- **Props Interface**: Always define props interfaces
+- **Error Boundaries**: Implement error boundaries for robust error handling
+- **Loading States**: Always handle loading and error states
+
+### API Development
+
+- **RESTful Design**: Follow REST conventions for API endpoints
+- **Validation**: Use Zod schemas for request/response validation
+- **Error Handling**: Consistent error response format
+- **Authentication**: Implement proper role-based access control
+
+### Styling
+
+- **Tailwind CSS**: Use Tailwind for styling
+- **shadcn/ui**: Use shadcn/ui components as base
+- **Responsive Design**: Mobile-first approach
+- **Dark Mode**: Support dark mode where applicable
+
+## Security Guidelines
+
+### Authentication & Authorization
+
+- **Role-Based Access**: Implement proper role checks
+- **Session Management**: Use NextAuth.js for session handling
+- **API Security**: Validate all API inputs
+- **CORS**: Configure CORS properly for cross-origin requests
+
+### Data Protection
+
+- **Input Validation**: Validate all user inputs with Zod
+- **SQL Injection**: Use Prisma ORM to prevent SQL injection
+- **XSS Prevention**: Sanitize user-generated content
+- **CSRF Protection**: Implement CSRF tokens where needed
+
+## Testing Strategy
+
+### Unit Tests
+
+- **Vitest**: Use Vitest for unit testing
+- **Testing Library**: Use React Testing Library for component tests
+- **Mocking**: Mock external dependencies and API calls
+- **Coverage**: Aim for high test coverage on critical paths
+
+### E2E Tests
+
+- **Playwright**: Use Playwright for end-to-end testing
+- **Test Data**: Use fixtures for consistent test data
+- **User Flows**: Test complete user journeys
+- **Cross-Browser**: Test on multiple browsers
+
+## Deployment
+
+### Environment Setup
+
+- **Development**: Use Docker Compose for local development
+- **Production**: Deploy to Azure with proper environment variables
+- **Database**: Use managed PostgreSQL service in production
+- **CDN**: Use Azure CDN for static assets
+
+### Build Process
+
+- **Build Commands**: Each app has separate build processes
+- **Environment Variables**: Ensure all required env vars are set
+- **Database Migrations**: Run migrations as part of deployment
+- **Health Checks**: Implement health check endpoints
+
+## Common Patterns
+
+### API Client Usage
+
+```typescript
+// In matchnord-app
+import { api } from "@/lib/api-client";
+
+const tournaments = await api.tournaments.getAll();
+const tournament = await api.tournaments.getById(id);
+```
+
+### Component Structure
+
+```typescript
+interface ComponentProps {
+  // Define props interface
+}
+
+export function Component({ prop1, prop2 }: ComponentProps) {
+  // Component implementation
+}
+```
+
+### Error Handling
+
+```typescript
+try {
+  const data = await api.someEndpoint();
+  return data;
+} catch (error) {
+  if (error instanceof ApiError) {
+    // Handle API errors
+  }
+  // Handle other errors
+}
+```
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Port Conflicts**: Ensure ports 3000 and 3001 are available
+2. **Database Connection**: Check DATABASE_URL and PostgreSQL status
+3. **API Communication**: Verify NEXT_PUBLIC_API_URL is set correctly
+4. **Authentication**: Check NEXTAUTH_SECRET and session configuration
+
+### Debug Commands
+
+```bash
+# Check database connection
+npm run db:logs
+
+# Check API endpoints
+curl http://localhost:3000/api/v1/tournaments
+
+# Check frontend
+curl http://localhost:3001
+```
+
+## Best Practices
+
+1. **Separation of Concerns**: Keep business logic in lib/, components in components/
+2. **Type Safety**: Always use TypeScript types, avoid `any`
+3. **Error Handling**: Implement comprehensive error handling
+4. **Performance**: Use React.memo, useMemo, useCallback where appropriate
+5. **Accessibility**: Follow WCAG guidelines for accessibility
+6. **SEO**: Implement proper meta tags and structured data
+7. **Monitoring**: Add logging and monitoring for production issues
+
+## File Naming Conventions
+
+- **Components**: PascalCase (e.g., `TournamentCard.tsx`)
+- **Pages**: kebab-case (e.g., `tournament-details.tsx`)
+- **Utilities**: camelCase (e.g., `formatDate.ts`)
+- **Types**: PascalCase (e.g., `Tournament.ts`)
+- **Constants**: UPPER_SNAKE_CASE (e.g., `API_ENDPOINTS.ts`)
+
+## Git Workflow
+
+- **Branches**: Use feature branches for new features
+- **Commits**: Use conventional commit messages
+- **Pull Requests**: Require code review before merging
+- **Testing**: Run tests before pushing changes
+- **Linting**: Use ESLint and Prettier for code formatting
+
+Remember: This is a complex tournament management system with multiple user roles, real-time features, and internationalization. Always consider the impact of changes across both applications and maintain consistency in the user experience.

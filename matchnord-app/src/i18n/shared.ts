@@ -38,3 +38,4 @@ export function addLocaleToUrl(pathname: string, locale: Locale): string {
   return `/${locale}${cleanPath}`;
 }
 
+

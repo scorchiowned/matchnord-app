@@ -186,6 +186,9 @@ export const tournamentApi = {
           isWaitlistAvailable: boolean;
         }>;
         isRegistrationOpen: boolean;
+        isLocked: boolean;
+        lockedAt?: string;
+        lockedBy?: string;
       };
     }>(`/api/v1/tournaments/${id}/registration-info`);
   },
