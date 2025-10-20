@@ -93,17 +93,17 @@ export const tournamentApi = {
 
   // Get single tournament
   getById: async (id: string) => {
-    return fetchApi<Tournament>(`/api/v1/tournaments/${id}`);
+    return fetchApi<Tournament>(`/api/v1/tournaments/${id}/public`);
   },
 
   // Get tournament divisions
   getDivisions: async (id: string) => {
-    return fetchApi<Division[]>(`/api/v1/tournaments/${id}/divisions`);
+    return fetchApi<Division[]>(`/api/v1/tournaments/${id}/public/divisions`);
   },
 
   // Get tournament groups
   getGroups: async (id: string) => {
-    return fetchApi<Group[]>(`/api/v1/tournaments/${id}/groups`);
+    return fetchApi<Group[]>(`/api/v1/tournaments/${id}/public/groups`);
   },
 
   // Get tournament matches
@@ -121,7 +121,7 @@ export const tournamentApi = {
     if (params?.status) searchParams.set("status", params.status);
 
     const queryString = searchParams.toString();
-    const endpoint = `/api/v1/tournaments/${id}/matches${
+    const endpoint = `/api/v1/tournaments/${id}/public/matches${
       queryString ? `?${queryString}` : ""
     }`;
 
@@ -130,12 +130,12 @@ export const tournamentApi = {
 
   // Get tournament teams
   getTeams: async (id: string) => {
-    return fetchApi<Team[]>(`/api/v1/tournaments/${id}/teams`);
+    return fetchApi<Team[]>(`/api/v1/tournaments/${id}/public/teams`);
   },
 
   // Get tournament venues
   getVenues: async (id: string) => {
-    return fetchApi<Venue[]>(`/api/v1/tournaments/${id}/venues`);
+    return fetchApi<Venue[]>(`/api/v1/tournaments/${id}/public/venues`);
   },
 
   // Get public tournament info
@@ -312,10 +312,10 @@ export const registrationApi = {
         paymentMethod?: string;
         submittedAt: string;
       };
-    }>('/api/v1/registrations', {
-      method: 'POST',
+    }>("/api/v1/registrations", {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify(data),
     });
@@ -334,4 +334,3 @@ export const api = {
 };
 
 export { ApiError };
-
