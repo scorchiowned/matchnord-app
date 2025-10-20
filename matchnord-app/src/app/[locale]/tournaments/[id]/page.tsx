@@ -168,11 +168,11 @@ export default function TournamentDetailPage() {
             <TabsTrigger value="divisions">
               {t("tournament.tabs.divisions")}
             </TabsTrigger>
-            <TabsTrigger value="matches">
-              {t("tournament.tabs.matches")}
-            </TabsTrigger>
             <TabsTrigger value="teams">
               {t("tournament.tabs.teams")}
+            </TabsTrigger>
+            <TabsTrigger value="matches">
+              {t("tournament.tabs.matches")}
             </TabsTrigger>
             <TabsTrigger value="register">
               {t("tournament.tabs.register")}
@@ -323,98 +323,163 @@ export default function TournamentDetailPage() {
           </TabsContent>
 
           <TabsContent value="divisions" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>{t("tournament.tabs.divisions")}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {divisionsLoading ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="w-6 h-6 animate-spin" />
-                  </div>
-                ) : divisions && divisions.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {divisions.map((division) => (
-                      <div
-                        key={division.id}
-                        className="p-4 border rounded-lg hover:shadow-md transition-shadow"
-                      >
-                        <h3 className="font-semibold text-lg mb-2">
-                          {division.name || "Division Name TBD"}
-                        </h3>
-                        <p className="text-gray-600 text-sm mb-3">
-                          {division.description}
-                        </p>
-                        <div className="space-y-1 text-sm text-gray-500">
-                          <div>Level: {division.level}</div>
-                          <div>
-                            Teams: {division.currentTeams}/{division.maxTeams}
+            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  {t("tournament.tabs.divisions")}
+                </h3>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        {t("tournament.divisions")}
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Level
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Teams
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Format
+                      </th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {divisionsLoading ? (
+                      <tr>
+                        <td colSpan={5} className="px-6 py-8 text-center">
+                          <div className="flex items-center justify-center">
+                            <Loader2 className="w-6 h-6 animate-spin" />
                           </div>
-                          <div>Format: {division.format || "Standard"}</div>
-                        </div>
-                        <I18nLink
-                          href={`/tournaments/${tournamentId}/divisions/${division.id}`}
+                        </td>
+                      </tr>
+                    ) : divisions && divisions.length > 0 ? (
+                      divisions.map((division) => (
+                        <tr key={division.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4">
+                            <div>
+                              <div className="text-sm font-medium text-gray-900">
+                                {division.name || "Division Name TBD"}
+                              </div>
+                              {division.description && (
+                                <div className="text-sm text-gray-500 mt-1">
+                                  {division.description}
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 text-sm text-gray-900">
+                            {division.level}
+                          </td>
+                          <td className="px-6 py-4 text-sm text-gray-900">
+                            {division.currentTeams}/{division.maxTeams}
+                          </td>
+                          <td className="px-6 py-4 text-sm text-gray-900">
+                            {division.format || "Standard"}
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <I18nLink
+                              href={`/tournaments/${tournamentId}/divisions/${division.id}`}
+                            >
+                              <Button size="sm">{t("common.view")}</Button>
+                            </I18nLink>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td
+                          colSpan={5}
+                          className="px-6 py-8 text-center text-gray-500"
                         >
-                          <Button className="w-full mt-3" size="sm">
-                            {t("common.view")} {t("tournament.divisions")}
-                          </Button>
-                        </I18nLink>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-gray-500 text-center py-8">
-                    {t("tournament.details.noDivisionsAvailable")}
-                  </p>
-                )}
-              </CardContent>
-            </Card>
+                          {t("tournament.details.noDivisionsAvailable")}
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </TabsContent>
 
           <TabsContent value="matches" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>{t("tournament.tabs.matches")}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {matchesLoading ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="w-6 h-6 animate-spin" />
-                  </div>
-                ) : matches && matches.length > 0 ? (
-                  <div className="space-y-3">
-                    {matches.map((match) => (
-                      <div
-                        key={match.id}
-                        className="p-4 border rounded-lg hover:shadow-md transition-shadow"
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-4">
-                            <div className="text-center">
-                              <div className="font-medium">
-                                {match.homeTeam?.name || "TBD"}
-                              </div>
-                              <div className="text-sm text-gray-500">Home</div>
-                            </div>
-                            <div className="text-center">
-                              <div className="text-2xl font-bold">
-                                {match.homeScore} - {match.awayScore}
-                              </div>
-                              <div className="text-sm text-gray-500">
-                                {format(
-                                  new Date(match.startTime),
-                                  "MMM d, HH:mm"
-                                )}
-                              </div>
-                            </div>
-                            <div className="text-center">
-                              <div className="font-medium">
-                                {match.awayTeam?.name || "TBD"}
-                              </div>
-                              <div className="text-sm text-gray-500">Away</div>
-                            </div>
+            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  {t("tournament.tabs.matches")}
+                </h3>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Home Team
+                      </th>
+                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Score
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Away Team
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Date & Time
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Venue
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Status
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {matchesLoading ? (
+                      <tr>
+                        <td colSpan={6} className="px-6 py-8 text-center">
+                          <div className="flex items-center justify-center">
+                            <Loader2 className="w-6 h-6 animate-spin" />
                           </div>
-                          <div className="text-right">
+                        </td>
+                      </tr>
+                    ) : matches && matches.length > 0 ? (
+                      matches.map((match) => (
+                        <tr key={match.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4">
+                            <div className="text-sm font-medium text-gray-900">
+                              {match.homeTeam?.name || "TBD"}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 text-center">
+                            <div className="text-lg font-bold text-gray-900">
+                              {match.homeScore} - {match.awayScore}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="text-sm font-medium text-gray-900">
+                              {match.awayTeam?.name || "TBD"}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="text-sm text-gray-900">
+                              {format(new Date(match.startTime), "MMM d, yyyy")}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {format(new Date(match.startTime), "HH:mm")}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="text-sm text-gray-900">
+                              {match.venue?.name || "-"}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
                             <Badge
                               className={
                                 match.status === "LIVE"
@@ -426,73 +491,114 @@ export default function TournamentDetailPage() {
                             >
                               {match.status}
                             </Badge>
-                            {match.venue && (
-                              <div className="text-sm text-gray-500 mt-1">
-                                {match.venue.name}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-gray-500 text-center py-8">
-                    {t("tournament.details.noMatchesScheduled")}
-                  </p>
-                )}
-              </CardContent>
-            </Card>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td
+                          colSpan={6}
+                          className="px-6 py-8 text-center text-gray-500"
+                        >
+                          {t("tournament.details.noMatchesScheduled")}
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </TabsContent>
 
           <TabsContent value="teams" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>{t("tournament.tabs.teams")}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {teamsLoading ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="w-6 h-6 animate-spin" />
-                  </div>
-                ) : teams && teams.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {teams.map((team) => (
-                      <div
-                        key={team.id}
-                        className="p-4 border rounded-lg hover:shadow-md transition-shadow"
-                      >
-                        <h3 className="font-semibold text-lg mb-2">
-                          {team.name || "Team Name TBD"}
-                        </h3>
-                        {team.shortName && (
-                          <p className="text-gray-600 text-sm mb-2">
-                            ({team.shortName})
-                          </p>
-                        )}
-                        <div className="space-y-1 text-sm text-gray-500">
-                          {team.club && <div>Club: {team.club}</div>}
-                          {team.city && <div>City: {team.city}</div>}
-                          <div>Country: {team.country?.name || "Unknown"}</div>
-                          {team.level && <div>Level: {team.level}</div>}
-                        </div>
-                        <I18nLink
-                          href={`/tournaments/${tournamentId}/teams/${team.id}`}
+            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  {t("tournament.tabs.teams")}
+                </h3>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Team
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Club
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Location
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Level
+                      </th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {teamsLoading ? (
+                      <tr>
+                        <td colSpan={5} className="px-6 py-8 text-center">
+                          <div className="flex items-center justify-center">
+                            <Loader2 className="w-6 h-6 animate-spin" />
+                          </div>
+                        </td>
+                      </tr>
+                    ) : teams && teams.length > 0 ? (
+                      teams.map((team) => (
+                        <tr key={team.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4">
+                            <div>
+                              <div className="text-sm font-medium text-gray-900">
+                                {team.name || "Team Name TBD"}
+                              </div>
+                              {team.shortName && (
+                                <div className="text-sm text-gray-500">
+                                  ({team.shortName})
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 text-sm text-gray-900">
+                            {team.club || "-"}
+                          </td>
+                          <td className="px-6 py-4 text-sm text-gray-900">
+                            <div>
+                              {team.city && <div>{team.city}</div>}
+                              <div className="text-gray-500">
+                                {team.country?.name || "Unknown"}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 text-sm text-gray-900">
+                            {team.level || "-"}
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <I18nLink
+                              href={`/tournaments/${tournamentId}/teams/${team.id}`}
+                            >
+                              <Button size="sm">{t("common.view")}</Button>
+                            </I18nLink>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td
+                          colSpan={5}
+                          className="px-6 py-8 text-center text-gray-500"
                         >
-                          <Button className="w-full mt-3" size="sm">
-                            {t("common.view")} {t("team.title")}
-                          </Button>
-                        </I18nLink>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-gray-500 text-center py-8">
-                    {t("tournament.details.noTeamsRegistered")}
-                  </p>
-                )}
-              </CardContent>
-            </Card>
+                          {t("tournament.details.noTeamsRegistered")}
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </TabsContent>
 
           <TabsContent value="register" className="mt-6">
