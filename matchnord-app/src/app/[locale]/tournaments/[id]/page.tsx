@@ -26,9 +26,9 @@ import {
 import Link from "next/link";
 import Image from "next/image";
 import { format } from "date-fns";
-import { useTranslations } from 'next-intl';
-import { useLocale } from 'next-intl';
-import { Link as I18nLink } from '@/i18n/routing';
+import { useTranslations } from "next-intl";
+import { useLocale } from "next-intl";
+import { Link as I18nLink } from "@/i18n/routing";
 
 export default function TournamentDetailPage() {
   const params = useParams();
@@ -61,10 +61,12 @@ export default function TournamentDetailPage() {
             Tournament Not Found
           </h2>
           <p className="text-gray-600 mb-4">
-            {t('tournament.tournamentNotFound')}
+            {t("tournament.tournamentNotFound")}
           </p>
           <I18nLink href="/tournaments">
-            <Button>{t('common.back')} {t('navigation.tournaments')}</Button>
+            <Button>
+              {t("common.back")} {t("navigation.tournaments")}
+            </Button>
           </I18nLink>
         </div>
       </div>
@@ -76,7 +78,7 @@ export default function TournamentDetailPage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-4" />
-          <p className="text-gray-600">{t('common.loading')}...</p>
+          <p className="text-gray-600">{t("common.loading")}...</p>
         </div>
       </div>
     );
@@ -91,10 +93,12 @@ export default function TournamentDetailPage() {
             Tournament Not Found
           </h2>
           <p className="text-gray-600 mb-4">
-            {t('tournament.tournamentNotFound')}
+            {t("tournament.tournamentNotFound")}
           </p>
           <I18nLink href="/tournaments">
-            <Button>{t('common.back')} {t('navigation.tournaments')}</Button>
+            <Button>
+              {t("common.back")} {t("navigation.tournaments")}
+            </Button>
           </I18nLink>
         </div>
       </div>
@@ -135,12 +139,16 @@ export default function TournamentDetailPage() {
           {/* Hero Image */}
           {tournament.heroImage && (
             <div className="mb-6">
-              <div className="aspect-video bg-gradient-to-br from-blue-100 to-green-100 rounded-lg overflow-hidden relative">
+              <div
+                className="bg-gradient-to-br from-blue-100 to-green-100 rounded-lg overflow-hidden relative"
+                style={{ height: "300px" }}
+              >
                 <Image
                   src={tournament.heroImage}
                   alt={`${tournament.name} hero image`}
                   fill
-                  className="object-cover"
+                  className="object-cover w-full"
+                  style={{ maxHeight: "300px", height: "100%" }}
                 />
               </div>
             </div>
@@ -148,13 +156,27 @@ export default function TournamentDetailPage() {
         </div>
 
         {/* Tournament Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full mb-8">
+        <Tabs
+          value={activeTab}
+          onValueChange={setActiveTab}
+          className="w-full mb-8"
+        >
           <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="overview">{t('tournament.tabs.overview')}</TabsTrigger>
-            <TabsTrigger value="divisions">{t('tournament.tabs.divisions')}</TabsTrigger>
-            <TabsTrigger value="matches">{t('tournament.tabs.matches')}</TabsTrigger>
-            <TabsTrigger value="teams">{t('tournament.tabs.teams')}</TabsTrigger>
-            <TabsTrigger value="register">{t('tournament.tabs.register')}</TabsTrigger>
+            <TabsTrigger value="overview">
+              {t("tournament.tabs.overview")}
+            </TabsTrigger>
+            <TabsTrigger value="divisions">
+              {t("tournament.tabs.divisions")}
+            </TabsTrigger>
+            <TabsTrigger value="matches">
+              {t("tournament.tabs.matches")}
+            </TabsTrigger>
+            <TabsTrigger value="teams">
+              {t("tournament.tabs.teams")}
+            </TabsTrigger>
+            <TabsTrigger value="register">
+              {t("tournament.tabs.register")}
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="mt-6">
@@ -163,70 +185,41 @@ export default function TournamentDetailPage() {
               <div className="flex items-start justify-between mb-4">
                 <div>
                   <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">
-                    {tournament.name || 'Tournament Name TBD'}
+                    {tournament.name || "Tournament Name TBD"}
                   </h1>
-                  <p className="text-lg text-gray-600 mb-4">
-                    {tournament.season || 'Season TBD'} • {tournament.country?.name || 'Location TBD'}
+                  <p className="text-lg text-gray-600 mb-2">
+                    {tournament.season || "Season TBD"} •{" "}
+                    {tournament.country?.name || "Location TBD"}
                   </p>
+                  <div className="flex items-center text-gray-600 mb-4">
+                    <Calendar className="w-4 h-4 mr-2 flex-shrink-0" />
+                    <div className="text-sm">
+                      {format(new Date(tournament.startDate), "MMM d, yyyy")} -{" "}
+                      {format(new Date(tournament.endDate), "MMM d, yyyy")}
+                    </div>
+                  </div>
                 </div>
-                <Badge className={getStatusColor(tournament.status)}>
-                  {getStatusText(tournament.status)}
-                </Badge>
               </div>
 
               {/* Tournament Details with Logo */}
-              <div className="flex flex-col lg:flex-row gap-6 mb-6">
-                {/* Basic Information */}
-                <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="flex items-center text-gray-600">
-                    <Calendar className="w-5 h-5 mr-3" />
-                    <div>
-                      <div className="font-medium">{t('tournament.details.tournamentDates')}</div>
-                      <div className="text-sm">
-                        {format(new Date(tournament.startDate), "MMM d, yyyy")} -{" "}
-                        {format(new Date(tournament.endDate), "MMM d, yyyy")}
-                      </div>
+              <div className="flex gap-4 mb-6">
+                {/* Tournament Description - 10/12 width */}
+                <div className="flex-1 w-10/12">
+                  {/* Tournament Description */}
+                  {tournament.description && (
+                    <div className="mb-6">
+                      <div
+                        className="text-gray-700 leading-relaxed prose prose-gray max-w-none"
+                        dangerouslySetInnerHTML={{
+                          __html: tournament.description,
+                        }}
+                      />
                     </div>
-                  </div>
-
-                  <div className="flex items-center text-gray-600">
-                    <MapPin className="w-5 h-5 mr-3" />
-                    <div>
-                      <div className="font-medium">{t('tournament.details.location')}</div>
-                      <div className="text-sm">
-                        {tournament.city || 'City TBD'}, {tournament.country?.name || 'Country TBD'}
-                      </div>
-                      {tournament.venues && tournament.venues.length > 0 && (
-                        <div className="text-xs text-gray-500 mt-1">
-                          {t('tournament.details.venue')}: {tournament.venues[0].name}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="flex items-center text-gray-600">
-                    <Users className="w-5 h-5 mr-3" />
-                    <div>
-                      <div className="font-medium">{t('tournament.details.teams')}</div>
-                      <div className="text-sm">
-                        {teams?.length || 0} registered
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center text-gray-600">
-                    <Trophy className="w-5 h-5 mr-3" />
-                    <div>
-                      <div className="font-medium">{t('tournament.details.divisions')}</div>
-                      <div className="text-sm">
-                        {divisions?.length || 0} divisions
-                      </div>
-                    </div>
-                  </div>
+                  )}
                 </div>
 
-                {/* Tournament Logo */}
-                <div className="lg:w-48 flex-shrink-0">
+                {/* Tournament Logo - 2/12 width */}
+                <div className="w-2/12 flex-shrink-0">
                   <div className="aspect-square bg-gradient-to-br from-blue-100 to-green-100 rounded-lg flex items-center justify-center p-4 relative">
                     {tournament.logo ? (
                       <Image
@@ -244,57 +237,67 @@ export default function TournamentDetailPage() {
               </div>
             </div>
 
-            {/* Tournament Description */}
-            {tournament.description && (
-              <div className="mb-6">
-                <div 
-                  className="text-gray-700 leading-relaxed prose prose-gray max-w-none"
-                  dangerouslySetInnerHTML={{ __html: tournament.description }}
-                />
-              </div>
-            )}
-
             {/* Venue Map */}
-            {tournament.venues && tournament.venues.length > 0 && tournament.venues[0].xCoordinate && tournament.venues[0].yCoordinate && (
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-3">{t('tournament.details.venue')} {t('tournament.details.location')}</h3>
-                <div className="bg-gray-100 rounded-lg p-4">
-                  <div className="mb-3">
-                    <h4 className="font-medium text-gray-900">{tournament.venues[0].name}</h4>
-                    {tournament.venues[0].streetName && (
-                      <p className="text-sm text-gray-600 mt-1">{tournament.venues[0].streetName}</p>
-                    )}
-                  </div>
-                  <div className="aspect-video bg-gray-200 rounded-lg overflow-hidden">
-                    <iframe
-                      src={`https://www.openstreetmap.org/export/embed.html?bbox=${tournament.venues[0].xCoordinate - 0.01},${tournament.venues[0].yCoordinate - 0.01},${tournament.venues[0].xCoordinate + 0.01},${tournament.venues[0].yCoordinate + 0.01}&layer=mapnik&marker=${tournament.venues[0].yCoordinate},${tournament.venues[0].xCoordinate}`}
-                      width="100%"
-                      height="100%"
-                      style={{ border: 0 }}
-                      allowFullScreen
-                      loading="lazy"
-                      referrerPolicy="no-referrer-when-downgrade"
-                      title={`Map of ${tournament.venues[0].name}`}
-                    />
-                  </div>
-                  <div className="mt-3 text-center">
-                    <a
-                      href={`https://www.openstreetmap.org/?mlat=${tournament.venues[0].yCoordinate}&mlon=${tournament.venues[0].xCoordinate}&zoom=15`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm text-blue-600 hover:text-blue-800 underline"
-                    >
-                      {t('tournament.details.viewLargerMap')}
-                    </a>
+            {tournament.venues &&
+              tournament.venues.length > 0 &&
+              tournament.venues[0].xCoordinate &&
+              tournament.venues[0].yCoordinate && (
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                    {t("tournament.details.venue")}{" "}
+                    {t("tournament.details.location")}
+                  </h3>
+                  <div className="bg-gray-100 rounded-lg p-4">
+                    <div className="mb-3">
+                      <h4 className="font-medium text-gray-900">
+                        {tournament.venues[0].name}
+                      </h4>
+                      {tournament.venues[0].streetName && (
+                        <p className="text-sm text-gray-600 mt-1">
+                          {tournament.venues[0].streetName}
+                        </p>
+                      )}
+                    </div>
+                    <div className="aspect-video bg-gray-200 rounded-lg overflow-hidden">
+                      <iframe
+                        src={`https://www.openstreetmap.org/export/embed.html?bbox=${
+                          tournament.venues[0].xCoordinate - 0.01
+                        },${tournament.venues[0].yCoordinate - 0.01},${
+                          tournament.venues[0].xCoordinate + 0.01
+                        },${
+                          tournament.venues[0].yCoordinate + 0.01
+                        }&layer=mapnik&marker=${
+                          tournament.venues[0].yCoordinate
+                        },${tournament.venues[0].xCoordinate}`}
+                        width="100%"
+                        height="100%"
+                        style={{ border: 0 }}
+                        allowFullScreen
+                        loading="lazy"
+                        referrerPolicy="no-referrer-when-downgrade"
+                        title={`Map of ${tournament.venues[0].name}`}
+                      />
+                    </div>
+                    <div className="mt-3 text-center">
+                      <a
+                        href={`https://www.openstreetmap.org/?mlat=${tournament.venues[0].yCoordinate}&mlon=${tournament.venues[0].xCoordinate}&zoom=15`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-blue-600 hover:text-blue-800 underline"
+                      >
+                        {t("tournament.details.viewLargerMap")}
+                      </a>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
 
             {/* Contact Information */}
             {(tournament.contactEmail || tournament.contactPhone) && (
               <div className="mb-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-3">{t('tournament.details.contactInformation')}</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                  {t("tournament.details.contactInformation")}
+                </h3>
                 <div className="flex flex-wrap gap-4">
                   {tournament.contactEmail && (
                     <a
@@ -317,47 +320,12 @@ export default function TournamentDetailPage() {
                 </div>
               </div>
             )}
-
-            {/* Tournament Stats */}
-            <Card>
-              <CardHeader>
-                <CardTitle>{t('tournament.details.tournamentStatistics')}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">{t('tournament.details.totalTeams')}</span>
-                    <span className="font-semibold">
-                      {teams?.length || 0}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">{t('tournament.details.divisions')}</span>
-                    <span className="font-semibold">
-                      {divisions?.length || 0}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">{t('tournament.details.totalMatches')}</span>
-                    <span className="font-semibold">
-                      {matches?.length || 0}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">{t('tournament.details.status')}</span>
-                    <Badge className={getStatusColor(tournament.status)}>
-                      {getStatusText(tournament.status)}
-                    </Badge>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
           </TabsContent>
 
           <TabsContent value="divisions" className="mt-6">
             <Card>
               <CardHeader>
-                <CardTitle>{t('tournament.tabs.divisions')}</CardTitle>
+                <CardTitle>{t("tournament.tabs.divisions")}</CardTitle>
               </CardHeader>
               <CardContent>
                 {divisionsLoading ? (
@@ -372,7 +340,7 @@ export default function TournamentDetailPage() {
                         className="p-4 border rounded-lg hover:shadow-md transition-shadow"
                       >
                         <h3 className="font-semibold text-lg mb-2">
-                          {division.name || 'Division Name TBD'}
+                          {division.name || "Division Name TBD"}
                         </h3>
                         <p className="text-gray-600 text-sm mb-3">
                           {division.description}
@@ -388,7 +356,7 @@ export default function TournamentDetailPage() {
                           href={`/tournaments/${tournamentId}/divisions/${division.id}`}
                         >
                           <Button className="w-full mt-3" size="sm">
-                            {t('common.view')} {t('tournament.divisions')}
+                            {t("common.view")} {t("tournament.divisions")}
                           </Button>
                         </I18nLink>
                       </div>
@@ -396,7 +364,7 @@ export default function TournamentDetailPage() {
                   </div>
                 ) : (
                   <p className="text-gray-500 text-center py-8">
-                    {t('tournament.details.noDivisionsAvailable')}
+                    {t("tournament.details.noDivisionsAvailable")}
                   </p>
                 )}
               </CardContent>
@@ -406,7 +374,7 @@ export default function TournamentDetailPage() {
           <TabsContent value="matches" className="mt-6">
             <Card>
               <CardHeader>
-                <CardTitle>{t('tournament.tabs.matches')}</CardTitle>
+                <CardTitle>{t("tournament.tabs.matches")}</CardTitle>
               </CardHeader>
               <CardContent>
                 {matchesLoading ? (
@@ -470,7 +438,7 @@ export default function TournamentDetailPage() {
                   </div>
                 ) : (
                   <p className="text-gray-500 text-center py-8">
-                    {t('tournament.details.noMatchesScheduled')}
+                    {t("tournament.details.noMatchesScheduled")}
                   </p>
                 )}
               </CardContent>
@@ -480,7 +448,7 @@ export default function TournamentDetailPage() {
           <TabsContent value="teams" className="mt-6">
             <Card>
               <CardHeader>
-                <CardTitle>{t('tournament.tabs.teams')}</CardTitle>
+                <CardTitle>{t("tournament.tabs.teams")}</CardTitle>
               </CardHeader>
               <CardContent>
                 {teamsLoading ? (
@@ -495,7 +463,7 @@ export default function TournamentDetailPage() {
                         className="p-4 border rounded-lg hover:shadow-md transition-shadow"
                       >
                         <h3 className="font-semibold text-lg mb-2">
-                          {team.name || 'Team Name TBD'}
+                          {team.name || "Team Name TBD"}
                         </h3>
                         {team.shortName && (
                           <p className="text-gray-600 text-sm mb-2">
@@ -505,14 +473,14 @@ export default function TournamentDetailPage() {
                         <div className="space-y-1 text-sm text-gray-500">
                           {team.club && <div>Club: {team.club}</div>}
                           {team.city && <div>City: {team.city}</div>}
-                          <div>Country: {team.country?.name || 'Unknown'}</div>
+                          <div>Country: {team.country?.name || "Unknown"}</div>
                           {team.level && <div>Level: {team.level}</div>}
                         </div>
                         <I18nLink
                           href={`/tournaments/${tournamentId}/teams/${team.id}`}
                         >
                           <Button className="w-full mt-3" size="sm">
-                            {t('common.view')} {t('team.title')}
+                            {t("common.view")} {t("team.title")}
                           </Button>
                         </I18nLink>
                       </div>
@@ -520,7 +488,7 @@ export default function TournamentDetailPage() {
                   </div>
                 ) : (
                   <p className="text-gray-500 text-center py-8">
-                    {t('tournament.details.noTeamsRegistered')}
+                    {t("tournament.details.noTeamsRegistered")}
                   </p>
                 )}
               </CardContent>
@@ -532,7 +500,7 @@ export default function TournamentDetailPage() {
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <UserPlus className="w-5 h-5 mr-2" />
-                  {t('tournament.tabs.register')}
+                  {t("tournament.tabs.register")}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -540,27 +508,27 @@ export default function TournamentDetailPage() {
                   <div className="text-center py-8">
                     <AlertCircle className="w-16 h-16 text-orange-500 mx-auto mb-4" />
                     <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                      {t('registration.tournamentLocked')}
+                      {t("registration.tournamentLocked")}
                     </h3>
                     <p className="text-gray-600 mb-6">
-                      {t('registration.tournamentLockedDescription')}
+                      {t("registration.tournamentLockedDescription")}
                     </p>
                     <p className="text-sm text-gray-500">
-                      {t('registration.tournamentLockedReason')}
+                      {t("registration.tournamentLockedReason")}
                     </p>
                   </div>
                 ) : (
                   <div className="text-center py-8">
                     <UserPlus className="w-16 h-16 text-blue-600 mx-auto mb-4" />
                     <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                      {t('tournament.registration.title')}
+                      {t("tournament.registration.title")}
                     </h3>
                     <p className="text-gray-600 mb-6">
-                      {t('tournament.registration.description')}
+                      {t("tournament.registration.description")}
                     </p>
                     <I18nLink href={`/tournaments/${tournamentId}/register`}>
                       <Button className="bg-blue-600 hover:bg-blue-700">
-                        {t('tournament.registration.registerTeam')}
+                        {t("tournament.registration.registerTeam")}
                       </Button>
                     </I18nLink>
                   </div>
