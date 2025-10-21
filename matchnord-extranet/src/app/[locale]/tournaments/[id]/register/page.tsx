@@ -23,6 +23,8 @@ import {
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { MainNavigation } from '@/components/navigation/main-navigation';
+import { ClubSelection } from '@/components/registration/club-selection';
+import { TeamLogoUpload } from '@/components/registration/team-logo-upload';
 import {
   CheckCircle,
   XCircle,
@@ -57,6 +59,8 @@ interface RegistrationFormData {
   // Team Information
   teamName: string;
   club: string;
+  clubId: string;
+  clubSelectionType: 'existing' | 'new';
   city: string;
   country: string;
   level: string;
@@ -86,6 +90,8 @@ interface RegistrationFormData {
 const initialFormData: RegistrationFormData = {
   teamName: '',
   club: '',
+  clubId: '',
+  clubSelectionType: 'existing',
   city: '',
   country: 'Finland',
   level: '',
@@ -377,7 +383,8 @@ export default function TournamentRegistrationPage({
               </p>
             </div>
 
-            <div className="grid gap-4">
+            <div className="grid gap-6">
+              {/* Team Name */}
               <div className="space-y-2">
                 <Label htmlFor="teamName">Team Name *</Label>
                 <Input
@@ -393,40 +400,51 @@ export default function TournamentRegistrationPage({
                 )}
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="club">Club *</Label>
-                  <Input
-                    id="club"
-                    name="club"
-                    value={formData.club}
-                    onChange={handleInputChange}
-                    placeholder="e.g., HJK"
-                    className={errors.club ? 'border-red-500' : ''}
-                  />
-                  {errors.club && (
-                    <div className="text-sm text-red-600">{errors.club}</div>
-                  )}
-                </div>
+              {/* Team Logo - Teams inherit from club */}
+              <TeamLogoUpload logo="" onLogoChange={() => {}} error="" />
 
-                <div className="space-y-2">
-                  <Label htmlFor="level">Team Level</Label>
-                  <Select
-                    value={formData.level}
-                    onValueChange={(value) =>
-                      handleSelectChange('level', value)
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select level" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="elite">Elite</SelectItem>
-                      <SelectItem value="competitive">Competitive</SelectItem>
-                      <SelectItem value="recreational">Recreational</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+              {/* Club Selection */}
+              <ClubSelection
+                selectedClubId={formData.clubId}
+                clubSelectionType={formData.clubSelectionType}
+                onClubChange={(clubId) =>
+                  setFormData((prev) => ({ ...prev, clubId }))
+                }
+                onClubTypeChange={(type) =>
+                  setFormData((prev) => ({ ...prev, clubSelectionType: type }))
+                }
+                onNewClubDataChange={(data) => {
+                  setFormData((prev) => ({
+                    ...prev,
+                    club: data.name,
+                    clubId: '', // Clear selected club when adding new
+                  }));
+                }}
+                newClubData={{
+                  name: formData.club,
+                  shortName: '',
+                  city: formData.city,
+                  logo: '',
+                }}
+                errors={errors}
+              />
+
+              {/* Team Level */}
+              <div className="space-y-2">
+                <Label htmlFor="level">Team Level</Label>
+                <Select
+                  value={formData.level}
+                  onValueChange={(value) => handleSelectChange('level', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select level" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="elite">Elite</SelectItem>
+                    <SelectItem value="competitive">Competitive</SelectItem>
+                    <SelectItem value="recreational">Recreational</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="grid grid-cols-2 gap-4">

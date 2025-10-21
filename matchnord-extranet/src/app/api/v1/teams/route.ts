@@ -70,6 +70,13 @@ export async function GET() {
             code: true,
           },
         },
+        clubRef: {
+          select: {
+            id: true,
+            name: true,
+            logo: true,
+          },
+        },
         tournament: {
           select: {
             id: true,

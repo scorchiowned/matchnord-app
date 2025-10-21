@@ -303,8 +303,11 @@ model Team {
   managerId    String?
   name         String
   shortName    String?
+  logo         String?      // Team logo URL
   // Team details
   club         String?
+  clubRef      Club?        @relation(fields: [clubId], references: [id])
+  clubId       String?
   city         String?
   country      Country      @relation(fields: [countryId], references: [id])
   countryId    String
@@ -650,8 +653,29 @@ model Country {
   teams       Team[]
   venues      Venue[]
   tournaments Tournament[]
+  clubs       Club[]
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
+}
+
+model Club {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  shortName   String?   // Abbreviation (e.g., "HJK", "AIK")
+  logo        String?   // Logo image URL
+  city        String?
+  country     Country   @relation(fields: [countryId], references: [id])
+  countryId   String
+  website     String?   // Club website URL
+  description String?   @db.Text
+  foundedYear Int?      // Year the club was founded
+  // Relationships
+  teams       Team[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([name])
+  @@index([countryId])
 }
 
 // Role-based assignment models

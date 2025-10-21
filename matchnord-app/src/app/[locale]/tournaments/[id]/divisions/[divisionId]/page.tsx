@@ -85,7 +85,7 @@ export default function TournamentDivisionDetailsPage() {
 
   // Filter teams for this division
   const divisionTeams =
-    teams?.filter((team) => team.divisionId === divisionId) || [];
+    teams?.filter((team) => team.division?.id === divisionId) || [];
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -240,7 +240,20 @@ export default function TournamentDivisionDetailsPage() {
                         </div>
                       </td>
                       <td className="py-3 px-4 text-gray-600">
-                        {team.club || "-"}
+                        <div className="flex items-center gap-2">
+                          {typeof team.club === "object" && team.club?.logo ? (
+                            <img
+                              src={team.club.logo}
+                              alt={`${team.club.name} logo`}
+                              className="w-6 h-6 rounded-full object-cover"
+                            />
+                          ) : null}
+                          <span>
+                            {typeof team.club === "string"
+                              ? team.club
+                              : team.club?.name || "-"}
+                          </span>
+                        </div>
                       </td>
                       <td className="py-3 px-4 text-gray-600">
                         <div className="flex items-center">

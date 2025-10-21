@@ -281,7 +281,10 @@ export const registrationApi = {
     tournamentId: string;
     divisionId: string;
     teamName: string;
+    teamLogo?: string;
     club: string;
+    clubId?: string;
+    clubSelectionType?: "existing" | "new";
     city: string;
     country: string;
     level?: string;

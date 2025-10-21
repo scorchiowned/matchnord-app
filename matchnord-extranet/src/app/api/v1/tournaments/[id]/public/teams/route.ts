@@ -52,6 +52,14 @@ export async function GET(
             description: true,
           },
         },
+        clubRef: {
+          select: {
+            id: true,
+            name: true,
+            logo: true,
+            city: true,
+          },
+        },
         players: {
           orderBy: { jerseyNumber: 'asc' },
         },
@@ -65,29 +73,72 @@ export async function GET(
     });
 
     // Transform teams for public consumption
-    const publicTeams = teams.map((team) => ({
-      id: team.id,
-      name: team.name,
-      shortName: team.shortName,
-      club: team.club,
-      city: team.city,
-      country: team.country,
-      level: team.level,
-      status: team.status,
-      division: team.division,
-      playerCount: team._count.players,
-      // Only include players if teams are published
-      players: visibility.canViewTeams
-        ? team.players.map((player) => ({
-            id: player.id,
-            firstName: player.firstName,
-            lastName: player.lastName,
-            jerseyNumber: player.jerseyNumber,
-            position: player.position,
-            birthDate: player.birthDate,
-          }))
-        : [],
-    }));
+    const publicTeams = await Promise.all(
+      teams.map(async (team) => {
+        // Fetch club information if clubId exists
+        let clubInfo = null;
+        if (team.clubId) {
+          try {
+            const club = await db.club.findUnique({
+              where: { id: team.clubId },
+              select: {
+                id: true,
+                name: true,
+                logo: true,
+                city: true,
+              },
+            });
+            clubInfo = club;
+            // If club is null, try to find it by name as fallback
+            if (!clubInfo) {
+              console.log(
+                `Club not found for ID ${team.clubId}, trying to find by name`
+              );
+              const clubByName = await db.club.findFirst({
+                where: { name: { contains: team.name.split(' ')[0] } },
+                select: {
+                  id: true,
+                  name: true,
+                  logo: true,
+                  city: true,
+                },
+              });
+              if (clubByName) {
+                console.log(`Found club by name: ${clubByName.name}`);
+                clubInfo = clubByName;
+              }
+            }
+          } catch (error) {
+            console.error('Error fetching club:', error);
+          }
+        }
+
+        return {
+          id: team.id,
+          name: team.name,
+          shortName: team.shortName,
+          club: clubInfo,
+          clubId: team.clubId,
+          city: team.city,
+          country: team.country,
+          level: team.level,
+          status: team.status,
+          division: team.division,
+          playerCount: team._count.players,
+          // Only include players if teams are published
+          players: visibility.canViewTeams
+            ? team.players.map((player) => ({
+                id: player.id,
+                firstName: player.firstName,
+                lastName: player.lastName,
+                jerseyNumber: player.jerseyNumber,
+                position: player.position,
+                birthDate: player.birthDate,
+              }))
+            : [],
+        };
+      })
+    );
 
     return NextResponse.json(publicTeams);
   } catch (error) {

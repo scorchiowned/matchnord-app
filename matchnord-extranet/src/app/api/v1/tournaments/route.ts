@@ -180,6 +180,20 @@ export async function GET(request: NextRequest) {
             permissions: true,
           },
         },
+        teams: {
+          select: {
+            id: true,
+            name: true,
+            logo: true,
+            clubRef: {
+              select: {
+                id: true,
+                name: true,
+                logo: true,
+              },
+            },
+          },
+        },
         _count: {
           select: {
             teams: true,

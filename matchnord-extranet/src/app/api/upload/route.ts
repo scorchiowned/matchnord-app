@@ -19,6 +19,7 @@ export async function POST(request: NextRequest) {
     const type = formData.get('type') as string;
     const tournamentId = formData.get('tournamentId') as string;
     const teamId = formData.get('teamId') as string;
+    const clubId = formData.get('clubId') as string;
 
     if (!file) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
@@ -60,6 +61,12 @@ export async function POST(request: NextRequest) {
         uploadResult = await azureStorage.uploadFile(file, {
           container: 'teams',
           folder: teamId,
+          generateUniqueName: true,
+        });
+      } else if (type === 'club-logo' && clubId) {
+        uploadResult = await azureStorage.uploadFile(file, {
+          container: 'clubs',
+          folder: clubId,
           generateUniqueName: true,
         });
       } else if (type === 'document' && tournamentId) {

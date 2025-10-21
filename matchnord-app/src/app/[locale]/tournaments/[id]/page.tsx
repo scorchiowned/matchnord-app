@@ -409,7 +409,21 @@ export default function TournamentDetailPage() {
                             </div>
                           </td>
                           <td className="px-6 py-4 text-sm text-gray-900">
-                            {team.club || "-"}
+                            <div className="flex items-center gap-2">
+                              {typeof team.club === "object" &&
+                              team.club?.logo ? (
+                                <img
+                                  src={team.club.logo}
+                                  alt={`${team.club.name} logo`}
+                                  className="w-6 h-6 rounded-full object-cover"
+                                />
+                              ) : null}
+                              <span>
+                                {typeof team.club === "string"
+                                  ? team.club
+                                  : team.club?.name || "-"}
+                              </span>
+                            </div>
                           </td>
                           <td className="px-6 py-4 text-sm text-gray-900">
                             <div>
@@ -559,7 +573,7 @@ export default function TournamentDetailPage() {
               <div className="p-6">
                 {tournament.venues && tournament.venues.length > 0 ? (
                   <div className="space-y-6">
-                    {tournament.venues.map((venue, index) => (
+                    {tournament.venues.map((venue: any, index: number) => (
                       <div
                         key={venue.id || index}
                         className="border rounded-lg p-4 hover:shadow-md transition-shadow"

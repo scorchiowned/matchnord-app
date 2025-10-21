@@ -47,6 +47,13 @@ export async function PUT(
             organizationId: true,
           },
         },
+        clubRef: {
+          select: {
+            id: true,
+            name: true,
+            logo: true,
+          },
+        },
       },
     });
 

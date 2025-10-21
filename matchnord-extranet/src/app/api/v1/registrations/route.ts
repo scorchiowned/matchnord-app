@@ -9,6 +9,9 @@ const CreateRegistrationInput = z.object({
   divisionId: z.string().min(1),
   teamName: z.string().min(1).max(255),
   club: z.string().min(1).max(255),
+  clubId: z.string().optional(),
+  clubLogo: z.string().optional(),
+  clubSelectionType: z.enum(['existing', 'new']),
   city: z.string().min(1).max(255),
   country: z.string().min(1).max(255),
   level: z.string().optional(),
@@ -110,14 +113,45 @@ export async function POST(request: NextRequest) {
     // For public registrations, we don't create application users
     // The team registration is standalone and doesn't require user authentication
 
-    // Create the team directly
+    // Handle club selection
+    let clubId = null;
+    if (input.clubSelectionType === 'existing' && input.clubId) {
+      clubId = input.clubId;
+    } else if (input.clubSelectionType === 'new') {
+      // Create new club if it doesn't exist
+      const existingClub = await db.club.findFirst({
+        where: { name: input.club },
+      });
+
+      if (existingClub) {
+        clubId = existingClub.id;
+      } else {
+        // Use club logo URL if provided (should be Azure Storage URL from upload API)
+        const clubLogoUrl =
+          input.clubLogo && input.clubLogo.startsWith('https://')
+            ? input.clubLogo
+            : null;
+
+        const newClub = await db.club.create({
+          data: {
+            name: input.club,
+            city: input.city,
+            countryId: tournament.countryId,
+            logo: clubLogoUrl,
+          },
+        });
+        clubId = newClub.id;
+      }
+    }
+
+    // Create the team directly (teams inherit logo from their club)
     const team = await db.team.create({
       data: {
         tournamentId: input.tournamentId,
         divisionId: input.divisionId,
         managerId: null, // No user account required for public registrations
         name: input.teamName,
-        club: input.club,
+        clubId: clubId,
         city: input.city,
         countryId: tournament.countryId, // Use tournament's country
         level: input.level,

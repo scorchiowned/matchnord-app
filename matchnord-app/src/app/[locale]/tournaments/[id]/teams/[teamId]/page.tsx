@@ -87,8 +87,8 @@ export default function TournamentTeamDetailsPage() {
     );
   }
 
-  // Find the team's division
-  const teamDivision = divisions?.find((d) => d.id === team.divisionId);
+  // Get the team's division (already included in team object)
+  const teamDivision = team.division;
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -115,8 +115,20 @@ export default function TournamentTeamDetailsPage() {
             <div className="flex items-center gap-4 text-sm text-gray-600">
               {team.club && (
                 <div className="flex items-center">
-                  <Award className="w-4 h-4 mr-1" />
-                  <span>{team.club}</span>
+                  {typeof team.club === "object" && team.club?.logo ? (
+                    <img
+                      src={team.club.logo}
+                      alt={`${team.club.name} logo`}
+                      className="w-4 h-4 mr-1 rounded-full object-cover"
+                    />
+                  ) : (
+                    <Award className="w-4 h-4 mr-1" />
+                  )}
+                  <span>
+                    {typeof team.club === "string"
+                      ? team.club
+                      : team.club?.name}
+                  </span>
                 </div>
               )}
               <div className="flex items-center">
@@ -170,7 +182,20 @@ export default function TournamentTeamDetailsPage() {
                 <h4 className="font-medium text-gray-900 mb-2">
                   {t("tournament.details.club")}
                 </h4>
-                <p className="text-gray-600">{team.club}</p>
+                <div className="flex items-center gap-2">
+                  {typeof team.club === "object" && team.club?.logo ? (
+                    <img
+                      src={team.club.logo}
+                      alt={`${team.club.name} logo`}
+                      className="w-8 h-8 rounded-full object-cover"
+                    />
+                  ) : null}
+                  <p className="text-gray-600">
+                    {typeof team.club === "string"
+                      ? team.club
+                      : team.club?.name}
+                  </p>
+                </div>
               </div>
             )}
 
@@ -192,11 +217,13 @@ export default function TournamentTeamDetailsPage() {
                 <p className="text-gray-600">{team.level}</p>
               </div>
             )}
-            <I18nLink
-              href={`/tournaments/${tournamentId}/divisions/${teamDivision.id}`}
-            >
-              {t("tournament.details.division")}
-            </I18nLink>
+            {teamDivision && (
+              <I18nLink
+                href={`/tournaments/${tournamentId}/divisions/${teamDivision.id}`}
+              >
+                {t("tournament.details.division")}
+              </I18nLink>
+            )}
           </div>
         </div>
       </div>

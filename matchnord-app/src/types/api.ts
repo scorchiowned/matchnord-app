@@ -77,10 +77,14 @@ export interface Team {
   managerId?: string;
   name: string;
   shortName?: string;
-  club?: string;
+  club?: string | { id: string; name: string; logo?: string; city?: string };
+  clubId?: string;
   city?: string;
   country: Country;
   level?: string;
+  status?: string;
+  division?: { id: string; name: string; description?: string };
+  playerCount?: number;
   createdAt: string;
   updatedAt: string;
   // Relations
@@ -314,4 +318,3 @@ export interface MatchFilters {
   limit?: number;
   offset?: number;
 }
-

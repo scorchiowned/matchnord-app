@@ -68,7 +68,35 @@ export async function GET(
       orderBy: { name: 'asc' },
     });
 
-    return NextResponse.json(teams);
+    // Get all unique club IDs
+    const clubIds = [...new Set(teams.map((t) => t.clubId).filter(Boolean))];
+
+    // Fetch all clubs at once
+    const clubs =
+      clubIds.length > 0
+        ? await db.club.findMany({
+            where: {
+              id: { in: clubIds as string[] },
+            },
+            select: {
+              id: true,
+              name: true,
+              logo: true,
+              city: true,
+            },
+          })
+        : [];
+
+    // Create a map for quick lookup
+    const clubMap = new Map(clubs.map((c) => [c.id, c]));
+
+    // Transform teams to include club information
+    const teamsWithClubs = teams.map((team) => ({
+      ...team,
+      club: team.clubId ? clubMap.get(team.clubId) || null : null,
+    }));
+
+    return NextResponse.json(teamsWithClubs);
   } catch (error) {
     console.error('Error fetching tournament teams:', error);
     return NextResponse.json(
