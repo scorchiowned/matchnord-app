@@ -119,13 +119,6 @@ export default function TournamentManagePage() {
   const [teams, setTeams] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Dynamic counts for tabs
-  const [teamCount, setTeamCount] = useState(0);
-  const [venueCount, setVenueCount] = useState(0);
-  const [divisionCount, setDivisionCount] = useState(0);
-  const [groupCount, setGroupCount] = useState(0);
-  const [matchCount, setMatchCount] = useState(0);
-
   // Function to update tournament publication status
   const updatePublicationStatus = async (
     field: 'infoPublished' | 'teamsPublished' | 'schedulePublished'
@@ -214,29 +207,26 @@ export default function TournamentManagePage() {
     }
   };
 
-  // Callback functions for management components to update counts
+  // Callback functions for management components
   const onTeamsChange = (newTeams: any[]) => {
     setTeams(newTeams);
-    setTeamCount(newTeams.length);
   };
 
   const onVenuesChange = (newVenues: any[]) => {
     setVenues(newVenues);
-    setVenueCount(newVenues.length);
   };
 
   const onDivisionsChange = (newDivisions: any[]) => {
-    setDivisionCount(newDivisions.length);
+    // No state update needed
   };
 
   const onGroupsChange = (newGroups: any[]) => {
-    setGroupCount(newGroups.length);
+    // No state update needed
   };
 
   const onMatchesChange = (newMatches: any[]) => {
     console.log('onMatchesChange called with:', newMatches.length, 'matches');
     setMatches(newMatches);
-    setMatchCount(newMatches.length);
   };
 
   // Function to refresh all counts
@@ -251,11 +241,7 @@ export default function TournamentManagePage() {
 
       if (tournamentResponse.ok) {
         const tournamentData = await tournamentResponse.json();
-        setTeamCount(tournamentData._count.teams);
-        setVenueCount(tournamentData._count.venues);
-        setDivisionCount(tournamentData._count.divisions);
-        setGroupCount(tournamentData._count.groups);
-        setMatchCount(tournamentData._count.matches);
+        // Counts no longer needed
       }
     } catch (error) {
       console.error('Error refreshing counts:', error);
@@ -284,12 +270,7 @@ export default function TournamentManagePage() {
           console.log('Tournament data received:', tournamentData);
           setTournament(tournamentData);
 
-          // Set initial counts
-          setTeamCount(tournamentData._count.teams);
-          setVenueCount(tournamentData._count.venues);
-          setDivisionCount(tournamentData._count.divisions);
-          setGroupCount(tournamentData._count.groups);
-          setMatchCount(tournamentData._count.matches);
+          // Counts no longer needed
 
           // Fetch matches data
           const matchesResponse = await fetch(
@@ -540,20 +521,14 @@ export default function TournamentManagePage() {
               <TabsTrigger value="overview">
                 {t('tournament.tabs.overview')}
               </TabsTrigger>
-              <TabsTrigger value="teams">
-                {t('tournament.teams')} ({teamCount})
-              </TabsTrigger>
-              <TabsTrigger value="venues">
-                {t('tournament.venues')} ({venueCount})
-              </TabsTrigger>
+              <TabsTrigger value="teams">{t('tournament.teams')}</TabsTrigger>
+              <TabsTrigger value="venues">{t('tournament.venues')}</TabsTrigger>
               <TabsTrigger value="divisions">
-                {t('tournament.divisions')} ({divisionCount})
+                {t('tournament.divisions')}
               </TabsTrigger>
-              <TabsTrigger value="groups">
-                {t('tournament.groups')} ({groupCount})
-              </TabsTrigger>
+              <TabsTrigger value="groups">{t('tournament.groups')}</TabsTrigger>
               <TabsTrigger value="matches">
-                {t('tournament.matches')} ({matchCount})
+                {t('tournament.matches')}
               </TabsTrigger>
               <TabsTrigger value="schedule">
                 {t('tournament.schedule')}
@@ -767,11 +742,7 @@ export default function TournamentManagePage() {
               <TeamManagement
                 tournamentId={tournamentId}
                 onTeamsChange={(teams) => {
-                  // Update team count based on approved teams
-                  const approvedCount = teams.filter(
-                    (t) => t.status === 'APPROVED'
-                  ).length;
-                  setTeamCount(approvedCount);
+                  // Teams updated
                 }}
               />
             </TabsContent>

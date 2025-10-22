@@ -180,15 +180,15 @@ export function MatchesManagementSimple({
   }, [propDivision]);
 
   const handleGenerateMatches = async () => {
-    if (!divisionId || !groupId) {
-      toast.error('Division and group must be selected for match generation');
+    if (!divisionId) {
+      toast.error('Division must be selected for match generation');
       return;
     }
 
     try {
       setIsSubmitting(true);
       const response = await fetch(
-        `/api/v1/divisions/${divisionId}/matches/generate`,
+        `/api/v1/tournaments/${tournamentId}/matches/bulk`,
         {
           method: 'POST',
           headers: {
@@ -196,9 +196,8 @@ export function MatchesManagementSimple({
           },
           credentials: 'include',
           body: JSON.stringify({
-            groupId,
-            format: 'round-robin',
-            autoAssign: false,
+            action: 'generate_all',
+            divisionId,
           }),
         }
       );
@@ -206,10 +205,21 @@ export function MatchesManagementSimple({
       if (response.ok) {
         const result = await response.json();
         console.log('Generated matches result:', result);
-        console.log('Matches count:', result.matches?.length);
-        setMatches(result.matches);
-        onMatchesChange?.(result.matches);
-        toast.success(`Generated ${result.matches.length} matches`);
+        toast.success(
+          `Generated matches for ${result.successfulGroups} groups`
+        );
+
+        // Fetch updated matches from the server
+        const matchesResponse = await fetch(
+          `/api/v1/tournaments/${tournamentId}/matches`,
+          { credentials: 'include' }
+        );
+
+        if (matchesResponse.ok) {
+          const matchesData = await matchesResponse.json();
+          setMatches(matchesData);
+          onMatchesChange?.(matchesData);
+        }
       } else {
         const error = await response.json();
         toast.error(error.error || 'Failed to generate matches');
@@ -241,17 +251,28 @@ export function MatchesManagementSimple({
           body: JSON.stringify({
             action: operation,
             divisionId,
-            groupId,
+            // Only pass groupId for operations that should be scoped to a specific group
+            ...(operation !== 'clear_all' &&
+              operation !== 'regenerate_all' && { groupId }),
           }),
         }
       );
 
       if (response.ok) {
-        const result = await response.json();
-        const updatedMatches = result.matches || [];
-        setMatches(updatedMatches);
-        onMatchesChange?.(updatedMatches);
-        toast.success(result.message || 'Operation completed successfully');
+        await response.json();
+        toast.success(`${operation.replace('_', ' ')} completed successfully`);
+
+        // Fetch updated matches from the server
+        const matchesResponse = await fetch(
+          `/api/v1/tournaments/${tournamentId}/matches`,
+          { credentials: 'include' }
+        );
+
+        if (matchesResponse.ok) {
+          const matchesData = await matchesResponse.json();
+          setMatches(matchesData);
+          onMatchesChange?.(matchesData);
+        }
       } else {
         const error = await response.json();
         toast.error(error.error || 'Operation failed');
@@ -501,6 +522,46 @@ export function MatchesManagementSimple({
           </div>
         </CardHeader>
         <CardContent>
+          {/* Filters */}
+          <div className="mb-4 flex flex-wrap gap-4">
+            <div className="flex items-center space-x-2">
+              <Filter className="h-4 w-4 text-muted-foreground" />
+              <Label htmlFor="division-filter">Division:</Label>
+              <Select
+                value={selectedDivision}
+                onValueChange={setSelectedDivision}
+              >
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="All Divisions" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Divisions</SelectItem>
+                  {division && (
+                    <SelectItem key={division.id} value={division.id}>
+                      {division.name}
+                    </SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Label htmlFor="group-filter">Group:</Label>
+              <Select value={selectedGroup} onValueChange={setSelectedGroup}>
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="All Groups" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Groups</SelectItem>
+                  {groups.map((group) => (
+                    <SelectItem key={group.id} value={group.id}>
+                      {group.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
           {divisionId && (
             <div className="mb-4 flex flex-wrap gap-2">
               <Button
@@ -534,49 +595,6 @@ export function MatchesManagementSimple({
               )}
             </div>
           )}
-
-          {/* Filters */}
-          <div className="mb-4 flex flex-wrap gap-4">
-            <div className="flex items-center space-x-2">
-              <Filter className="h-4 w-4 text-muted-foreground" />
-              <Label htmlFor="division-filter">Division:</Label>
-              <Select
-                value={selectedDivision}
-                onValueChange={setSelectedDivision}
-              >
-                <SelectTrigger className="w-48">
-                  <SelectValue placeholder="All Divisions" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Divisions</SelectItem>
-                  {Object.values(groupedMatches).map(({ division }) => (
-                    <SelectItem key={division.id} value={division.id}>
-                      {division.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Label htmlFor="group-filter">Group:</Label>
-              <Select value={selectedGroup} onValueChange={setSelectedGroup}>
-                <SelectTrigger className="w-48">
-                  <SelectValue placeholder="All Groups" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Groups</SelectItem>
-                  {Object.values(groupedMatches).flatMap(({ groups }) =>
-                    Object.values(groups).map(({ group }) => (
-                      <SelectItem key={group.id} value={group.id}>
-                        {group.division?.name || 'Unknown Division'} -{' '}
-                        {group.name}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
 
           {/* Summary Component */}
           {showSummary && (
@@ -726,31 +744,16 @@ export function MatchesManagementSimple({
             </div>
           ) : (
             <div className="space-y-6">
-              {(() => {
-                console.log(
-                  'MatchesManagementSimple - checking groupedMatches length:',
-                  Object.keys(groupedMatches).length
-                );
-                console.log(
-                  'MatchesManagementSimple - groupedMatches object:',
-                  groupedMatches
-                );
-                console.log(
-                  'MatchesManagementSimple - filteredMatches length:',
-                  filteredMatches.length
-                );
-                return (
-                  Object.keys(groupedMatches).length === 0 &&
-                  filteredMatches.length === 0
-                );
-              })() ? (
+              {filteredMatches.length === 0 ? (
                 <div className="py-12 text-center">
                   <Trophy className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
                   <h3 className="mb-2 text-lg font-semibold">
                     No matches found
                   </h3>
                   <p className="text-muted-foreground">
-                    No matches match the current filters.
+                    {matches.length === 0
+                      ? 'No matches have been created yet.'
+                      : 'No matches match the current filters.'}
                   </p>
                 </div>
               ) : Object.keys(groupedMatches).length === 0 &&

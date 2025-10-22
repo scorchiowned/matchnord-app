@@ -311,30 +311,31 @@ export function MatchesManagement({
   };
 
   const handleGenerateMatches = async () => {
-    if (!divisionId || !groupId) {
-      toast.error('Division and group are required to generate matches');
+    if (!divisionId) {
+      toast.error('Division is required to generate matches');
       return;
     }
 
     try {
       setIsSubmitting(true);
       const response = await fetch(
-        `/api/v1/divisions/${divisionId}/matches/generate`,
+        `/api/v1/tournaments/${tournamentId}/matches/bulk`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
           body: JSON.stringify({
-            groupId,
-            format: 'round-robin',
-            autoAssign: false,
+            action: 'generate_all',
+            divisionId,
           }),
         }
       );
 
       if (response.ok) {
         const result = await response.json();
-        toast.success(result.message);
+        toast.success(
+          `Generated matches for ${result.successfulGroups} groups`
+        );
         const matchesResponse = await fetch(
           `/api/v1/tournaments/${tournamentId}/matches`
         );
