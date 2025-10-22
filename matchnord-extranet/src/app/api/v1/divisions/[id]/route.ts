@@ -58,8 +58,9 @@ export async function GET(
         },
         _count: {
           select: {
-            registrations: true,
             groups: true,
+            teams: true,
+            fees: true,
           },
         },
       },
@@ -189,8 +190,9 @@ export async function PUT(
       include: {
         _count: {
           select: {
-            registrations: true,
             groups: true,
+            teams: true,
+            fees: true,
           },
         },
       },
@@ -243,8 +245,9 @@ export async function DELETE(
         },
         _count: {
           select: {
-            registrations: true,
             groups: true,
+            teams: true,
+            fees: true,
           },
         },
       },

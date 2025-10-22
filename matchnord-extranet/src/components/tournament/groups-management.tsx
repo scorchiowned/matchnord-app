@@ -19,6 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Dialog,
   DialogContent,
@@ -154,10 +155,12 @@ export function GroupsManagement({
           const allTeams = teamsResponse.ok ? await teamsResponse.json() : [];
           setAllTournamentTeams(allTeams);
 
-          // Assign all teams to divisions (division level is already determined)
+          // Assign teams to their respective divisions
           const divisionsWithTeams = divisionsData.map((division: any) => {
-            // All teams can be assigned to any division - the division level is already determined
-            const teamsForDivision = allTeams;
+            // Filter teams that are actually assigned to this division
+            const teamsForDivision = allTeams.filter(
+              (team: any) => team.divisionId === division.id
+            );
 
             return {
               ...division,
@@ -167,6 +170,11 @@ export function GroupsManagement({
           });
 
           updateDivisions(() => divisionsWithTeams);
+
+          // Set the first division as selected by default
+          if (divisionsWithTeams.length > 0 && !selectedDivision) {
+            setSelectedDivision(divisionsWithTeams[0].id);
+          }
         }
 
         // Fetch groups
@@ -525,10 +533,9 @@ export function GroupsManagement({
   const resetForm = () => {
     setFormData({
       name: '',
-      divisionId: '',
+      divisionId: selectedDivision || '',
     });
     setEditingGroup(null);
-    setSelectedDivision('');
   };
 
   const handleAssignTeams = async (groupId: string) => {
@@ -641,390 +648,488 @@ export function GroupsManagement({
     );
   }
 
+  // Get the selected division
+  const currentDivision = divisions.find((d) => d.id === selectedDivision);
+  const otherDivisions = divisions.filter((d) => d.id !== selectedDivision);
+
   return (
     <div className="space-y-6">
-      {/* Unassigned Teams Section */}
-      {unassignedTeams.length > 0 && (
-        <Card className="border-red-200 bg-red-50">
+      {/* Division Tabs */}
+      {divisions.length > 1 && (
+        <Card>
           <CardHeader>
-            <CardTitle className="flex items-center space-x-2 text-red-800">
-              <Users className="h-5 w-5" />
-              <span>⚠️ Unassigned Teams</span>
-              <Badge variant="outline" className="bg-red-100 text-red-800">
-                {unassignedTeams.length} team
-                {unassignedTeams.length !== 1 ? 's' : ''}
-              </Badge>
-            </CardTitle>
-            <CardDescription className="text-red-700">
-              <strong>Action Required:</strong> These teams haven't been
-              assigned to any group yet. You need to assign them to groups to
-              complete the tournament organization.
+            <CardTitle>Select Division</CardTitle>
+            <CardDescription>
+              Choose which division to manage groups and teams for
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
-              {unassignedTeams.map((team) => (
-                <div
-                  key={team.id}
-                  className="flex items-center space-x-3 rounded-lg border border-red-200 bg-white p-4 shadow-sm"
-                >
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-red-500 to-red-600 text-sm font-bold text-white">
-                    {team.shortName?.charAt(0) || team.name.charAt(0)}
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-semibold text-gray-900">
-                      {team.name}
-                    </p>
-                    {team.club && (
-                      <p className="text-xs text-gray-600">{team.club.name}</p>
-                    )}
-                    {team.level && (
-                      <Badge
-                        variant="outline"
-                        className="mt-1 border-red-300 text-xs text-red-700"
-                      >
-                        {team.level}
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="text-xs font-medium text-red-600">
-                    Not assigned
-                  </div>
-                </div>
-              ))}
-            </div>
+            <Tabs value={selectedDivision} onValueChange={setSelectedDivision}>
+              <TabsList className="grid w-full grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                {divisions.map((division) => (
+                  <TabsTrigger key={division.id} value={division.id}>
+                    {division.name} | {division.level}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
           </CardContent>
         </Card>
       )}
 
-      {divisions.map((division) => (
-        <Card key={division.id}>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
+      {/* Current Division Content */}
+      {currentDivision && (
+        <div className="space-y-6">
+          {/* Division Header */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
                 <Trophy className="h-5 w-5" />
-                <span>{division.name}</span>
-                <Badge variant="default" className="bg-blue-100 text-blue-800">
-                  {division.level || 'No Level'}
+                <span>
+                  {currentDivision.name} | {currentDivision.level}
+                </span>
+                <Badge variant="outline">
+                  {currentDivision.groups.length} group
+                  {currentDivision.groups.length !== 1 ? 's' : ''}
                 </Badge>
-                <Badge variant="outline">{division.teams.length} teams</Badge>
-                {(() => {
-                  const assignedTeams = division.groups.reduce(
-                    (total, group) => total + group.teams.length,
-                    0
-                  );
-                  const unassignedCount = division.teams.length - assignedTeams;
-                  return unassignedCount > 0 ? (
-                    <Badge
-                      variant="destructive"
-                      className="bg-red-100 text-red-800"
-                    >
-                      ⚠️ {unassignedCount} unassigned
-                    </Badge>
-                  ) : null;
-                })()}
-              </div>
-              <div className="flex items-center space-x-2">
-                <Button
-                  onClick={() => handleAutoAssignTeams(division)}
-                  disabled={division.teams.length === 0}
-                  variant="outline"
-                  size="sm"
-                >
-                  <Shuffle className="mr-2 h-4 w-4" />
-                  Auto Assign Teams
-                </Button>
-                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button onClick={resetForm} size="sm">
-                      <Plus className="mr-2 h-4 w-4" />
-                      Add Group
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-[500px]">
-                    <DialogHeader>
-                      <DialogTitle>
-                        {editingGroup ? 'Edit Group' : 'Add New Group'}
-                      </DialogTitle>
-                      <DialogDescription>
-                        {editingGroup
-                          ? 'Update the group information below.'
-                          : 'Select a division and create a new group within it.'}
-                      </DialogDescription>
-                    </DialogHeader>
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="name">Group Name *</Label>
-                        <Input
-                          id="name"
-                          value={formData.name}
-                          onChange={(e) =>
-                            setFormData({ ...formData, name: e.target.value })
-                          }
-                          placeholder="e.g., Group A, Group B"
-                          required
-                        />
-                      </div>
+              </CardTitle>
+              <CardDescription>
+                Manage groups and team assignments for the{' '}
+                {currentDivision.name} ({currentDivision.level}) division
+              </CardDescription>
+            </CardHeader>
+          </Card>
 
-                      <div className="space-y-2">
-                        <Label htmlFor="divisionId">Division *</Label>
-                        <Select
-                          value={formData.divisionId}
-                          onValueChange={(value) =>
-                            setFormData({ ...formData, divisionId: value })
-                          }
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select division" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {divisions.map((div) => (
-                              <SelectItem key={div.id} value={div.id}>
-                                {div.name} ({div.teams.length} teams)
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="flex justify-end space-x-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={handleDialogClose}
-                          disabled={isSubmitting}
-                        >
-                          Cancel
-                        </Button>
-                        <Button type="submit" disabled={isSubmitting}>
-                          {isSubmitting
-                            ? 'Saving...'
-                            : editingGroup
-                              ? 'Update Group'
-                              : 'Add Group'}
-                        </Button>
-                      </div>
-                    </form>
-                  </DialogContent>
-                </Dialog>
-              </div>
-            </CardTitle>
-            <CardDescription>
-              {(() => {
-                const assignedTeams = division.groups.reduce(
-                  (total, group) => total + group.teams.length,
-                  0
-                );
-                const unassignedCount = division.teams.length - assignedTeams;
-                return unassignedCount > 0
-                  ? `Manage groups and team assignments for ${division.name}. ${unassignedCount} team${unassignedCount !== 1 ? 's' : ''} still need${unassignedCount === 1 ? 's' : ''} to be assigned to groups.`
-                  : `Manage groups and team assignments for ${division.name}. All teams are assigned to groups.`;
-              })()}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {division.groups.length === 0 ? (
-              <div className="py-12 text-center">
-                <Trophy className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
-                <h3 className="mb-2 text-lg font-semibold">No groups yet</h3>
-                <p className="mb-4 text-muted-foreground">
-                  Create groups to organize teams in this division.
-                </p>
-                <Button onClick={() => setIsDialogOpen(true)}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Create First Group
-                </Button>
-              </div>
-            ) : (
-              <div className="space-y-6">
-                {division.groups.map((group) => (
-                  <div key={group.id} className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <h3 className="text-lg font-semibold">{group.name}</h3>
-                        <Badge variant="secondary">
-                          {group._count.teams} teams
-                        </Badge>
-                        <Badge
-                          variant="default"
-                          className="bg-blue-100 text-blue-800"
-                        >
-                          {group.division.level}
-                        </Badge>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setAssigningTeams(group.id);
-                            setSelectedTeams([]);
-                          }}
-                        >
-                          <Users className="mr-1 h-4 w-4" />
-                          Assign Teams
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleEdit(group)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDelete(group.id)}
-                          className="text-destructive hover:text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-
-                    <StandingsTable
-                      group={group}
-                      showDivisionInfo={false}
-                      onRemoveTeam={handleRemoveTeam}
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      ))}
-
-      {/* Team Assignment Dialog */}
-      <Dialog
-        open={!!assigningTeams}
-        onOpenChange={() => setAssigningTeams(null)}
-      >
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>Assign Teams to Group</DialogTitle>
-            <DialogDescription>
-              Select unassigned teams from this division to assign to this
-              group.
-            </DialogDescription>
-          </DialogHeader>
-
-          {assigningTeams && (
-            <div className="space-y-4">
-              <div className="max-h-60 space-y-2 overflow-y-auto">
-                {(() => {
-                  const group = divisions
-                    .flatMap((d) => d.groups)
-                    .find((g) => g.id === assigningTeams);
-                  const division = divisions.find((d) =>
-                    d.groups.some((g) => g.id === assigningTeams)
-                  );
-
-                  if (!division) return null;
-
-                  // Get all teams assigned to this division's groups
-                  const assignedTeamIds = new Set();
-                  division.groups.forEach((group) => {
-                    group.teams.forEach((team) => {
-                      assignedTeamIds.add(team.id);
-                    });
-                  });
-
-                  // Filter to show unassigned teams for this specific division
-                  const availableTeams = division.teams.filter((team) => {
-                    // Only show teams that are not assigned to any group in this division
-                    if (assignedTeamIds.has(team.id)) return false;
-
-                    // Additional level validation (teams should already be filtered by level when assigned to division)
-                    return true;
-                  });
-
-                  if (availableTeams.length === 0) {
-                    return (
-                      <div className="py-8 text-center">
-                        <Users className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
-                        <h3 className="mb-2 text-lg font-semibold">
-                          No unassigned teams available
-                        </h3>
-                        <p className="text-sm text-muted-foreground">
-                          All teams in this division are already assigned to
-                          groups.
-                        </p>
-                        <p className="mt-2 text-xs text-muted-foreground">
-                          Check the unassigned teams section above for teams
-                          from other divisions that need assignment.
-                        </p>
-                      </div>
-                    );
-                  }
-
-                  return availableTeams.map((team) => (
-                    <div
-                      key={team.id}
-                      className="flex items-center space-x-2 rounded-lg border p-3"
-                    >
-                      <input
-                        type="checkbox"
-                        id={`team-${team.id}`}
-                        checked={selectedTeams.includes(team.id)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedTeams([...selectedTeams, team.id]);
-                          } else {
-                            setSelectedTeams(
-                              selectedTeams.filter((id) => id !== team.id)
-                            );
-                          }
-                        }}
-                        className="h-4 w-4"
-                      />
-                      <label
-                        htmlFor={`team-${team.id}`}
-                        className="flex-1 cursor-pointer"
+          {/* Unassigned Teams Section */}
+          {currentDivision.teams.filter(
+            (team) =>
+              // Show unassigned teams for the current division
+              !currentDivision.groups.some((group) =>
+                group.teams.some((groupTeam) => groupTeam.id === team.id)
+              )
+          ).length > 0 && (
+            <Card className="border-red-200 bg-red-50">
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2 text-red-800">
+                  <Users className="h-5 w-5" />
+                  <span>⚠️ Unassigned Teams</span>
+                  <Badge variant="outline" className="bg-red-100 text-red-800">
+                    {
+                      currentDivision.teams.filter(
+                        (team) =>
+                          !currentDivision.groups.some((group) =>
+                            group.teams.some(
+                              (groupTeam) => groupTeam.id === team.id
+                            )
+                          )
+                      ).length
+                    }{' '}
+                    team
+                    {currentDivision.teams.filter(
+                      (team) =>
+                        !currentDivision.groups.some((group) =>
+                          group.teams.some(
+                            (groupTeam) => groupTeam.id === team.id
+                          )
+                        )
+                    ).length !== 1
+                      ? 's'
+                      : ''}
+                  </Badge>
+                </CardTitle>
+                <CardDescription className="text-red-700">
+                  <strong>Action Required:</strong> These teams haven't been
+                  assigned to any group yet. You need to assign them to groups
+                  to complete the tournament organization.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+                  {currentDivision.teams
+                    .filter(
+                      (team) =>
+                        !currentDivision.groups.some((group) =>
+                          group.teams.some(
+                            (groupTeam) => groupTeam.id === team.id
+                          )
+                        )
+                    )
+                    .map((team) => (
+                      <div
+                        key={team.id}
+                        className="flex items-center space-x-3 rounded-lg border border-red-200 bg-white p-4 shadow-sm"
                       >
-                        <div>
-                          <p className="text-sm font-medium">{team.name}</p>
+                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-red-500 to-red-600 text-sm font-bold text-white">
+                          {team.shortName?.charAt(0) || team.name.charAt(0)}
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm font-semibold text-gray-900">
+                            {team.name}
+                          </p>
                           {team.club && (
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-xs text-gray-600">
                               {team.club.name}
                             </p>
                           )}
                           {team.level && (
-                            <p className="text-xs font-medium text-blue-600">
-                              Level: {team.level}
-                            </p>
+                            <Badge
+                              variant="outline"
+                              className="mt-1 border-red-300 text-xs text-red-700"
+                            >
+                              {team.level}
+                            </Badge>
                           )}
                         </div>
-                      </label>
-                    </div>
-                  ));
-                })()}
-              </div>
-
-              <div className="flex justify-end space-x-2">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setAssigningTeams(null);
-                    setSelectedTeams([]);
-                  }}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={() =>
-                    assigningTeams && handleAssignTeams(assigningTeams)
-                  }
-                  disabled={selectedTeams.length === 0}
-                >
-                  Assign {selectedTeams.length} Team
-                  {selectedTeams.length !== 1 ? 's' : ''}
-                </Button>
-              </div>
-            </div>
+                        <div className="text-xs font-medium text-red-600">
+                          Not assigned
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </CardContent>
+            </Card>
           )}
-        </DialogContent>
-      </Dialog>
+
+          {/* Groups Management for Current Division */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Trophy className="h-5 w-5" />
+                  <span>Groups</span>
+                  <Badge
+                    variant="default"
+                    className="bg-blue-100 text-blue-800"
+                  >
+                    {currentDivision.level || 'No Level'}
+                  </Badge>
+                  <Badge variant="outline">
+                    {currentDivision.teams.length} teams
+                  </Badge>
+                  {(() => {
+                    const assignedTeams = currentDivision.groups.reduce(
+                      (total, group) => total + group.teams.length,
+                      0
+                    );
+                    const unassignedCount =
+                      currentDivision.teams.length - assignedTeams;
+                    return unassignedCount > 0 ? (
+                      <Badge
+                        variant="destructive"
+                        className="bg-red-100 text-red-800"
+                      >
+                        ⚠️ {unassignedCount} unassigned
+                      </Badge>
+                    ) : null;
+                  })()}
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Button
+                    onClick={() => handleAutoAssignTeams(currentDivision)}
+                    disabled={currentDivision.teams.length === 0}
+                    variant="outline"
+                    size="sm"
+                  >
+                    <Shuffle className="mr-2 h-4 w-4" />
+                    Auto Assign Teams
+                  </Button>
+                  <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button onClick={resetForm} size="sm">
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add Group
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[500px]">
+                      <DialogHeader>
+                        <DialogTitle>
+                          {editingGroup ? 'Edit Group' : 'Add New Group'}
+                        </DialogTitle>
+                        <DialogDescription>
+                          {editingGroup
+                            ? 'Update the group information below.'
+                            : 'Select a division and create a new group within it.'}
+                        </DialogDescription>
+                      </DialogHeader>
+                      <form onSubmit={handleSubmit} className="space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="name">Group Name *</Label>
+                          <Input
+                            id="name"
+                            value={formData.name}
+                            onChange={(e) =>
+                              setFormData({ ...formData, name: e.target.value })
+                            }
+                            placeholder="e.g., Group A, Group B"
+                            required
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="divisionId">Division</Label>
+                          <div className="flex items-center space-x-2 rounded-md border border-input bg-muted px-3 py-2 text-sm">
+                            <Trophy className="h-4 w-4" />
+                            <span className="font-medium">
+                              {currentDivision?.name}
+                            </span>
+                            <Badge variant="outline" className="ml-auto">
+                              {currentDivision?.teams.length} teams
+                            </Badge>
+                          </div>
+                          <input
+                            type="hidden"
+                            value={formData.divisionId}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                divisionId: e.target.value,
+                              })
+                            }
+                          />
+                        </div>
+
+                        <div className="flex justify-end space-x-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={handleDialogClose}
+                            disabled={isSubmitting}
+                          >
+                            Cancel
+                          </Button>
+                          <Button type="submit" disabled={isSubmitting}>
+                            {isSubmitting
+                              ? 'Saving...'
+                              : editingGroup
+                                ? 'Update Group'
+                                : 'Add Group'}
+                          </Button>
+                        </div>
+                      </form>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+              </CardTitle>
+              <CardDescription>
+                {(() => {
+                  const assignedTeams = currentDivision.groups.reduce(
+                    (total, group) => total + group.teams.length,
+                    0
+                  );
+                  const unassignedCount =
+                    currentDivision.teams.length - assignedTeams;
+                  return unassignedCount > 0
+                    ? `Manage groups and team assignments for ${currentDivision.name}. ${unassignedCount} team${unassignedCount !== 1 ? 's' : ''} still need${unassignedCount === 1 ? 's' : ''} to be assigned to groups.`
+                    : `Manage groups and team assignments for ${currentDivision.name}. All teams are assigned to groups.`;
+                })()}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {currentDivision.groups.length === 0 ? (
+                <div className="py-12 text-center">
+                  <Trophy className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+                  <h3 className="mb-2 text-lg font-semibold">No groups yet</h3>
+                  <p className="mb-4 text-muted-foreground">
+                    Create groups to organize teams in this division.
+                  </p>
+                  <Button onClick={() => setIsDialogOpen(true)}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Create First Group
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {currentDivision.groups.map((group) => (
+                    <div key={group.id} className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <h3 className="text-lg font-semibold">
+                            {group.name}
+                          </h3>
+                          <Badge variant="secondary">
+                            {group._count.teams} teams
+                          </Badge>
+                          <Badge
+                            variant="default"
+                            className="bg-blue-100 text-blue-800"
+                          >
+                            {group.division.level}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setAssigningTeams(group.id);
+                              setSelectedTeams([]);
+                            }}
+                          >
+                            <Users className="mr-1 h-4 w-4" />
+                            Assign Teams
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEdit(group)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDelete(group.id)}
+                            className="text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+
+                      <StandingsTable
+                        group={group}
+                        showDivisionInfo={false}
+                        onRemoveTeam={handleRemoveTeam}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Team Assignment Dialog */}
+          <Dialog
+            open={!!assigningTeams}
+            onOpenChange={() => setAssigningTeams(null)}
+          >
+            <DialogContent className="sm:max-w-[600px]">
+              <DialogHeader>
+                <DialogTitle>Assign Teams to Group</DialogTitle>
+                <DialogDescription>
+                  Select unassigned teams from this division to assign to this
+                  group.
+                </DialogDescription>
+              </DialogHeader>
+
+              {assigningTeams && (
+                <div className="space-y-4">
+                  <div className="max-h-60 space-y-2 overflow-y-auto">
+                    {(() => {
+                      const group = divisions
+                        .flatMap((d) => d.groups)
+                        .find((g) => g.id === assigningTeams);
+                      const division = divisions.find((d) =>
+                        d.groups.some((g) => g.id === assigningTeams)
+                      );
+
+                      if (!division) return null;
+
+                      // Get all teams assigned to this division's groups
+                      const assignedTeamIds = new Set();
+                      division.groups.forEach((group) => {
+                        group.teams.forEach((team) => {
+                          assignedTeamIds.add(team.id);
+                        });
+                      });
+
+                      // Filter to show unassigned teams for this specific division
+                      const availableTeams = division.teams.filter((team) => {
+                        // Only show teams that are not assigned to any group in this division
+                        if (assignedTeamIds.has(team.id)) return false;
+
+                        // Additional level validation (teams should already be filtered by level when assigned to division)
+                        return true;
+                      });
+
+                      if (availableTeams.length === 0) {
+                        return (
+                          <div className="py-8 text-center">
+                            <Users className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+                            <h3 className="mb-2 text-lg font-semibold">
+                              No unassigned teams available
+                            </h3>
+                            <p className="text-sm text-muted-foreground">
+                              All teams in this division are already assigned to
+                              groups.
+                            </p>
+                            <p className="mt-2 text-xs text-muted-foreground">
+                              Check the unassigned teams section above for teams
+                              from other divisions that need assignment.
+                            </p>
+                          </div>
+                        );
+                      }
+
+                      return availableTeams.map((team) => (
+                        <div
+                          key={team.id}
+                          className="flex items-center space-x-2 rounded-lg border p-3"
+                        >
+                          <input
+                            type="checkbox"
+                            id={`team-${team.id}`}
+                            checked={selectedTeams.includes(team.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedTeams([...selectedTeams, team.id]);
+                              } else {
+                                setSelectedTeams(
+                                  selectedTeams.filter((id) => id !== team.id)
+                                );
+                              }
+                            }}
+                            className="h-4 w-4"
+                          />
+                          <label
+                            htmlFor={`team-${team.id}`}
+                            className="flex-1 cursor-pointer"
+                          >
+                            <div>
+                              <p className="text-sm font-medium">{team.name}</p>
+                              {team.club && (
+                                <p className="text-xs text-muted-foreground">
+                                  {team.club.name}
+                                </p>
+                              )}
+                              {team.level && (
+                                <p className="text-xs font-medium text-blue-600">
+                                  Level: {team.level}
+                                </p>
+                              )}
+                            </div>
+                          </label>
+                        </div>
+                      ));
+                    })()}
+                  </div>
+
+                  <div className="flex justify-end space-x-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setAssigningTeams(null);
+                        setSelectedTeams([]);
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={() =>
+                        assigningTeams && handleAssignTeams(assigningTeams)
+                      }
+                      disabled={selectedTeams.length === 0}
+                    >
+                      Assign {selectedTeams.length} Team
+                      {selectedTeams.length !== 1 ? 's' : ''}
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
+        </div>
+      )}
     </div>
   );
 }

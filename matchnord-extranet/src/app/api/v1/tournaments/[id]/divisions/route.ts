@@ -181,8 +181,9 @@ export async function POST(
       include: {
         _count: {
           select: {
-            registrations: true,
             groups: true,
+            teams: true,
+            fees: true,
           },
         },
       },
