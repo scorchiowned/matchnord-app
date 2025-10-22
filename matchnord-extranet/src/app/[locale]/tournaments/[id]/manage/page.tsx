@@ -765,6 +765,7 @@ export default function TournamentManagePage() {
               <GroupsManagement
                 tournamentId={tournamentId}
                 onGroupsChange={onGroupsChange}
+                onMatchesChange={onMatchesChange}
               />
             </TabsContent>
 

@@ -80,11 +80,13 @@ interface DivisionWithTeams extends Division {
 interface GroupsManagementProps {
   tournamentId: string;
   onGroupsChange?: (groups: any[]) => void;
+  onMatchesChange?: (matches: any[]) => void;
 }
 
 export function GroupsManagement({
   tournamentId,
   onGroupsChange,
+  onMatchesChange,
 }: GroupsManagementProps) {
   const t = useTranslations();
   const [divisions, setDivisions] = useState<DivisionWithTeams[]>([]);
@@ -240,6 +242,27 @@ export function GroupsManagement({
         throw new Error('Division not found');
       }
 
+      // Check if adding a new group (not editing) and if there are existing matches
+      if (!editingGroup) {
+        const existingMatches = division.groups.reduce(
+          (total, group) => total + (group.matches?.length || 0),
+          0
+        );
+
+        if (existingMatches > 0) {
+          const confirmed = confirm(
+            `⚠️ Warning: Adding a new group will clear all existing matches (${existingMatches} matches will be deleted).\n\n` +
+              'You will need to regenerate matches after adding the group.\n\n' +
+              'Do you want to continue?'
+          );
+
+          if (!confirmed) {
+            setIsSubmitting(false);
+            return;
+          }
+        }
+      }
+
       const url = editingGroup
         ? `/api/v1/groups/${editingGroup.id}`
         : `/api/v1/tournaments/${tournamentId}/groups`;
@@ -285,7 +308,41 @@ export function GroupsManagement({
               return division;
             })
           );
-          toast.success('Group added successfully');
+
+          // Clear existing matches for this division when adding a new group
+          try {
+            const clearMatchesResponse = await fetch(
+              `/api/v1/tournaments/${tournamentId}/matches/bulk`,
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+                body: JSON.stringify({
+                  action: 'clear_all',
+                  divisionId: formData.divisionId,
+                }),
+              }
+            );
+
+            if (clearMatchesResponse.ok) {
+              // Notify parent that matches have been cleared
+              onMatchesChange?.([]);
+              toast.success(
+                'Group added successfully. Existing matches have been cleared.'
+              );
+            } else {
+              toast.success(
+                'Group added successfully, but failed to clear existing matches.'
+              );
+            }
+          } catch (error) {
+            console.error('Error clearing matches:', error);
+            toast.success(
+              'Group added successfully, but failed to clear existing matches.'
+            );
+          }
         }
 
         resetForm();
