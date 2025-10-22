@@ -243,8 +243,16 @@ export function TeamManagement({
   };
 
   const filteredTeams = teams.filter((team) => {
-    if (statusFilter === 'ALL') return true;
+    if (statusFilter === 'ALL') {
+      // Show all teams including rejected ones
+      return true;
+    }
+    if (statusFilter === 'ACTIVE') {
+      // Show only approved teams (the ones actually participating)
+      return team.status === 'APPROVED';
+    }
     if (statusFilter === 'WAITLISTED') return team.isWaitlisted;
+    if (statusFilter === 'REJECTED') return team.status === 'REJECTED';
     return team.status === statusFilter;
   });
 
@@ -331,9 +339,10 @@ export function TeamManagement({
         <CardHeader>
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <CardTitle>Team Registrations</CardTitle>
+              <CardTitle>Teams & Registrations</CardTitle>
               <CardDescription>
-                Manage team registrations and approvals
+                Manage team registrations and approvals. Use filters to view
+                different team statuses.
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
@@ -343,6 +352,7 @@ export function TeamManagement({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="ALL">All Teams</SelectItem>
+                  <SelectItem value="ACTIVE">Active Teams</SelectItem>
                   <SelectItem value="PENDING">Pending</SelectItem>
                   <SelectItem value="APPROVED">Approved</SelectItem>
                   <SelectItem value="REJECTED">Rejected</SelectItem>
@@ -434,7 +444,7 @@ export function TeamManagement({
                       <div>
                         <div className="font-medium">{team.name}</div>
                         <div className="text-sm text-gray-500">
-                          {team.club && `${team.club} • `}
+                          {team.club?.name && `${team.club.name} • `}
                           {team.city && `${team.city}, `}
                           {team.country?.name}
                         </div>
@@ -511,7 +521,7 @@ export function TeamManagement({
                                     Club
                                   </Label>
                                   <p className="text-sm">
-                                    {selectedTeam.club || 'N/A'}
+                                    {selectedTeam.club?.name || 'N/A'}
                                   </p>
                                 </div>
                                 <div>

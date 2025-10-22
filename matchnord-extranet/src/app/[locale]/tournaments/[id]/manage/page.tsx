@@ -540,9 +540,6 @@ export default function TournamentManagePage() {
               <TabsTrigger value="overview">
                 {t('tournament.tabs.overview')}
               </TabsTrigger>
-              <TabsTrigger value="registrations">
-                {t('tournament.tabs.registrations')}
-              </TabsTrigger>
               <TabsTrigger value="teams">
                 {t('tournament.teams')} ({teamCount})
               </TabsTrigger>
@@ -766,7 +763,7 @@ export default function TournamentManagePage() {
               </div>
             </TabsContent>
 
-            <TabsContent value="registrations">
+            <TabsContent value="teams">
               <TeamManagement
                 tournamentId={tournamentId}
                 onTeamsChange={(teams) => {
@@ -776,13 +773,6 @@ export default function TournamentManagePage() {
                   ).length;
                   setTeamCount(approvedCount);
                 }}
-              />
-            </TabsContent>
-
-            <TabsContent value="teams">
-              <TeamsManagement
-                tournamentId={tournamentId}
-                onTeamsChange={onTeamsChange}
               />
             </TabsContent>
 
