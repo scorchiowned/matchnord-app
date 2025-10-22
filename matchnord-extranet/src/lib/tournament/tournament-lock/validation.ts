@@ -46,19 +46,7 @@ export function validateGroupForLock(
     errors.push(`Group "${group.name}" needs at least 2 teams for competition`);
   }
 
-  // Check if all teams have the same level as division
-  const divisionLevel = group.division?.level;
-  if (divisionLevel) {
-    const teamsWithWrongLevel = group.teams.filter(
-      (team) =>
-        team.level && team.level.toLowerCase() !== divisionLevel.toLowerCase()
-    );
-    if (teamsWithWrongLevel.length > 0) {
-      errors.push(
-        `Group "${group.name}" has teams with incorrect level: ${teamsWithWrongLevel.map((t) => t.name).join(', ')}`
-      );
-    }
-  }
+  // Teams can have any level or no level - the division level is already determined
 
   // Check for balanced group sizes (warning, not error)
   // Note: This validation requires access to all groups in the division

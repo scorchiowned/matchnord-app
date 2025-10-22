@@ -96,33 +96,7 @@ export async function POST(
       );
     }
 
-    // Verify all teams match the division level
-    const division = group.division;
-
-    if (division) {
-      const mismatchedTeams = teams.filter((team) => {
-        // If both team and division have no level, allow
-        if (!team.level && !division.level) return false;
-
-        // If team has no level but division has level, don't allow
-        if (!team.level && division.level) return true;
-
-        // If team has level but division has no level, don't allow
-        if (team.level && !division.level) return true;
-
-        // Both have levels, check if they match
-        return team.level.toLowerCase() !== division.level.toLowerCase();
-      });
-
-      if (mismatchedTeams.length > 0) {
-        return NextResponse.json(
-          {
-            error: `Teams must have the same level as the division. The following teams have level mismatch: ${mismatchedTeams.map((t) => t.name).join(', ')}`,
-          },
-          { status: 400 }
-        );
-      }
-    }
+    // Teams can be assigned to any division - the division level is already determined
 
     // Remove teams from other groups in the same division first
     // First, find all groups in the same division

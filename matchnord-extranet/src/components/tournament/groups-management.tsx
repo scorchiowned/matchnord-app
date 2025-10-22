@@ -152,21 +152,10 @@ export function GroupsManagement({
           const allTeams = teamsResponse.ok ? await teamsResponse.json() : [];
           setAllTournamentTeams(allTeams);
 
-          // Assign teams to divisions based on level matching
+          // Assign all teams to divisions (division level is already determined)
           const divisionsWithTeams = divisionsData.map((division: any) => {
-            const teamsForDivision = allTeams.filter((team: any) => {
-              // If both team and division have no level, allow
-              if (!team.level && !division.level) return true;
-
-              // If team has no level but division has level, don't allow
-              if (!team.level && division.level) return false;
-
-              // If team has level but division has no level, don't allow
-              if (team.level && !division.level) return false;
-
-              // Both have levels, compare them
-              return team.level.toLowerCase() === division.level.toLowerCase();
-            });
+            // All teams can be assigned to any division - the division level is already determined
+            const teamsForDivision = allTeams;
 
             return {
               ...division,
@@ -411,27 +400,8 @@ export function GroupsManagement({
         throw new Error('Division not found');
       }
 
-      // Filter all tournament teams by division level before assignment
-      const eligibleTeams = allTournamentTeams.filter((team) => {
-        // If both team and division have no level, allow
-        if (!team.level && !currentDivision.level) return true;
-
-        // If team has no level but division has level, don't allow
-        if (!team.level && currentDivision.level) return false;
-
-        // If team has level but division has no level, don't allow
-        if (team.level && !currentDivision.level) return false;
-
-        // Both have levels, compare them
-        return team.level.toLowerCase() === currentDivision.level.toLowerCase();
-      });
-
-      if (eligibleTeams.length === 0) {
-        toast.error(
-          `No teams match the division level (${currentDivision.level}). Teams must have the same level as the division.`
-        );
-        return;
-      }
+      // All teams can be assigned to any division - the division level is already determined
+      const eligibleTeams = allTournamentTeams;
 
       // Assign teams to groups
       const updatedGroups = assignTeamsToGroups(
@@ -649,7 +619,7 @@ export function GroupsManagement({
                       {team.name}
                     </p>
                     {team.club && (
-                      <p className="text-xs text-gray-600">{team.club}</p>
+                      <p className="text-xs text-gray-600">{team.club.name}</p>
                     )}
                     {team.level && (
                       <Badge
@@ -959,7 +929,7 @@ export function GroupsManagement({
                           <p className="text-sm font-medium">{team.name}</p>
                           {team.club && (
                             <p className="text-xs text-muted-foreground">
-                              {team.club}
+                              {team.club.name}
                             </p>
                           )}
                           {team.level && (
