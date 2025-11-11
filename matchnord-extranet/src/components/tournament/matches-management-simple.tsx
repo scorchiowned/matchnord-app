@@ -49,6 +49,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { DivisionMatchSettings } from './division-match-settings';
+import { calculateRoundRobinMatches } from '@/lib/tournament/match-generation/round-robin';
 
 interface Match {
   id: string;
@@ -100,6 +101,7 @@ interface Group {
     id: string;
     name: string;
   };
+  teams?: Team[];
 }
 
 interface Division {
@@ -152,6 +154,14 @@ export function MatchesManagementSimple({
     divisionId || propDivisions[0]?.id || 'all'
   );
   const [selectedGroup, setSelectedGroup] = useState<string>(groupId || 'all');
+  const [draggedTeam, setDraggedTeam] = useState<Team | null>(null);
+  const [matchPlaceholders, setMatchPlaceholders] = useState<
+    Array<{
+      id: string;
+      homeTeamId: string | null;
+      awayTeamId: string | null;
+    }>
+  >([]);
 
   // Debug logging
   console.log('MatchesManagementSimple - matches state:', matches.length);
@@ -397,6 +407,268 @@ export function MatchesManagementSimple({
     }
   };
 
+  // Get selected group teams
+  const selectedGroupData = propGroups.find((g) => g.id === selectedGroup);
+  // Get teams from the selected group, or fallback to teams from matches
+  const selectedGroupTeams =
+    selectedGroup !== 'all' && selectedGroupData?.teams
+      ? selectedGroupData.teams
+      : selectedGroup !== 'all'
+        ? teams.filter((team) => {
+            // Fallback: Check if team appears in any match for this group
+            return matches.some(
+              (match) =>
+                match.group?.id === selectedGroup &&
+                (match.homeTeam?.id === team.id ||
+                  match.awayTeam?.id === team.id)
+            );
+          })
+        : teams;
+
+  // Calculate match placeholders for round-robin
+  useEffect(() => {
+    if (selectedGroup !== 'all' && selectedGroupTeams.length >= 2) {
+      const numMatches = calculateRoundRobinMatches(selectedGroupTeams.length);
+      const placeholders: Array<{
+        id: string;
+        homeTeamId: string | null;
+        awayTeamId: string | null;
+      }> = [];
+
+      // Get existing matches for this group
+      const groupMatches = matches.filter((m) => m.group?.id === selectedGroup);
+
+      // Create placeholders - initialize with existing match data
+      for (let i = 0; i < numMatches; i++) {
+        const existingMatch = groupMatches[i];
+        placeholders.push({
+          id: existingMatch?.id || `placeholder-${selectedGroup}-${i}`,
+          homeTeamId: existingMatch?.homeTeam?.id || null,
+          awayTeamId: existingMatch?.awayTeam?.id || null,
+        });
+      }
+
+      setMatchPlaceholders(placeholders);
+    } else {
+      setMatchPlaceholders([]);
+    }
+  }, [selectedGroup, selectedGroupTeams.length, matches]);
+
+  // Calculate team match counts (includes both saved matches and placeholders)
+  const getTeamMatchCount = (teamId: string): number => {
+    if (selectedGroup === 'all') return 0;
+
+    // Count saved matches
+    const savedMatches = matches.filter(
+      (match) =>
+        match.group?.id === selectedGroup &&
+        (match.homeTeam?.id === teamId || match.awayTeam?.id === teamId)
+    ).length;
+
+    // Count placeholders where team is assigned
+    const placeholderMatches = matchPlaceholders.filter(
+      (placeholder) =>
+        (placeholder.homeTeamId === teamId ||
+          placeholder.awayTeamId === teamId) &&
+        // Only count if it's a placeholder (not yet saved) or if it's not in saved matches
+        (placeholder.id.startsWith('placeholder-') ||
+          !matches.some((m) => m.id === placeholder.id))
+    ).length;
+
+    return savedMatches + placeholderMatches;
+  };
+
+  // Drag and drop handlers
+  const handleDragStart = (e: React.DragEvent, team: Team) => {
+    setDraggedTeam(team);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDrop = (
+    e: React.DragEvent,
+    matchIndex: number,
+    position: 'home' | 'away'
+  ) => {
+    e.preventDefault();
+    if (!draggedTeam) return;
+
+    const updatedPlaceholders = [...matchPlaceholders];
+    const placeholder = updatedPlaceholders[matchIndex];
+
+    if (!placeholder) return;
+
+    // Don't allow dropping on the same team
+    if (
+      (position === 'home' && placeholder.homeTeamId === draggedTeam.id) ||
+      (position === 'away' && placeholder.awayTeamId === draggedTeam.id)
+    ) {
+      return;
+    }
+
+    // Don't allow same team in both positions
+    if (
+      (position === 'home' && placeholder.awayTeamId === draggedTeam.id) ||
+      (position === 'away' && placeholder.homeTeamId === draggedTeam.id)
+    ) {
+      return;
+    }
+
+    updatedPlaceholders[matchIndex] = {
+      id: placeholder.id,
+      homeTeamId: position === 'home' ? draggedTeam.id : placeholder.homeTeamId,
+      awayTeamId: position === 'away' ? draggedTeam.id : placeholder.awayTeamId,
+    };
+
+    setMatchPlaceholders(updatedPlaceholders);
+    setDraggedTeam(null);
+
+    // Save match to database
+    const updatedPlaceholder = updatedPlaceholders[matchIndex];
+    if (updatedPlaceholder) {
+      saveMatchPlaceholder(updatedPlaceholder, matchIndex);
+    }
+  };
+
+  const handleRemoveTeam = (matchIndex: number, position: 'home' | 'away') => {
+    const updatedPlaceholders = [...matchPlaceholders];
+    const placeholder = updatedPlaceholders[matchIndex];
+    if (!placeholder) return;
+
+    updatedPlaceholders[matchIndex] = {
+      id: placeholder.id,
+      homeTeamId: position === 'home' ? null : placeholder.homeTeamId,
+      awayTeamId: position === 'away' ? null : placeholder.awayTeamId,
+    };
+    setMatchPlaceholders(updatedPlaceholders);
+    const updatedPlaceholder = updatedPlaceholders[matchIndex];
+    if (updatedPlaceholder) {
+      saveMatchPlaceholder(updatedPlaceholder, matchIndex);
+    }
+  };
+
+  const saveMatchPlaceholder = async (
+    placeholder: {
+      id: string;
+      homeTeamId: string | null;
+      awayTeamId: string | null;
+    },
+    matchIndex: number
+  ) => {
+    if (selectedGroup === 'all' || !selectedGroupData) return;
+
+    try {
+      const division = divisions.find((d) => d.id === selectedDivision);
+      if (!division) return;
+
+      // Check if this is an existing match or new placeholder
+      const isExisting = !placeholder.id.startsWith('placeholder-');
+
+      if (isExisting) {
+        // Update existing match - only if both teams are assigned
+        if (placeholder.homeTeamId && placeholder.awayTeamId) {
+          const response = await fetch(`/api/v1/matches/${placeholder.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+              homeTeamId: placeholder.homeTeamId,
+              awayTeamId: placeholder.awayTeamId,
+              startTime: new Date().toISOString(), // Required by API, will be updated later
+            }),
+          });
+
+          if (response.ok) {
+            // Refresh matches to update counts
+            const matchesResponse = await fetch(
+              `/api/v1/tournaments/${tournamentId}/matches`,
+              { credentials: 'include' }
+            );
+            if (matchesResponse.ok) {
+              const matchesData = await matchesResponse.json();
+              setMatches(matchesData);
+              onMatchesChange?.(matchesData);
+              toast.success('Match updated successfully');
+            }
+          } else {
+            const error = await response.json();
+            toast.error(error.error || 'Failed to update match');
+          }
+        } else {
+          // If one or both teams are removed, delete the match
+          const response = await fetch(`/api/v1/matches/${placeholder.id}`, {
+            method: 'DELETE',
+            credentials: 'include',
+          });
+
+          if (response.ok) {
+            // Refresh matches
+            const matchesResponse = await fetch(
+              `/api/v1/tournaments/${tournamentId}/matches`,
+              { credentials: 'include' }
+            );
+            if (matchesResponse.ok) {
+              const matchesData = await matchesResponse.json();
+              setMatches(matchesData);
+              onMatchesChange?.(matchesData);
+            }
+          }
+        }
+      } else {
+        // Create new match if both teams are assigned
+        if (placeholder.homeTeamId && placeholder.awayTeamId) {
+          const response = await fetch(
+            `/api/v1/tournaments/${tournamentId}/matches`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
+              body: JSON.stringify({
+                divisionId: selectedDivision,
+                groupId: selectedGroup,
+                homeTeamId: placeholder.homeTeamId,
+                awayTeamId: placeholder.awayTeamId,
+              }),
+            }
+          );
+
+          if (response.ok) {
+            const newMatch = await response.json();
+            const updatedPlaceholders = [...matchPlaceholders];
+            updatedPlaceholders[matchIndex] = {
+              id: newMatch.id,
+              homeTeamId: newMatch.homeTeamId,
+              awayTeamId: newMatch.awayTeamId,
+            };
+            setMatchPlaceholders(updatedPlaceholders);
+
+            // Refresh matches
+            const matchesResponse = await fetch(
+              `/api/v1/tournaments/${tournamentId}/matches`,
+              { credentials: 'include' }
+            );
+            if (matchesResponse.ok) {
+              const matchesData = await matchesResponse.json();
+              setMatches(matchesData);
+              onMatchesChange?.(matchesData);
+              toast.success('Match created successfully');
+            }
+          } else {
+            const error = await response.json();
+            toast.error(error.error || 'Failed to create match');
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error saving match:', error);
+      toast.error('Failed to save match');
+    }
+  };
+
   // Filter and group matches
   const filteredMatches = matches.filter((match) => {
     if (
@@ -537,15 +809,6 @@ export function MatchesManagementSimple({
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center space-x-2">
-                <Trophy className="h-5 w-5" />
-                <span>Matches ({matches.length})</span>
-              </CardTitle>
-              <CardDescription>
-                Manage tournament matches and their configuration
-              </CardDescription>
-            </div>
             <div className="flex space-x-2">
               <Button
                 variant="outline"
@@ -625,6 +888,177 @@ export function MatchesManagementSimple({
                     ))}
                 </TabsList>
               </Tabs>
+            </div>
+          )}
+          {/* Two Column Layout: Teams Table and Match Placeholders */}
+          {selectedGroup !== 'all' && (
+            <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+              {/* Left Column: Teams Table */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Teams</CardTitle>
+                  <CardDescription>
+                    Drag teams to match placeholders
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="rounded-md border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Team</TableHead>
+                          <TableHead className="text-right">Matches</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {selectedGroupTeams.length === 0 ? (
+                          <TableRow>
+                            <TableCell
+                              colSpan={2}
+                              className="text-center text-muted-foreground"
+                            >
+                              No teams in this group. Add teams to the group
+                              first.
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          selectedGroupTeams.map((team) => {
+                            const matchCount = getTeamMatchCount(team.id);
+                            return (
+                              <TableRow
+                                key={team.id}
+                                draggable
+                                onDragStart={(e) => handleDragStart(e, team)}
+                                className="cursor-move"
+                              >
+                                <TableCell className="font-medium">
+                                  {team.shortName || team.name}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  {matchCount}
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Right Column: Match Placeholders */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Matches</CardTitle>
+                  <CardDescription>
+                    Drop teams to create matches (Round-robin format)
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {selectedGroupTeams.length < 2 ? (
+                      <div className="py-8 text-center text-muted-foreground">
+                        Add at least 2 teams to the group to generate matches
+                      </div>
+                    ) : matchPlaceholders.length === 0 ? (
+                      <div className="py-8 text-center text-muted-foreground">
+                        Calculating match placeholders...
+                      </div>
+                    ) : (
+                      matchPlaceholders.map((placeholder, index) => {
+                        const homeTeam = selectedGroupTeams.find(
+                          (t) => t.id === placeholder.homeTeamId
+                        );
+                        const awayTeam = selectedGroupTeams.find(
+                          (t) => t.id === placeholder.awayTeamId
+                        );
+
+                        return (
+                          <div
+                            key={placeholder.id}
+                            className="flex items-center gap-2 rounded-lg border p-3"
+                          >
+                            {/* Home Team Drop Zone */}
+                            <div
+                              className="flex-1 rounded border-2 border-dashed p-3 text-center transition-colors"
+                              onDragOver={handleDragOver}
+                              onDrop={(e) => handleDrop(e, index, 'home')}
+                              style={{
+                                backgroundColor: placeholder.homeTeamId
+                                  ? 'transparent'
+                                  : 'rgba(0, 0, 0, 0.02)',
+                                borderColor: placeholder.homeTeamId
+                                  ? 'currentColor'
+                                  : 'currentColor',
+                              }}
+                            >
+                              {homeTeam ? (
+                                <div className="flex items-center justify-between">
+                                  <span className="font-medium">
+                                    {homeTeam.shortName || homeTeam.name}
+                                  </span>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() =>
+                                      handleRemoveTeam(index, 'home')
+                                    }
+                                  >
+                                    ×
+                                  </Button>
+                                </div>
+                              ) : (
+                                <span className="text-muted-foreground">
+                                  Drop home team
+                                </span>
+                              )}
+                            </div>
+
+                            <span className="font-medium">vs</span>
+
+                            {/* Away Team Drop Zone */}
+                            <div
+                              className="flex-1 rounded border-2 border-dashed p-3 text-center transition-colors"
+                              onDragOver={handleDragOver}
+                              onDrop={(e) => handleDrop(e, index, 'away')}
+                              style={{
+                                backgroundColor: placeholder.awayTeamId
+                                  ? 'transparent'
+                                  : 'rgba(0, 0, 0, 0.02)',
+                                borderColor: placeholder.awayTeamId
+                                  ? 'currentColor'
+                                  : 'currentColor',
+                              }}
+                            >
+                              {awayTeam ? (
+                                <div className="flex items-center justify-between">
+                                  <span className="font-medium">
+                                    {awayTeam.shortName || awayTeam.name}
+                                  </span>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() =>
+                                      handleRemoveTeam(index, 'away')
+                                    }
+                                  >
+                                    ×
+                                  </Button>
+                                </div>
+                              ) : (
+                                <span className="text-muted-foreground">
+                                  Drop away team
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           )}
           {selectedDivision === 'all' && (
