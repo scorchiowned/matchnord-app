@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Card,
   CardContent,
@@ -24,7 +24,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -36,19 +35,17 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Plus,
   Edit,
   Trash2,
   Trophy,
-  Clock,
   Settings,
-  Calendar,
-  Users,
-  Filter,
   BarChart3,
   CheckCircle,
   AlertCircle,
+  Info,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { DivisionMatchSettings } from './division-match-settings';
@@ -99,7 +96,7 @@ interface Team {
 interface Group {
   id: string;
   name: string;
-  division: {
+  division?: {
     id: string;
     name: string;
   };
@@ -108,9 +105,10 @@ interface Group {
 interface Division {
   id: string;
   name: string;
-  matchDuration: number;
-  breakDuration: number;
-  assignmentType: 'AUTO' | 'MANUAL';
+  level?: string;
+  matchDuration?: number;
+  breakDuration?: number;
+  assignmentType?: 'AUTO' | 'MANUAL';
 }
 
 interface MatchesManagementSimpleProps {
@@ -120,6 +118,7 @@ interface MatchesManagementSimpleProps {
   matches?: Match[];
   teams?: Team[];
   groups?: Group[];
+  divisions?: Division[];
   division?: Division;
   onMatchesChange?: (matches: Match[]) => void;
 }
@@ -131,21 +130,28 @@ export function MatchesManagementSimple({
   matches: propMatches = [],
   teams: propTeams = [],
   groups: propGroups = [],
-  division: propDivision = null,
+  divisions: propDivisions = [],
+  division: propDivision = undefined,
   onMatchesChange,
 }: MatchesManagementSimpleProps) {
   const [matches, setMatches] = useState<Match[]>(propMatches);
+  const prevMatchesRef = useRef<string>('');
 
   const [teams, setTeams] = useState<Team[]>(propTeams);
-  const [groups, setGroups] = useState<Group[]>(propGroups);
-  const [division, setDivision] = useState<Division | null>(propDivision);
+  const prevTeamsRef = useRef<string>('');
+
+  // Use propGroups directly to avoid infinite loops
+  const [divisions, setDivisions] = useState<Division[]>(propDivisions);
+  const [division, setDivision] = useState<Division | undefined>(propDivision);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingMatch, setEditingMatch] = useState<Match | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showSummary, setShowSummary] = useState(false);
-  const [selectedDivision, setSelectedDivision] = useState<string>('all');
-  const [selectedGroup, setSelectedGroup] = useState<string>('all');
+  const [selectedDivision, setSelectedDivision] = useState<string>(
+    divisionId || propDivisions[0]?.id || 'all'
+  );
+  const [selectedGroup, setSelectedGroup] = useState<string>(groupId || 'all');
 
   // Debug logging
   console.log('MatchesManagementSimple - matches state:', matches.length);
@@ -162,26 +168,52 @@ export function MatchesManagementSimple({
     notes: '',
   });
 
-  // Sync props with state when they change
+  // Sync props with state when they change - use stable comparison to prevent infinite loops
   useEffect(() => {
-    setMatches(propMatches);
+    // Create a stable key from matches array (using IDs and length)
+    const matchesKey = JSON.stringify(propMatches.map((m) => m.id).sort());
+    // Only update if the matches have actually changed
+    if (prevMatchesRef.current !== matchesKey) {
+      setMatches(propMatches);
+      prevMatchesRef.current = matchesKey;
+    }
   }, [propMatches]);
 
   useEffect(() => {
-    setTeams(propTeams);
+    // Create a stable key from teams array (using IDs and length)
+    const teamsKey = JSON.stringify(propTeams.map((t) => t.id).sort());
+    // Only update if the teams have actually changed
+    if (prevTeamsRef.current !== teamsKey) {
+      setTeams(propTeams);
+      prevTeamsRef.current = teamsKey;
+    }
   }, [propTeams]);
 
+  // Use propGroups directly instead of syncing to state to avoid infinite loops
+  const prevDivisionRef = useRef<string | null>(null);
+  const prevDivisionsRef = useRef<string>('');
+
+  // Sync divisions prop with state
   useEffect(() => {
-    setGroups(propGroups);
-  }, [propGroups]);
+    const divisionsKey = JSON.stringify(propDivisions.map((d) => d.id).sort());
+    if (prevDivisionsRef.current !== divisionsKey) {
+      setDivisions(propDivisions);
+      prevDivisionsRef.current = divisionsKey;
+    }
+  }, [propDivisions]);
 
   useEffect(() => {
-    setDivision(propDivision);
+    // Only update if division ID actually changed
+    const currentDivisionId = propDivision?.id || null;
+    if (prevDivisionRef.current !== currentDivisionId) {
+      setDivision(propDivision);
+      prevDivisionRef.current = currentDivisionId;
+    }
   }, [propDivision]);
 
   const handleGenerateMatches = async () => {
-    if (!divisionId) {
-      toast.error('Division must be selected for match generation');
+    if (selectedDivision === 'all') {
+      toast.error('Please select a specific division for match generation');
       return;
     }
 
@@ -197,7 +229,7 @@ export function MatchesManagementSimple({
           credentials: 'include',
           body: JSON.stringify({
             action: 'generate_all',
-            divisionId,
+            divisionId: selectedDivision,
           }),
         }
       );
@@ -233,8 +265,8 @@ export function MatchesManagementSimple({
   };
 
   const handleBulkOperation = async (operation: string) => {
-    if (!divisionId || !groupId) {
-      toast.error('Division and group must be selected for bulk operations');
+    if (selectedDivision === 'all') {
+      toast.error('Please select a specific division for bulk operations');
       return;
     }
 
@@ -250,10 +282,11 @@ export function MatchesManagementSimple({
           credentials: 'include',
           body: JSON.stringify({
             action: operation,
-            divisionId,
+            divisionId: selectedDivision,
             // Only pass groupId for operations that should be scoped to a specific group
             ...(operation !== 'clear_all' &&
-              operation !== 'regenerate_all' && { groupId }),
+              operation !== 'regenerate_all' &&
+              selectedGroup !== 'all' && { groupId: selectedGroup }),
           }),
         }
       );
@@ -294,21 +327,25 @@ export function MatchesManagementSimple({
 
     try {
       setIsSubmitting(true);
-      const response = await fetch('/api/v1/matches', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          tournamentId,
-          groupId: formData.groupId,
-          homeTeamId: formData.homeTeamId,
-          awayTeamId: formData.awayTeamId,
-          referee: formData.referee || undefined,
-          notes: formData.notes || undefined,
-        }),
-      });
+      const response = await fetch(
+        `/api/v1/tournaments/${tournamentId}/matches`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            groupId: formData.groupId,
+            homeTeamId: formData.homeTeamId,
+            awayTeamId: formData.awayTeamId,
+            referee: formData.referee || undefined,
+            notes: formData.notes || undefined,
+            startTime: new Date().toISOString(), // Default to current time, can be updated later
+            status: 'SCHEDULED',
+          }),
+        }
+      );
 
       if (response.ok) {
         const newMatch = await response.json();
@@ -440,7 +477,7 @@ export function MatchesManagementSimple({
 
     filteredMatches.forEach((match) => {
       // Home team stats
-      if (!teamStats[match.homeTeam.id]) {
+      if (match.homeTeam?.id && !teamStats[match.homeTeam.id]) {
         teamStats[match.homeTeam.id] = {
           team: match.homeTeam,
           homeMatches: 0,
@@ -448,11 +485,16 @@ export function MatchesManagementSimple({
           totalMatches: 0,
         };
       }
-      teamStats[match.homeTeam.id].homeMatches++;
-      teamStats[match.homeTeam.id].totalMatches++;
+      if (match.homeTeam?.id) {
+        const homeTeamStats = teamStats[match.homeTeam.id];
+        if (homeTeamStats) {
+          homeTeamStats.homeMatches++;
+          homeTeamStats.totalMatches++;
+        }
+      }
 
       // Away team stats
-      if (!teamStats[match.awayTeam.id]) {
+      if (match.awayTeam?.id && !teamStats[match.awayTeam.id]) {
         teamStats[match.awayTeam.id] = {
           team: match.awayTeam,
           homeMatches: 0,
@@ -460,8 +502,13 @@ export function MatchesManagementSimple({
           totalMatches: 0,
         };
       }
-      teamStats[match.awayTeam.id].awayMatches++;
-      teamStats[match.awayTeam.id].totalMatches++;
+      if (match.awayTeam?.id) {
+        const awayTeamStats = teamStats[match.awayTeam.id];
+        if (awayTeamStats) {
+          awayTeamStats.awayMatches++;
+          awayTeamStats.totalMatches++;
+        }
+      }
     });
 
     return Object.values(teamStats);
@@ -522,47 +569,76 @@ export function MatchesManagementSimple({
           </div>
         </CardHeader>
         <CardContent>
-          {/* Filters */}
-          <div className="mb-4 flex flex-wrap gap-4">
-            <div className="flex items-center space-x-2">
-              <Filter className="h-4 w-4 text-muted-foreground" />
-              <Label htmlFor="division-filter">Division:</Label>
-              <Select
+          {/* Division Selector */}
+          Divisions
+          {divisions.length > 0 && (
+            <div className="mb-4">
+              <Tabs
                 value={selectedDivision}
-                onValueChange={setSelectedDivision}
+                onValueChange={(value) => {
+                  setSelectedDivision(value);
+                  // Reset group filter when division changes
+                  setSelectedGroup('all');
+                }}
               >
-                <SelectTrigger className="w-48">
-                  <SelectValue placeholder="All Divisions" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Divisions</SelectItem>
-                  {division && (
-                    <SelectItem key={division.id} value={division.id}>
-                      {division.name}
-                    </SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Label htmlFor="group-filter">Group:</Label>
-              <Select value={selectedGroup} onValueChange={setSelectedGroup}>
-                <SelectTrigger className="w-48">
-                  <SelectValue placeholder="All Groups" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Groups</SelectItem>
-                  {groups.map((group) => (
-                    <SelectItem key={group.id} value={group.id}>
-                      {group.name}
-                    </SelectItem>
+                <TabsList className="grid w-full grid-cols-1 gap-2 border-0 bg-transparent p-0 md:grid-cols-2 lg:grid-cols-3">
+                  {divisions.map((division) => (
+                    <TabsTrigger
+                      key={division.id}
+                      value={division.id}
+                      className="border"
+                    >
+                      {division.name}{' '}
+                      {division.level ? `| ${division.level}` : ''}
+                    </TabsTrigger>
                   ))}
-                </SelectContent>
-              </Select>
+                </TabsList>
+              </Tabs>
             </div>
-          </div>
-
-          {divisionId && (
+          )}
+          {/* Group Selector */}
+          {propGroups.filter(
+            (group) =>
+              selectedDivision === 'all' ||
+              group.division?.id === selectedDivision
+          ).length > 0 && (
+            <div className="mb-4">
+              <Tabs value={selectedGroup} onValueChange={setSelectedGroup}>
+                <TabsList className="flex flex-wrap gap-2 border-0 bg-transparent p-0">
+                  <TabsTrigger value="all" className="border">
+                    All Groups
+                  </TabsTrigger>
+                  {propGroups
+                    .filter(
+                      (group) =>
+                        selectedDivision === 'all' ||
+                        group.division?.id === selectedDivision
+                    )
+                    .map((group) => (
+                      <TabsTrigger
+                        key={group.id}
+                        value={group.id}
+                        className="border"
+                      >
+                        {group.name}
+                      </TabsTrigger>
+                    ))}
+                </TabsList>
+              </Tabs>
+            </div>
+          )}
+          {selectedDivision === 'all' && (
+            <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-4">
+              <div className="flex items-center space-x-2">
+                <Info className="h-5 w-5 text-blue-600" />
+                <p className="text-sm text-blue-800">
+                  Please select a specific division to generate matches and
+                  configure matches.
+                </p>
+              </div>
+            </div>
+          )}
+          {selectedDivision !== 'all' && (
             <div className="mb-4 flex flex-wrap gap-2">
               <Button
                 variant="outline"
@@ -595,7 +671,6 @@ export function MatchesManagementSimple({
               )}
             </div>
           )}
-
           {/* Summary Component */}
           {showSummary && (
             <Card className="mb-6">
@@ -709,7 +784,6 @@ export function MatchesManagementSimple({
               </CardContent>
             </Card>
           )}
-
           {teams.length < 2 ? (
             <div className="py-12 text-center">
               <Trophy className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
@@ -786,11 +860,19 @@ export function MatchesManagementSimple({
                             <TableRow key={match.id}>
                               <TableCell>
                                 <div className="font-medium">
-                                  {match.homeTeam.shortName ||
-                                    match.homeTeam.name}{' '}
-                                  vs{' '}
-                                  {match.awayTeam.shortName ||
-                                    match.awayTeam.name}
+                                  {match.homeTeam && match.awayTeam ? (
+                                    <>
+                                      {match.homeTeam.shortName ||
+                                        match.homeTeam.name}{' '}
+                                      vs{' '}
+                                      {match.awayTeam.shortName ||
+                                        match.awayTeam.name}
+                                    </>
+                                  ) : (
+                                    <span className="text-muted-foreground">
+                                      TBD
+                                    </span>
+                                  )}
                                 </div>
                                 {match.venue && match.pitch && (
                                   <div className="text-sm text-muted-foreground">
@@ -969,9 +1051,9 @@ export function MatchesManagementSimple({
         <DivisionMatchSettings
           divisionId={division.id}
           initialSettings={{
-            matchDuration: division.matchDuration,
-            breakDuration: division.breakDuration,
-            assignmentType: division.assignmentType,
+            matchDuration: division.matchDuration ?? 90,
+            breakDuration: division.breakDuration ?? 15,
+            assignmentType: division.assignmentType ?? 'MANUAL',
           }}
           onSettingsChange={(settings) => {
             setDivision({
@@ -1050,7 +1132,7 @@ export function MatchesManagementSimple({
                   <SelectValue placeholder="Select group" />
                 </SelectTrigger>
                 <SelectContent>
-                  {groups.map((group) => (
+                  {propGroups.map((group) => (
                     <SelectItem key={group.id} value={group.id}>
                       {group.division?.name || 'Unknown Division'} -{' '}
                       {group.name}

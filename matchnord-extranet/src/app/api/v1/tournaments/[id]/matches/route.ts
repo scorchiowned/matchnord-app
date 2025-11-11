@@ -73,16 +73,19 @@ export async function GET(
           select: {
             id: true,
             name: true,
-            division: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
+          },
+        },
+        division: {
+          select: {
+            id: true,
+            name: true,
           },
         },
       },
-      orderBy: { startTime: 'asc' },
+      orderBy: [
+        { startTime: 'asc' },
+        { createdAt: 'asc' },
+      ],
     });
 
     return NextResponse.json(matches);
@@ -121,15 +124,15 @@ export async function POST(
     const body = await request.json();
 
     // Validate required fields
-    if (!body.homeTeamId || !body.awayTeamId || !body.startTime) {
+    if (!body.divisionId || !body.groupId) {
       return NextResponse.json(
-        { error: 'Home team, away team, and start time are required' },
+        { error: 'Division ID and Group ID are required' },
         { status: 400 }
       );
     }
 
-    // Check if teams are different
-    if (body.homeTeamId === body.awayTeamId) {
+    // Check if teams are different (if both are provided)
+    if (body.homeTeamId && body.awayTeamId && body.homeTeamId === body.awayTeamId) {
       return NextResponse.json(
         { error: 'Home team and away team must be different' },
         { status: 400 }
@@ -173,32 +176,49 @@ export async function POST(
       );
     }
 
-    // Verify teams belong to this tournament
-    const teams = await db.team.findMany({
-      where: {
-        id: { in: [body.homeTeamId, body.awayTeamId] },
-        tournamentId: tournamentId,
-      },
+    // Verify division and group belong to this tournament
+    const group = await db.group.findUnique({
+      where: { id: body.groupId },
+      include: { division: true },
     });
 
-    if (teams.length !== 2) {
+    if (!group || group.division.tournamentId !== tournamentId || group.divisionId !== body.divisionId) {
       return NextResponse.json(
-        { error: 'One or both teams do not belong to this tournament' },
+        { error: 'Group or division does not belong to this tournament' },
         { status: 400 }
       );
+    }
+
+    // Verify teams belong to this tournament (if provided)
+    if (body.homeTeamId || body.awayTeamId) {
+      const teamIds = [body.homeTeamId, body.awayTeamId].filter(Boolean);
+      const teams = await db.team.findMany({
+        where: {
+          id: { in: teamIds },
+          tournamentId: tournamentId,
+        },
+      });
+
+      if (teams.length !== teamIds.length) {
+        return NextResponse.json(
+          { error: 'One or more teams do not belong to this tournament' },
+          { status: 400 }
+        );
+      }
     }
 
     // Create the match
     const match = await db.match.create({
       data: {
         tournamentId: tournamentId,
-        homeTeamId: body.homeTeamId,
-        awayTeamId: body.awayTeamId,
-        startTime: new Date(body.startTime),
+        divisionId: body.divisionId,
+        groupId: body.groupId,
+        homeTeamId: body.homeTeamId || null,
+        awayTeamId: body.awayTeamId || null,
+        startTime: body.startTime ? new Date(body.startTime) : null,
         endTime: body.endTime ? new Date(body.endTime) : null,
         venueId: body.venueId || null,
         pitchId: body.pitchId || null,
-        groupId: body.groupId || null,
         referee: body.referee || '',
         notes: body.notes || '',
         status: body.status || 'SCHEDULED',
@@ -234,13 +254,12 @@ export async function POST(
           select: {
             id: true,
             name: true,
-            stage: {
-              select: {
-                id: true,
-                name: true,
-                type: true,
-              },
-            },
+          },
+        },
+        division: {
+          select: {
+            id: true,
+            name: true,
           },
         },
       },

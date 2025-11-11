@@ -134,6 +134,12 @@ export async function POST(
                 name: true,
               },
             },
+            division: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
           },
         });
         return match;
@@ -189,7 +195,9 @@ async function checkSchedulingConflicts(matches: any[], tournamentId: string) {
         conflictType: 'time_overlap',
         conflictingMatches: conflictingMatches.map((cm) => ({
           id: cm.id,
-          teams: `${cm.homeTeam.name} vs ${cm.awayTeam.name}`,
+          teams: cm.homeTeam && cm.awayTeam 
+            ? `${cm.homeTeam.name} vs ${cm.awayTeam.name}`
+            : 'TBD vs TBD',
           startTime: cm.startTime,
           endTime: cm.endTime,
         })),

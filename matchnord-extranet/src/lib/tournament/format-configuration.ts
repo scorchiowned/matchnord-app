@@ -3,9 +3,9 @@
  * Handles different tournament formats and phase management at the division level
  */
 
-export type TournamentFormat = 
+export type TournamentFormat =
   | 'round-robin-only'
-  | 'knockout-only' 
+  | 'knockout-only'
   | 'hybrid-groups-knockout'
   | 'hybrid-groups-playoff'
   | 'custom';
@@ -37,6 +37,14 @@ export interface PhaseConfiguration {
     includeThirdPlace: boolean;
     includeFifthPlace: boolean;
     format: '4-team' | '6-team' | '8-team';
+  };
+  // Placement system configuration
+  placementSystem?: {
+    enabled: boolean;
+    systemId: string; // Reference to PlacementSystemConfiguration
+    customSettings?: {
+      [key: string]: any;
+    };
   };
 }
 
@@ -84,18 +92,27 @@ export const TOURNAMENT_FORMAT_TEMPLATES: TournamentFormatTemplate[] = [
           minTeamsPerGroup: 4,
           maxTeamsPerGroup: 8,
           teamsAdvance: 0, // No advancement in round-robin-only
-          tiebreakerRules: ['points', 'goal-difference', 'goals-scored', 'head-to-head']
-        }
-      }
+          tiebreakerRules: [
+            'points',
+            'goal-difference',
+            'goals-scored',
+            'head-to-head',
+          ],
+        },
+      },
     ],
     minTeams: 4,
     maxTeams: 32,
     duration: {
       minDays: 1,
       maxDays: 3,
-      estimatedDays: 2
+      estimatedDays: 2,
     },
-    suitableFor: ['Youth tournaments', 'Local leagues', 'Friendly competitions']
+    suitableFor: [
+      'Youth tournaments',
+      'Local leagues',
+      'Friendly competitions',
+    ],
   },
   {
     id: 'cup-competition',
@@ -113,18 +130,18 @@ export const TOURNAMENT_FORMAT_TEMPLATES: TournamentFormatTemplate[] = [
         knockoutSettings: {
           includeThirdPlace: true,
           seedingMethod: 'random',
-          bracketType: 'single-elimination'
-        }
-      }
+          bracketType: 'single-elimination',
+        },
+      },
     ],
     minTeams: 4,
     maxTeams: 64,
     duration: {
       minDays: 1,
       maxDays: 7,
-      estimatedDays: 3
+      estimatedDays: 3,
     },
-    suitableFor: ['Cup competitions', 'Championships', 'Playoffs']
+    suitableFor: ['Cup competitions', 'Championships', 'Playoffs'],
   },
   {
     id: 'championship',
@@ -143,8 +160,13 @@ export const TOURNAMENT_FORMAT_TEMPLATES: TournamentFormatTemplate[] = [
           minTeamsPerGroup: 4,
           maxTeamsPerGroup: 6,
           teamsAdvance: 2,
-          tiebreakerRules: ['points', 'goal-difference', 'goals-scored', 'head-to-head']
-        }
+          tiebreakerRules: [
+            'points',
+            'goal-difference',
+            'goals-scored',
+            'head-to-head',
+          ],
+        },
       },
       {
         id: 'knockout',
@@ -156,23 +178,24 @@ export const TOURNAMENT_FORMAT_TEMPLATES: TournamentFormatTemplate[] = [
         knockoutSettings: {
           includeThirdPlace: true,
           seedingMethod: 'group-standings',
-          bracketType: 'single-elimination'
-        }
-      }
+          bracketType: 'single-elimination',
+        },
+      },
     ],
     minTeams: 8,
     maxTeams: 32,
     duration: {
       minDays: 2,
       maxDays: 5,
-      estimatedDays: 3
+      estimatedDays: 3,
     },
-    suitableFor: ['Championships', 'Major tournaments', 'Multi-day events']
+    suitableFor: ['Championships', 'Major tournaments', 'Multi-day events'],
   },
   {
     id: 'finnish-tournament',
     name: 'Finnish Tournament',
-    description: 'Traditional Finnish tournament format with groups and playoffs',
+    description:
+      'Traditional Finnish tournament format with groups and playoffs',
     format: 'hybrid-groups-playoff',
     phases: [
       {
@@ -186,8 +209,13 @@ export const TOURNAMENT_FORMAT_TEMPLATES: TournamentFormatTemplate[] = [
           minTeamsPerGroup: 4,
           maxTeamsPerGroup: 6,
           teamsAdvance: 4,
-          tiebreakerRules: ['points', 'goal-difference', 'goals-scored', 'head-to-head']
-        }
+          tiebreakerRules: [
+            'points',
+            'goal-difference',
+            'goals-scored',
+            'head-to-head',
+          ],
+        },
       },
       {
         id: 'playoffs',
@@ -199,34 +227,45 @@ export const TOURNAMENT_FORMAT_TEMPLATES: TournamentFormatTemplate[] = [
         playoffSettings: {
           includeThirdPlace: true,
           includeFifthPlace: true,
-          format: '8-team'
-        }
-      }
+          format: '8-team',
+        },
+      },
     ],
     minTeams: 8,
     maxTeams: 16,
     duration: {
       minDays: 2,
       maxDays: 4,
-      estimatedDays: 3
+      estimatedDays: 3,
     },
-    suitableFor: ['Finnish tournaments', 'Regional competitions', 'Traditional format']
-  }
+    suitableFor: [
+      'Finnish tournaments',
+      'Regional competitions',
+      'Traditional format',
+    ],
+  },
 ];
 
 /**
  * Get format template by ID
  */
-export function getFormatTemplate(templateId: string): TournamentFormatTemplate | undefined {
-  return TOURNAMENT_FORMAT_TEMPLATES.find(template => template.id === templateId);
+export function getFormatTemplate(
+  templateId: string
+): TournamentFormatTemplate | undefined {
+  return TOURNAMENT_FORMAT_TEMPLATES.find(
+    (template) => template.id === templateId
+  );
 }
 
 /**
  * Get all format templates suitable for a given team count
  */
-export function getSuitableTemplates(teamCount: number): TournamentFormatTemplate[] {
+export function getSuitableTemplates(
+  teamCount: number
+): TournamentFormatTemplate[] {
   return TOURNAMENT_FORMAT_TEMPLATES.filter(
-    template => teamCount >= template.minTeams && teamCount <= template.maxTeams
+    (template) =>
+      teamCount >= template.minTeams && teamCount <= template.maxTeams
   );
 }
 
@@ -244,11 +283,11 @@ export function createDivisionFormatFromTemplate(
   return {
     divisionId,
     format: template.format,
-    phases: template.phases.map(phase => ({
+    phases: template.phases.map((phase) => ({
       ...phase,
-      id: `${divisionId}-${phase.id}`
+      id: `${divisionId}-${phase.id}`,
     })),
-    customSettings
+    customSettings,
   };
 }
 
@@ -264,13 +303,13 @@ export function validateDivisionFormat(config: DivisionFormatConfiguration): {
   const warnings: string[] = [];
 
   // Check if at least one phase is enabled
-  const enabledPhases = config.phases.filter(phase => phase.enabled);
+  const enabledPhases = config.phases.filter((phase) => phase.enabled);
   if (enabledPhases.length === 0) {
     errors.push('At least one phase must be enabled');
   }
 
   // Check phase order
-  const phaseOrders = enabledPhases.map(phase => phase.order);
+  const phaseOrders = enabledPhases.map((phase) => phase.order);
   const uniqueOrders = new Set(phaseOrders);
   if (phaseOrders.length !== uniqueOrders.size) {
     errors.push('Phase orders must be unique');
@@ -278,16 +317,19 @@ export function validateDivisionFormat(config: DivisionFormatConfiguration): {
 
   // Check for logical phase sequence
   const sortedPhases = enabledPhases.sort((a, b) => a.order - b.order);
-  const groupPhases = sortedPhases.filter(p => p.type === 'group');
-  const knockoutPhases = sortedPhases.filter(p => p.type === 'knockout');
-  const playoffPhases = sortedPhases.filter(p => p.type === 'playoff');
+  const groupPhases = sortedPhases.filter((p) => p.type === 'group');
+  const knockoutPhases = sortedPhases.filter((p) => p.type === 'knockout');
+  const playoffPhases = sortedPhases.filter((p) => p.type === 'playoff');
 
   // Group phases should come before knockout/playoff phases
-  if (groupPhases.length > 0 && (knockoutPhases.length > 0 || playoffPhases.length > 0)) {
-    const maxGroupOrder = Math.max(...groupPhases.map(p => p.order));
+  if (
+    groupPhases.length > 0 &&
+    (knockoutPhases.length > 0 || playoffPhases.length > 0)
+  ) {
+    const maxGroupOrder = Math.max(...groupPhases.map((p) => p.order));
     const minOtherOrder = Math.min(
-      ...knockoutPhases.map(p => p.order),
-      ...playoffPhases.map(p => p.order)
+      ...knockoutPhases.map((p) => p.order),
+      ...playoffPhases.map((p) => p.order)
     );
     if (maxGroupOrder >= minOtherOrder) {
       warnings.push('Group phases should come before knockout/playoff phases');
@@ -295,14 +337,19 @@ export function validateDivisionFormat(config: DivisionFormatConfiguration): {
   }
 
   // Validate group settings
-  groupPhases.forEach(phase => {
+  groupPhases.forEach((phase) => {
     if (phase.groupSettings) {
-      const { minTeamsPerGroup, maxTeamsPerGroup, teamsAdvance } = phase.groupSettings;
+      const { minTeamsPerGroup, maxTeamsPerGroup, teamsAdvance } =
+        phase.groupSettings;
       if (minTeamsPerGroup > maxTeamsPerGroup) {
-        errors.push(`Phase "${phase.name}": minTeamsPerGroup cannot be greater than maxTeamsPerGroup`);
+        errors.push(
+          `Phase "${phase.name}": minTeamsPerGroup cannot be greater than maxTeamsPerGroup`
+        );
       }
       if (teamsAdvance > maxTeamsPerGroup) {
-        errors.push(`Phase "${phase.name}": teamsAdvance cannot be greater than maxTeamsPerGroup`);
+        errors.push(
+          `Phase "${phase.name}": teamsAdvance cannot be greater than maxTeamsPerGroup`
+        );
       }
     }
   });
@@ -310,7 +357,7 @@ export function validateDivisionFormat(config: DivisionFormatConfiguration): {
   return {
     isValid: errors.length === 0,
     errors,
-    warnings
+    warnings,
   };
 }
 
@@ -326,28 +373,28 @@ export function getFormatDisplayInfo(format: TournamentFormat): {
     'round-robin-only': {
       name: 'Round Robin Only',
       description: 'Teams play each other once in groups',
-      icon: '🔄'
+      icon: '🔄',
     },
     'knockout-only': {
       name: 'Knockout Only',
       description: 'Single elimination tournament',
-      icon: '🏆'
+      icon: '🏆',
     },
     'hybrid-groups-knockout': {
       name: 'Groups + Knockout',
       description: 'Group stage followed by knockout',
-      icon: '⚔️'
+      icon: '⚔️',
     },
     'hybrid-groups-playoff': {
       name: 'Groups + Playoffs',
       description: 'Group stage followed by playoffs',
-      icon: '🎯'
+      icon: '🎯',
     },
-    'custom': {
+    custom: {
       name: 'Custom Format',
       description: 'Custom tournament configuration',
-      icon: '⚙️'
-    }
+      icon: '⚙️',
+    },
   };
 
   return formatInfo[format] || formatInfo['custom'];
@@ -361,10 +408,10 @@ export function calculateEstimatedMatches(
   config: DivisionFormatConfiguration
 ): number {
   let totalMatches = 0;
-  
+
   for (const phase of config.phases) {
     if (!phase.enabled) continue;
-    
+
     switch (phase.type) {
       case 'group':
         if (phase.groupSettings) {
@@ -376,7 +423,7 @@ export function calculateEstimatedMatches(
           totalMatches += groupCount * matchesPerGroup;
         }
         break;
-        
+
       case 'knockout':
         if (phase.knockoutSettings) {
           const { includeThirdPlace } = phase.knockoutSettings;
@@ -384,18 +431,18 @@ export function calculateEstimatedMatches(
           totalMatches += teamCount - 1 + (includeThirdPlace ? 1 : 0);
         }
         break;
-        
+
       case 'playoff':
         if (phase.playoffSettings) {
           const { format } = phase.playoffSettings;
           const playoffTeamCount = parseInt(format.replace('-team', ''));
           // Playoff matches: semi-finals (2) + final (1) + third place (1) + fifth place (1 if enabled)
-          totalMatches += 2 + 1 + 1 + (phase.playoffSettings.includeFifthPlace ? 1 : 0);
+          totalMatches +=
+            2 + 1 + 1 + (phase.playoffSettings.includeFifthPlace ? 1 : 0);
         }
         break;
     }
   }
-  
+
   return totalMatches;
 }
-

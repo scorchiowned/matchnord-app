@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -98,6 +98,8 @@ export function TournamentInfoEditor({
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState<Tournament>(tournament);
+  const prevTournamentIdRef = useRef<string | null>(null);
+  const prevTournamentRef = useRef<Tournament | null>(null);
 
   // Status options with translations
   const statusOptions = [
@@ -119,10 +121,19 @@ export function TournamentInfoEditor({
   // Use tournamentId prop or fallback to tournament.id
   const currentTournamentId = tournamentId || tournament.id;
 
-  // Sync formData with tournament prop
+  // Sync formData with tournament prop - only update if tournament ID actually changed
+  // This prevents infinite loops when the tournament object reference changes but data is the same
   useEffect(() => {
-    setFormData(tournament);
-  }, [tournament]);
+    const currentTournamentId = tournament.id;
+    const prevTournamentId = prevTournamentIdRef.current;
+    
+    // Only update if the tournament ID has actually changed, or if this is the initial setup
+    if (prevTournamentId !== currentTournamentId || prevTournamentId === null) {
+      setFormData(tournament);
+      prevTournamentIdRef.current = currentTournamentId;
+      prevTournamentRef.current = tournament;
+    }
+  }, [tournament.id]);
 
   // Load countries for country selection
   useEffect(() => {
@@ -771,7 +782,10 @@ export function TournamentInfoEditor({
                 <InlineEditImage
                   label=""
                   value={formData.logo || ''}
-                  onSave={(value) => handleInputChange('logo', value)}
+                  onSave={async (value) => {
+                    handleInputChange('logo', value);
+                    return Promise.resolve();
+                  }}
                   aspectRatio="square"
                   className="space-y-0"
                   uploadType="tournament-logo"
@@ -785,7 +799,10 @@ export function TournamentInfoEditor({
                 <InlineEditImage
                   label=""
                   value={formData.heroImage || ''}
-                  onSave={(value) => handleInputChange('heroImage', value)}
+                  onSave={async (value) => {
+                    handleInputChange('heroImage', value);
+                    return Promise.resolve();
+                  }}
                   aspectRatio="video"
                   className="space-y-0"
                   uploadType="tournament-hero"

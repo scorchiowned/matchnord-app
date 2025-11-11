@@ -142,10 +142,11 @@ async function generateAllMatches(tournamentId: string, divisionId?: string) {
         db.match.create({
           data: {
             tournamentId,
+            divisionId: group.divisionId,
             groupId: group.id,
             homeTeamId: match.homeTeam.id,
             awayTeamId: match.awayTeam.id,
-            startTime: new Date(),
+            startTime: null, // Will be scheduled later
             assignmentType: group.division.assignmentType,
             status: 'SCHEDULED',
           },
@@ -182,13 +183,27 @@ async function clearAllMatches(
     whereClause.group = { divisionId };
   }
 
+  // Delete regular matches
   const deletedMatches = await db.match.deleteMany({
     where: whereClause,
+  });
+
+  // Also delete placement matches (matches with placement notes)
+  // Note: Placement matches now still have a groupId, but can be identified by notes
+  const deletedPlacementMatches = await db.match.deleteMany({
+    where: {
+      tournamentId,
+      notes: {
+        contains: 'Placement match',
+      },
+    },
   });
 
   return {
     action: 'clear_all',
     matchesDeleted: deletedMatches.count,
+    placementMatchesDeleted: deletedPlacementMatches.count,
+    totalDeleted: deletedMatches.count + deletedPlacementMatches.count,
     scope: groupId ? 'group' : divisionId ? 'division' : 'tournament',
   };
 }

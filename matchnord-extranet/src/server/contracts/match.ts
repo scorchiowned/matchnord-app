@@ -23,15 +23,19 @@ export const EventType = z.enum([
 
 // Match schemas
 export const CreateMatchInput = z.object({
-  groupId: z.string().optional(),
-  homeTeamId: z.string().min(1),
-  awayTeamId: z.string().min(1),
+  divisionId: z.string().min(1),
+  groupId: z.string().min(1),
+  homeTeamId: z.string().optional(),
+  awayTeamId: z.string().optional(),
   venueId: z.string().optional(),
-  startTime: z.string().datetime(),
+  startTime: z.string().datetime().optional(),
 });
 
 export const UpdateMatchInput = z.object({
+  divisionId: z.string().optional(),
   groupId: z.string().optional(),
+  homeTeamId: z.string().optional(),
+  awayTeamId: z.string().optional(),
   venueId: z.string().optional(),
   startTime: z.string().datetime().optional(),
   status: MatchStatus.optional(),
@@ -44,11 +48,12 @@ export const UpdateScoreInput = z.object({
 
 export const MatchResponse = z.object({
   id: z.string(),
-  groupId: z.string().nullable(),
-  homeTeamId: z.string(),
-  awayTeamId: z.string(),
+  divisionId: z.string(),
+  groupId: z.string(),
+  homeTeamId: z.string().nullable(),
+  awayTeamId: z.string().nullable(),
   venueId: z.string().nullable(),
-  startTime: z.string(),
+  startTime: z.string().nullable(),
   status: MatchStatus,
   homeScore: z.number(),
   awayScore: z.number(),

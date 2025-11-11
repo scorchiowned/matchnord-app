@@ -261,6 +261,7 @@ model Division {
   fees         Fee[]
   groups       Group[]
   teams        Team[]
+  matches      Match[]
   // Format configuration
   metadata     Json?      // Tournament format configuration
   // Lock management
@@ -417,17 +418,19 @@ model Match {
   id           String       @id @default(cuid())
   tournament   Tournament   @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
   tournamentId String
-  group        Group?       @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  groupId      String?
-  homeTeam     Team         @relation("HomeTeam", fields: [homeTeamId], references: [id])
-  homeTeamId   String
-  awayTeam     Team         @relation("AwayTeam", fields: [awayTeamId], references: [id])
-  awayTeamId   String
+  division     Division     @relation(fields: [divisionId], references: [id], onDelete: Cascade)
+  divisionId   String
+  group        Group        @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  groupId      String
+  homeTeam     Team?        @relation("HomeTeam", fields: [homeTeamId], references: [id])
+  homeTeamId   String?
+  awayTeam     Team?        @relation("AwayTeam", fields: [awayTeamId], references: [id])
+  awayTeamId   String?
   venue        Venue?       @relation(fields: [venueId], references: [id])
   venueId      String?
   pitch        Pitch?       @relation(fields: [pitchId], references: [id])
   pitchId      String?
-  startTime    DateTime
+  startTime    DateTime?
   endTime      DateTime?
   status       MatchStatus  @default(SCHEDULED)
   homeScore    Int          @default(0)

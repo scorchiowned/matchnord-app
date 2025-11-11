@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useTranslations } from 'next-intl';
@@ -53,6 +53,7 @@ interface Tournament {
   endDate: string;
   status: string;
   isPublished: boolean;
+  infoPublished: boolean;
   teamsPublished: boolean;
   schedulePublished: boolean;
   city?: string;
@@ -224,13 +225,16 @@ export default function TournamentManagePage() {
     // No state update needed
   };
 
-  const onMatchesChange = (newMatches: any[]) => {
+  const onMatchesChange = useCallback((newMatches: any[]) => {
     console.log('onMatchesChange called with:', newMatches.length, 'matches');
     setMatches(newMatches);
-  };
+  }, []);
+
+  const user = session?.user;
+  const tournamentId = params.id as string;
 
   // Function to refresh all counts
-  const refreshCounts = async () => {
+  const refreshCounts = useCallback(async () => {
     try {
       const tournamentResponse = await fetch(
         `/api/v1/tournaments/${tournamentId}`,
@@ -246,10 +250,15 @@ export default function TournamentManagePage() {
     } catch (error) {
       console.error('Error refreshing counts:', error);
     }
-  };
+  }, [tournamentId]);
 
-  const user = session?.user;
-  const tournamentId = params.id as string;
+  // Memoize the onUpdate callback to prevent infinite loops
+  const handleTournamentUpdate = useCallback(
+    (updatedTournament: Tournament) => {
+      setTournament(updatedTournament);
+    },
+    []
+  );
 
   // Fetch all tournament data
   useEffect(() => {
@@ -337,7 +346,7 @@ export default function TournamentManagePage() {
     }, 30000); // 30 seconds
 
     return () => clearInterval(interval);
-  }, [tournamentId]);
+  }, [tournamentId, refreshCounts]);
 
   // Check if user has permission to manage this tournament
   const canManage =
@@ -542,9 +551,7 @@ export default function TournamentManagePage() {
                   {tournament && (
                     <TournamentInfoEditor
                       tournament={tournament}
-                      onUpdate={(updatedTournament) =>
-                        setTournament(updatedTournament as Tournament)
-                      }
+                      onUpdate={handleTournamentUpdate}
                       tournamentId={tournamentId}
                     />
                   )}
@@ -776,7 +783,19 @@ export default function TournamentManagePage() {
                 groupId={tournament?.divisions?.[0]?.groups?.[0]?.id}
                 matches={matches}
                 teams={teams}
-                groups={tournament?.divisions?.[0]?.groups || []}
+                groups={
+                  // Flatten all groups from all divisions with division info
+                  tournament?.divisions?.flatMap((division) =>
+                    (division.groups || []).map((group) => ({
+                      ...group,
+                      division: {
+                        id: division.id,
+                        name: division.name,
+                      },
+                    }))
+                  ) || []
+                }
+                divisions={tournament?.divisions || []}
                 division={tournament?.divisions?.[0] || undefined}
                 onMatchesChange={onMatchesChange}
               />

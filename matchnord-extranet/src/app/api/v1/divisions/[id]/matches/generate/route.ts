@@ -106,10 +106,11 @@ export async function POST(
         db.match.create({
           data: {
             tournamentId: division.tournamentId,
+            divisionId: division.id,
             groupId: group.id,
             homeTeamId: match.homeTeam.id,
             awayTeamId: match.awayTeam.id,
-            startTime: new Date(), // Will be updated during scheduling
+            startTime: null, // Will be scheduled later
             assignmentType: autoAssign ? 'AUTO' : 'MANUAL',
             status: 'SCHEDULED',
           },
