@@ -55,12 +55,30 @@ export async function GET(request: NextRequest) {
           select: {
             id: true,
             name: true,
+            shortName: true,
+            logo: true,
+            clubRef: {
+              select: {
+                id: true,
+                name: true,
+                logo: true,
+              },
+            },
           },
         },
         awayTeam: {
           select: {
             id: true,
             name: true,
+            shortName: true,
+            logo: true,
+            clubRef: {
+              select: {
+                id: true,
+                name: true,
+                logo: true,
+              },
+            },
           },
         },
         venue: {

@@ -87,11 +87,27 @@ export async function PUT(
       data: {
         name: body.name,
         shortName: body.shortName || body.name.substring(0, 3).toUpperCase(),
-        club: body.club || '',
-        city: body.city || '',
+        logo: body.logo !== undefined ? body.logo : undefined,
+        clubId: body.clubId !== undefined ? body.clubId : null,
+        club: body.club !== undefined ? body.club : undefined,
+        city: body.city !== undefined ? body.city : undefined,
         countryId: body.countryId,
-        level: body.level || '',
-        managerId: body.managerId || null,
+        level: body.level !== undefined ? body.level : undefined,
+        managerId: body.managerId !== undefined ? body.managerId : null,
+        // Contact details
+        contactFirstName: body.contactFirstName !== undefined ? body.contactFirstName : undefined,
+        contactLastName: body.contactLastName !== undefined ? body.contactLastName : undefined,
+        contactEmail: body.contactEmail !== undefined ? body.contactEmail : undefined,
+        contactPhone: body.contactPhone !== undefined ? body.contactPhone : undefined,
+        contactAddress: body.contactAddress !== undefined ? body.contactAddress : undefined,
+        contactPostalCode: body.contactPostalCode !== undefined ? body.contactPostalCode : undefined,
+        contactCity: body.contactCity !== undefined ? body.contactCity : undefined,
+        // Billing details
+        billingName: body.billingName !== undefined ? body.billingName : undefined,
+        billingAddress: body.billingAddress !== undefined ? body.billingAddress : undefined,
+        billingPostalCode: body.billingPostalCode !== undefined ? body.billingPostalCode : undefined,
+        billingCity: body.billingCity !== undefined ? body.billingCity : undefined,
+        billingEmail: body.billingEmail !== undefined ? body.billingEmail : undefined,
       },
       include: {
         country: {
@@ -106,6 +122,20 @@ export async function PUT(
             id: true,
             name: true,
             email: true,
+          },
+        },
+        clubRef: {
+          select: {
+            id: true,
+            name: true,
+            logo: true,
+          },
+        },
+        division: {
+          select: {
+            id: true,
+            name: true,
+            level: true,
           },
         },
         _count: {

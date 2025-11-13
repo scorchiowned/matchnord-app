@@ -11,12 +11,19 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Trash2 } from 'lucide-react';
+import Image from 'next/image';
 
 interface Team {
   id: string;
   name: string;
   shortName?: string;
+  logo?: string;
   club?: string;
+  clubRef?: {
+    id: string;
+    name: string;
+    logo?: string;
+  };
   city?: string;
   level?: string;
 }
@@ -112,17 +119,27 @@ export function StandingsTable({
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center space-x-2">
-                    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-xs font-bold text-white">
-                      {standing.team.shortName?.charAt(0) ||
-                        standing.team.name.charAt(0)}
-                    </div>
+                    {(standing.team.logo || standing.team.clubRef?.logo) ? (
+                      <Image
+                        src={standing.team.logo || standing.team.clubRef?.logo || ''}
+                        alt={`${standing.team.name} logo`}
+                        width={24}
+                        height={24}
+                        className="rounded object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-xs font-bold text-white">
+                        {standing.team.shortName?.charAt(0) ||
+                          standing.team.name.charAt(0)}
+                      </div>
+                    )}
                     <div>
                       <div className="font-medium text-blue-600">
                         {standing.team.name}
                       </div>
-                      {standing.team.club && (
+                      {(standing.team.club || standing.team.clubRef?.name) && (
                         <div className="text-xs text-muted-foreground">
-                          {standing.team.club}
+                          {standing.team.club || standing.team.clubRef?.name}
                         </div>
                       )}
                     </div>

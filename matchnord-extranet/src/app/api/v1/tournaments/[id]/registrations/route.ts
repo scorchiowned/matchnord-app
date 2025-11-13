@@ -62,8 +62,16 @@ export async function GET(
         },
         country: {
           select: {
+            id: true,
             name: true,
             code: true,
+          },
+        },
+        clubRef: {
+          select: {
+            id: true,
+            name: true,
+            logo: true,
           },
         },
         payments: {

@@ -14,6 +14,20 @@ const nextConfig = {
     _next_intl_trailing_slash: 'false',
   },
   output: 'standalone',
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'matchnordstorage.blob.core.windows.net',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'storage.azure.com',
+        pathname: '/**',
+      },
+    ],
+  },
   experimental: {
     serverComponentsExternalPackages: ['@prisma/client', 'bcryptjs'],
   },

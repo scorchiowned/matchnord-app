@@ -48,6 +48,14 @@ export async function GET(
             id: true,
             name: true,
             shortName: true,
+            logo: true,
+            clubRef: {
+              select: {
+                id: true,
+                name: true,
+                logo: true,
+              },
+            },
           },
         },
         awayTeam: {
@@ -55,6 +63,14 @@ export async function GET(
             id: true,
             name: true,
             shortName: true,
+            logo: true,
+            clubRef: {
+              select: {
+                id: true,
+                name: true,
+                logo: true,
+              },
+            },
           },
         },
         venue: {
@@ -229,6 +245,14 @@ export async function POST(
             id: true,
             name: true,
             shortName: true,
+            logo: true,
+            clubRef: {
+              select: {
+                id: true,
+                name: true,
+                logo: true,
+              },
+            },
           },
         },
         awayTeam: {
@@ -236,6 +260,14 @@ export async function POST(
             id: true,
             name: true,
             shortName: true,
+            logo: true,
+            clubRef: {
+              select: {
+                id: true,
+                name: true,
+                logo: true,
+              },
+            },
           },
         },
         venue: {

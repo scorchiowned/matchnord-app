@@ -59,7 +59,15 @@ export async function GET(
             id: true,
             name: true,
             shortName: true,
+            logo: true,
             club: true,
+            clubRef: {
+              select: {
+                id: true,
+                name: true,
+                logo: true,
+              },
+            },
             city: true,
           },
         },
@@ -187,7 +195,15 @@ export async function POST(
             id: true,
             name: true,
             shortName: true,
+            logo: true,
             club: true,
+            clubRef: {
+              select: {
+                id: true,
+                name: true,
+                logo: true,
+              },
+            },
             city: true,
           },
         },

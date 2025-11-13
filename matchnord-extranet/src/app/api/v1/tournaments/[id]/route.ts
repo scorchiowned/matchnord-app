@@ -48,7 +48,16 @@ export async function GET(
                   select: {
                     id: true,
                     name: true,
+                    shortName: true,
+                    logo: true,
                     level: true,
+                    clubRef: {
+                      select: {
+                        id: true,
+                        name: true,
+                        logo: true,
+                      },
+                    },
                   },
                 },
               },

@@ -92,6 +92,12 @@ interface Team {
   id: string;
   name: string;
   shortName?: string;
+  logo?: string;
+  clubRef?: {
+    id: string;
+    name: string;
+    logo?: string;
+  };
 }
 
 interface Group {
@@ -932,7 +938,16 @@ export function MatchesManagementSimple({
                                 className="cursor-move"
                               >
                                 <TableCell className="font-medium">
-                                  {team.shortName || team.name}
+                                  <div className="flex items-center gap-2">
+                                    {(team.logo || team.clubRef?.logo) && (
+                                      <img
+                                        src={team.logo || team.clubRef?.logo}
+                                        alt={`${team.name} logo`}
+                                        className="h-6 w-6 rounded object-cover"
+                                      />
+                                    )}
+                                    <span>{team.shortName || team.name}</span>
+                                  </div>
                                 </TableCell>
                                 <TableCell className="text-right">
                                   {matchCount}
@@ -995,9 +1010,18 @@ export function MatchesManagementSimple({
                             >
                               {homeTeam ? (
                                 <div className="flex items-center justify-between">
-                                  <span className="font-medium">
-                                    {homeTeam.shortName || homeTeam.name}
-                                  </span>
+                                  <div className="flex items-center gap-2">
+                                    {(homeTeam.logo || homeTeam.clubRef?.logo) && (
+                                      <img
+                                        src={homeTeam.logo || homeTeam.clubRef?.logo}
+                                        alt={`${homeTeam.name} logo`}
+                                        className="h-5 w-5 rounded object-cover"
+                                      />
+                                    )}
+                                    <span className="font-medium">
+                                      {homeTeam.shortName || homeTeam.name}
+                                    </span>
+                                  </div>
                                   <Button
                                     variant="ghost"
                                     size="sm"
@@ -1033,9 +1057,18 @@ export function MatchesManagementSimple({
                             >
                               {awayTeam ? (
                                 <div className="flex items-center justify-between">
-                                  <span className="font-medium">
-                                    {awayTeam.shortName || awayTeam.name}
-                                  </span>
+                                  <div className="flex items-center gap-2">
+                                    {(awayTeam.logo || awayTeam.clubRef?.logo) && (
+                                      <img
+                                        src={awayTeam.logo || awayTeam.clubRef?.logo}
+                                        alt={`${awayTeam.name} logo`}
+                                        className="h-5 w-5 rounded object-cover"
+                                      />
+                                    )}
+                                    <span className="font-medium">
+                                      {awayTeam.shortName || awayTeam.name}
+                                    </span>
+                                  </div>
                                   <Button
                                     variant="ghost"
                                     size="sm"
@@ -1295,13 +1328,35 @@ export function MatchesManagementSimple({
                               <TableCell>
                                 <div className="font-medium">
                                   {match.homeTeam && match.awayTeam ? (
-                                    <>
-                                      {match.homeTeam.shortName ||
-                                        match.homeTeam.name}{' '}
-                                      vs{' '}
-                                      {match.awayTeam.shortName ||
-                                        match.awayTeam.name}
-                                    </>
+                                    <div className="flex items-center gap-2">
+                                      <div className="flex items-center gap-1">
+                                        {(match.homeTeam.logo || match.homeTeam.clubRef?.logo) && (
+                                          <img
+                                            src={match.homeTeam.logo || match.homeTeam.clubRef?.logo}
+                                            alt={`${match.homeTeam.name} logo`}
+                                            className="h-6 w-6 rounded object-cover"
+                                          />
+                                        )}
+                                        <span>
+                                          {match.homeTeam.shortName ||
+                                            match.homeTeam.name}
+                                        </span>
+                                      </div>
+                                      <span className="text-muted-foreground">vs</span>
+                                      <div className="flex items-center gap-1">
+                                        {(match.awayTeam.logo || match.awayTeam.clubRef?.logo) && (
+                                          <img
+                                            src={match.awayTeam.logo || match.awayTeam.clubRef?.logo}
+                                            alt={`${match.awayTeam.name} logo`}
+                                            className="h-6 w-6 rounded object-cover"
+                                          />
+                                        )}
+                                        <span>
+                                          {match.awayTeam.shortName ||
+                                            match.awayTeam.name}
+                                        </span>
+                                      </div>
+                                    </div>
                                   ) : (
                                     <span className="text-muted-foreground">
                                       TBD

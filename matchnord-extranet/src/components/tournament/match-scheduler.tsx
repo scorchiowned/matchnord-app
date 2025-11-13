@@ -34,11 +34,23 @@ interface Match {
     id: string;
     name: string;
     shortName?: string;
+    logo?: string;
+    clubRef?: {
+      id: string;
+      name: string;
+      logo?: string;
+    };
   };
   awayTeam: {
     id: string;
     name: string;
     shortName?: string;
+    logo?: string;
+    clubRef?: {
+      id: string;
+      name: string;
+      logo?: string;
+    };
   };
   venue?: {
     id: string;
@@ -672,18 +684,36 @@ export function MatchScheduler({
                       onDragStart={(e) => handleDragStart(e, match)}
                       className="cursor-move rounded border bg-card p-2 text-xs shadow-sm transition-shadow hover:shadow-md"
                     >
-                      <div className="font-medium">
-                        <span
-                          className={`mr-1 inline-block rounded px-1 py-0.5 text-xs ${getTeamColor(match.homeTeam.id)}`}
-                        >
-                          {match.homeTeam.shortName || match.homeTeam.name}
-                        </span>
-                        vs
-                        <span
-                          className={`ml-1 inline-block rounded px-1 py-0.5 text-xs ${getTeamColor(match.awayTeam.id)}`}
-                        >
-                          {match.awayTeam.shortName || match.awayTeam.name}
-                        </span>
+                      <div className="font-medium flex items-center gap-1">
+                        <div className="flex items-center gap-1">
+                          {(match.homeTeam.logo || match.homeTeam.clubRef?.logo) && (
+                            <img
+                              src={match.homeTeam.logo || match.homeTeam.clubRef?.logo}
+                              alt={`${match.homeTeam.name} logo`}
+                              className="h-4 w-4 rounded object-cover"
+                            />
+                          )}
+                          <span
+                            className={`inline-block rounded px-1 py-0.5 text-xs ${getTeamColor(match.homeTeam.id)}`}
+                          >
+                            {match.homeTeam.shortName || match.homeTeam.name}
+                          </span>
+                        </div>
+                        <span className="text-muted-foreground">vs</span>
+                        <div className="flex items-center gap-1">
+                          {(match.awayTeam.logo || match.awayTeam.clubRef?.logo) && (
+                            <img
+                              src={match.awayTeam.logo || match.awayTeam.clubRef?.logo}
+                              alt={`${match.awayTeam.name} logo`}
+                              className="h-4 w-4 rounded object-cover"
+                            />
+                          )}
+                          <span
+                            className={`inline-block rounded px-1 py-0.5 text-xs ${getTeamColor(match.awayTeam.id)}`}
+                          >
+                            {match.awayTeam.shortName || match.awayTeam.name}
+                          </span>
+                        </div>
                       </div>
                       {match.group && (
                         <div className="text-muted-foreground">
@@ -717,18 +747,36 @@ export function MatchScheduler({
                       onDragStart={(e) => handleDragStart(e, match)}
                       className="cursor-move rounded border bg-green-50 p-2 text-xs shadow-sm transition-shadow hover:shadow-md"
                     >
-                      <div className="font-medium">
-                        <span
-                          className={`mr-1 inline-block rounded px-1 py-0.5 text-xs ${getTeamColor(match.homeTeam.id)}`}
-                        >
-                          {match.homeTeam.shortName || match.homeTeam.name}
-                        </span>
-                        vs
-                        <span
-                          className={`ml-1 inline-block rounded px-1 py-0.5 text-xs ${getTeamColor(match.awayTeam.id)}`}
-                        >
-                          {match.awayTeam.shortName || match.awayTeam.name}
-                        </span>
+                      <div className="font-medium flex items-center gap-1">
+                        <div className="flex items-center gap-1">
+                          {(match.homeTeam.logo || match.homeTeam.clubRef?.logo) && (
+                            <img
+                              src={match.homeTeam.logo || match.homeTeam.clubRef?.logo}
+                              alt={`${match.homeTeam.name} logo`}
+                              className="h-4 w-4 rounded object-cover"
+                            />
+                          )}
+                          <span
+                            className={`inline-block rounded px-1 py-0.5 text-xs ${getTeamColor(match.homeTeam.id)}`}
+                          >
+                            {match.homeTeam.shortName || match.homeTeam.name}
+                          </span>
+                        </div>
+                        <span className="text-muted-foreground">vs</span>
+                        <div className="flex items-center gap-1">
+                          {(match.awayTeam.logo || match.awayTeam.clubRef?.logo) && (
+                            <img
+                              src={match.awayTeam.logo || match.awayTeam.clubRef?.logo}
+                              alt={`${match.awayTeam.name} logo`}
+                              className="h-4 w-4 rounded object-cover"
+                            />
+                          )}
+                          <span
+                            className={`inline-block rounded px-1 py-0.5 text-xs ${getTeamColor(match.awayTeam.id)}`}
+                          >
+                            {match.awayTeam.shortName || match.awayTeam.name}
+                          </span>
+                        </div>
                       </div>
                       {match.venue && match.pitch && (
                         <div className="text-muted-foreground">
@@ -814,20 +862,38 @@ export function MatchScheduler({
                                       }
                                       className="cursor-move rounded bg-primary/10 p-1 text-xs shadow-sm transition-shadow hover:shadow-md"
                                     >
-                                      <div className="font-medium">
-                                        <span
-                                          className={`mr-1 inline-block rounded px-1 py-0.5 text-xs ${getTeamColor(match.homeTeam.id)}`}
-                                        >
-                                          {match.homeTeam.shortName ||
-                                            match.homeTeam.name}
-                                        </span>
-                                        vs
-                                        <span
-                                          className={`ml-1 inline-block rounded px-1 py-0.5 text-xs ${getTeamColor(match.awayTeam.id)}`}
-                                        >
-                                          {match.awayTeam.shortName ||
-                                            match.awayTeam.name}
-                                        </span>
+                                      <div className="font-medium flex items-center gap-1">
+                                        <div className="flex items-center gap-1">
+                                          {(match.homeTeam.logo || match.homeTeam.clubRef?.logo) && (
+                                            <img
+                                              src={match.homeTeam.logo || match.homeTeam.clubRef?.logo}
+                                              alt={`${match.homeTeam.name} logo`}
+                                              className="h-4 w-4 rounded object-cover"
+                                            />
+                                          )}
+                                          <span
+                                            className={`inline-block rounded px-1 py-0.5 text-xs ${getTeamColor(match.homeTeam.id)}`}
+                                          >
+                                            {match.homeTeam.shortName ||
+                                              match.homeTeam.name}
+                                          </span>
+                                        </div>
+                                        <span className="text-muted-foreground">vs</span>
+                                        <div className="flex items-center gap-1">
+                                          {(match.awayTeam.logo || match.awayTeam.clubRef?.logo) && (
+                                            <img
+                                              src={match.awayTeam.logo || match.awayTeam.clubRef?.logo}
+                                              alt={`${match.awayTeam.name} logo`}
+                                              className="h-4 w-4 rounded object-cover"
+                                            />
+                                          )}
+                                          <span
+                                            className={`inline-block rounded px-1 py-0.5 text-xs ${getTeamColor(match.awayTeam.id)}`}
+                                          >
+                                            {match.awayTeam.shortName ||
+                                              match.awayTeam.name}
+                                          </span>
+                                        </div>
                                       </div>
                                       <div className="text-muted-foreground">
                                         {match.group?.name}
