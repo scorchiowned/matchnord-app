@@ -51,6 +51,12 @@ import {
 import { toast } from 'sonner';
 import { DivisionMatchSettings } from './division-match-settings';
 import { calculateRoundRobinMatches } from '@/lib/tournament/match-generation/round-robin';
+import {
+  generatePlacementMatches,
+  PlacementSystemConfiguration,
+  PLACEMENT_SYSTEM_TEMPLATES,
+  PlacementMatch,
+} from '@/lib/tournament/placement-configuration';
 
 interface Match {
   id: string;
@@ -495,6 +501,10 @@ export function MatchesManagementSimple({
     divisionId || propDivisions[0]?.id || 'all'
   );
   const [selectedGroup, setSelectedGroup] = useState<string>(groupId || 'all');
+  const [placementConfig, setPlacementConfig] =
+    useState<PlacementSystemConfiguration | null>(
+      PLACEMENT_SYSTEM_TEMPLATES[0] || null
+    );
   const [draggedTeam, setDraggedTeam] = useState<Team | null>(null);
   const [dragOverTarget, setDragOverTarget] = useState<{
     matchIndex: number;
@@ -873,6 +883,95 @@ export function MatchesManagementSimple({
   const getTeamMatchCount = (teamId: string): number => {
     if (selectedGroup === 'all') return 0;
     return getTeamMatchCountForGroup(teamId, selectedGroup);
+  };
+
+  // Check if all group matches are finished
+  const areGroupMatchesFinished = (groupId: string): boolean => {
+    const groupMatches = matches.filter((match) => match.group?.id === groupId);
+    if (groupMatches.length === 0) return false;
+    return groupMatches.every((match) => match.status === 'FINISHED');
+  };
+
+  // Calculate group standings for placement matches
+  const calculateGroupStandings = () => {
+    if (selectedDivision === 'all') return [];
+
+    const divisionGroups = propGroups.filter(
+      (group) => group.division?.id === selectedDivision
+    );
+
+    return divisionGroups.map((group) => {
+      const groupMatches = matches.filter(
+        (match) => match.group?.id === group.id && match.status === 'FINISHED'
+      );
+      const groupTeams = getGroupTeams(group.id);
+      const isFinished = areGroupMatchesFinished(group.id);
+
+      // Calculate stats for each team
+      const teamStats = groupTeams.map((team) => {
+        const teamMatches = groupMatches.filter(
+          (m) => m.homeTeam?.id === team.id || m.awayTeam?.id === team.id
+        );
+
+        let played = 0;
+        let won = 0;
+        let drawn = 0;
+        let lost = 0;
+        let goalsFor = 0;
+        let goalsAgainst = 0;
+
+        teamMatches.forEach((match) => {
+          const isHome = match.homeTeam?.id === team.id;
+          const teamScore = isHome ? match.homeScore : match.awayScore;
+          const opponentScore = isHome ? match.awayScore : match.homeScore;
+
+          played++;
+          goalsFor += teamScore;
+          goalsAgainst += opponentScore;
+
+          if (teamScore > opponentScore) won++;
+          else if (teamScore < opponentScore) lost++;
+          else drawn++;
+        });
+
+        const points = won * 3 + drawn;
+        const goalDifference = goalsFor - goalsAgainst;
+
+        return {
+          id: team.id,
+          name: team.name,
+          shortName: team.shortName,
+          played,
+          won,
+          drawn,
+          lost,
+          goalsFor,
+          goalsAgainst,
+          goalDifference,
+          points,
+        };
+      });
+
+      // Sort by points, then goal difference, then goals for
+      teamStats.sort((a, b) => {
+        if (b.points !== a.points) return b.points - a.points;
+        if (b.goalDifference !== a.goalDifference)
+          return b.goalDifference - a.goalDifference;
+        return b.goalsFor - a.goalsFor;
+      });
+
+      // Assign positions
+      teamStats.forEach((stat, index) => {
+        (stat as typeof stat & { position: number }).position = index + 1;
+      });
+
+      return {
+        groupId: group.id,
+        groupName: group.name,
+        teams: teamStats,
+        isFinished,
+      };
+    });
   };
 
   // Drag and drop handlers
@@ -1346,12 +1445,17 @@ export function MatchesManagementSimple({
                         {group.name}
                       </TabsTrigger>
                     ))}
+                  {selectedDivision !== 'all' && (
+                    <TabsTrigger value="placements" className="border">
+                      Placements
+                    </TabsTrigger>
+                  )}
                 </TabsList>
               </Tabs>
             </div>
           )}
           {/* Two Column Layout: Teams Table and Match Placeholders */}
-          {selectedGroup !== 'all' && (
+          {selectedGroup !== 'all' && selectedGroup !== 'placements' && (
             <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
               {/* Left Column: Teams Table */}
               <Card className="border-0 shadow-none">
@@ -1728,6 +1832,647 @@ export function MatchesManagementSimple({
                 </div>
               );
             })()}
+          {/* Placements View: Bracket visualization */}
+          {selectedGroup === 'placements' && selectedDivision !== 'all' && (
+            <div className="mb-6 space-y-6">
+              {/* Placement Configuration */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Placement Strategy</CardTitle>
+                  <CardDescription>
+                    Configure how teams advance from groups to placement matches
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="placement-strategy">Strategy</Label>
+                    <Select
+                      value={placementConfig?.id || ''}
+                      onValueChange={(value) => {
+                        const config = PLACEMENT_SYSTEM_TEMPLATES.find(
+                          (t) => t.id === value
+                        );
+                        if (config) {
+                          setPlacementConfig(config);
+                        }
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select placement strategy" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PLACEMENT_SYSTEM_TEMPLATES.map((template) => (
+                          <SelectItem key={template.id} value={template.id}>
+                            {template.name} - {template.description}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {placementConfig && (
+                    <div className="rounded-lg border p-4">
+                      <h4 className="mb-2 font-medium">
+                        {placementConfig.name}
+                      </h4>
+                      <p className="mb-4 text-sm text-muted-foreground">
+                        {placementConfig.description}
+                      </p>
+                      <div className="space-y-2">
+                        <h5 className="text-sm font-medium">Brackets:</h5>
+                        {placementConfig.brackets.map((bracket) => (
+                          <div
+                            key={bracket.id}
+                            className="text-sm text-muted-foreground"
+                          >
+                            • {bracket.name}: Positions{' '}
+                            {bracket.positions.join(', ')}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Bracket Visualization */}
+              {placementConfig && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Placement Bracket</CardTitle>
+                    <CardDescription>
+                      Visual representation of placement matches
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {(() => {
+                      const groupStandings = calculateGroupStandings();
+                      if (groupStandings.length === 0) {
+                        return (
+                          <div className="py-8 text-center text-muted-foreground">
+                            No groups found or no finished matches yet. Complete
+                            group stage matches to see placement bracket.
+                          </div>
+                        );
+                      }
+
+                      const placementMatches = generatePlacementMatches(
+                        groupStandings.map((gs) => ({
+                          groupId: gs.groupId,
+                          groupName: gs.groupName,
+                          teams: gs.teams.map((t) => ({
+                            id: t.id,
+                            name: t.name,
+                            position: (t as typeof t & { position: number })
+                              .position,
+                            points: t.points,
+                            goalDifference: t.goalDifference,
+                          })),
+                        })),
+                        placementConfig
+                      );
+
+                      if (placementMatches.length === 0) {
+                        return (
+                          <div className="py-8 text-center text-muted-foreground">
+                            No placement matches generated. Check your placement
+                            configuration.
+                          </div>
+                        );
+                      }
+
+                      const allGroupsFinished = groupStandings.every(
+                        (gs) => gs.isFinished
+                      );
+
+                      return (
+                        <div className="space-y-8">
+                          {!allGroupsFinished && (
+                            <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+                              <div className="flex items-center space-x-2">
+                                <Info className="h-5 w-5 text-blue-600" />
+                                <p className="text-sm text-blue-800">
+                                  Group matches are not finished yet. The
+                                  bracket shows placeholders (e.g., &quot;1st
+                                  Group A&quot;) until all group matches are
+                                  completed.
+                                </p>
+                              </div>
+                            </div>
+                          )}
+                          {placementMatches.map((bracketData) => (
+                            <div
+                              key={bracketData.bracketId}
+                              className="space-y-6"
+                            >
+                              <h3 className="text-lg font-semibold">
+                                {bracketData.bracketName}
+                              </h3>
+                              <div className="space-y-4">
+                                {(() => {
+                                  // Group matches by round
+                                  const matchesByRound =
+                                    bracketData.matches.reduce(
+                                      (acc, match) => {
+                                        const round = match.round;
+                                        if (!acc[round]) {
+                                          acc[round] = [];
+                                        }
+                                        acc[round].push(match);
+                                        return acc;
+                                      },
+                                      {} as Record<number, PlacementMatch[]>
+                                    );
+
+                                  const rounds = Object.keys(matchesByRound)
+                                    .map(Number)
+                                    .sort((a, b) => a - b);
+
+                                  const getTeamDisplay = (
+                                    team: PlacementMatch['homeTeam'],
+                                    showActualTeam: boolean
+                                  ) => {
+                                    if (team.source.type === 'group-position') {
+                                      const source = team.source;
+                                      const groupStanding = groupStandings.find(
+                                        (gs) => gs.groupId === source.groupId
+                                      );
+
+                                      // Only show actual team name if group matches are finished
+                                      if (
+                                        showActualTeam &&
+                                        groupStanding?.isFinished
+                                      ) {
+                                        const teamData =
+                                          groupStanding?.teams.find(
+                                            (t) =>
+                                              (t as { position?: number })
+                                                .position === source.position
+                                          );
+                                        if (teamData) {
+                                          return (
+                                            teamData.shortName || teamData.name
+                                          );
+                                        }
+                                      }
+
+                                      // Show placeholder
+                                      const position = source.position;
+                                      const suffix =
+                                        position === 1
+                                          ? 'st'
+                                          : position === 2
+                                            ? 'nd'
+                                            : position === 3
+                                              ? 'rd'
+                                              : 'th';
+                                      return `${position}${suffix} ${source.groupName}`;
+                                    }
+
+                                    // For match winners/losers, show placeholder until match is finished
+                                    if (
+                                      team.source.type === 'match-winner' ||
+                                      team.source.type === 'match-loser'
+                                    ) {
+                                      return team.name; // This will be "Winner of Game X" or "Loser of Game X"
+                                    }
+
+                                    return team.name;
+                                  };
+
+                                  const getTeamPositionLabel = (
+                                    team:
+                                      | PlacementMatch['homeTeam']
+                                      | PlacementMatch['awayTeam']
+                                  ) => {
+                                    if (team.source.type === 'group-position') {
+                                      const source = team.source;
+                                      const groupStanding = groupStandings.find(
+                                        (gs) => gs.groupId === source.groupId
+                                      );
+
+                                      if (groupStanding?.isFinished) {
+                                        const teamData =
+                                          groupStanding?.teams.find(
+                                            (t) =>
+                                              (t as { position?: number })
+                                                .position === source.position
+                                          );
+                                        if (teamData) {
+                                          const pos = (
+                                            teamData as typeof teamData & {
+                                              position: number;
+                                            }
+                                          ).position;
+                                          const suffix =
+                                            pos === 1
+                                              ? 'st'
+                                              : pos === 2
+                                                ? 'nd'
+                                                : pos === 3
+                                                  ? 'rd'
+                                                  : 'th';
+                                          return `${source.groupName} (${pos}${suffix})`;
+                                        }
+                                      }
+
+                                      const position = source.position;
+                                      const suffix =
+                                        position === 1
+                                          ? 'st'
+                                          : position === 2
+                                            ? 'nd'
+                                            : position === 3
+                                              ? 'rd'
+                                              : 'th';
+                                      return `${position}${suffix} ${source.groupName}`;
+                                    }
+                                    return '';
+                                  };
+
+                                  // Check if we should show actual teams (all groups finished)
+                                  const showActualTeams = groupStandings.every(
+                                    (gs) => gs.isFinished
+                                  );
+
+                                  // Render bracket tree structure (horizontal layout - compact)
+                                  return (
+                                    <div className="space-y-6">
+                                      <div className="relative overflow-x-auto py-4">
+                                        <div className="flex min-w-max gap-6">
+                                          {rounds.map((round, roundIndex) => {
+                                            const roundMatches =
+                                              matchesByRound[round] || [];
+                                            const isLastRound =
+                                              roundIndex === rounds.length - 1;
+
+                                            // Find where winners/losers advance to
+                                            const getAdvancementTarget = (
+                                              matchId: string,
+                                              isWinner: boolean
+                                            ): PlacementMatch | null => {
+                                              const nextRound = roundIndex + 1;
+                                              if (nextRound >= rounds.length)
+                                                return null;
+                                              const nextRoundNumber =
+                                                rounds[nextRound];
+                                              if (nextRoundNumber === undefined)
+                                                return null;
+                                              const nextRoundMatches =
+                                                matchesByRound[
+                                                  nextRoundNumber
+                                                ] || [];
+                                              // Find match that references this match's winner/loser
+                                              const targetMatch =
+                                                nextRoundMatches.find(
+                                                  (m: PlacementMatch) => {
+                                                    if (isWinner) {
+                                                      return (
+                                                        (m.homeTeam.source
+                                                          .type ===
+                                                          'match-winner' &&
+                                                          m.homeTeam.source
+                                                            .matchId ===
+                                                            matchId) ||
+                                                        (m.awayTeam.source
+                                                          .type ===
+                                                          'match-winner' &&
+                                                          m.awayTeam.source
+                                                            .matchId ===
+                                                            matchId)
+                                                      );
+                                                    } else {
+                                                      return (
+                                                        (m.homeTeam.source
+                                                          .type ===
+                                                          'match-loser' &&
+                                                          m.homeTeam.source
+                                                            .matchId ===
+                                                            matchId) ||
+                                                        (m.awayTeam.source
+                                                          .type ===
+                                                          'match-loser' &&
+                                                          m.awayTeam.source
+                                                            .matchId ===
+                                                            matchId)
+                                                      );
+                                                    }
+                                                  }
+                                                );
+                                              return targetMatch || null;
+                                            };
+
+                                            return (
+                                              <div
+                                                key={round}
+                                                className="relative flex flex-col gap-3"
+                                              >
+                                                {/* Round label */}
+                                                <div className="mb-2 text-center">
+                                                  <div className="inline-block rounded-md bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
+                                                    {roundMatches[0]
+                                                      ?.roundLabel ||
+                                                      `Round ${round}`}
+                                                  </div>
+                                                </div>
+
+                                                {/* Matches in this round */}
+                                                <div className="flex flex-col gap-3">
+                                                  {roundMatches.map(
+                                                    (match, matchIndex) => {
+                                                      const homeDisplay =
+                                                        getTeamDisplay(
+                                                          match.homeTeam,
+                                                          showActualTeams
+                                                        );
+                                                      const awayDisplay =
+                                                        getTeamDisplay(
+                                                          match.awayTeam,
+                                                          showActualTeams
+                                                        );
+
+                                                      // Calculate positions for connection lines
+                                                      const matchHeight = 70;
+                                                      const gap = 12;
+                                                      const matchTop =
+                                                        matchIndex *
+                                                        (matchHeight + gap);
+                                                      const matchCenter =
+                                                        matchTop +
+                                                        matchHeight / 2;
+
+                                                      // Find where winner/loser advances
+                                                      const winnerTarget =
+                                                        !isLastRound
+                                                          ? getAdvancementTarget(
+                                                              match.id,
+                                                              true
+                                                            )
+                                                          : null;
+                                                      const loserTarget =
+                                                        !isLastRound
+                                                          ? getAdvancementTarget(
+                                                              match.id,
+                                                              false
+                                                            )
+                                                          : null;
+
+                                                      return (
+                                                        <div
+                                                          key={match.id}
+                                                          className="relative"
+                                                        >
+                                                          {/* Connection lines to next round */}
+                                                          {!isLastRound && (
+                                                            <>
+                                                              {/* Horizontal line from match box */}
+                                                              <div
+                                                                className="absolute left-full top-1/2 z-0 h-[1.5px] w-6 bg-border"
+                                                                style={{
+                                                                  transform:
+                                                                    'translateY(-50%)',
+                                                                }}
+                                                              />
+                                                              {/* Vertical connector line connecting pairs */}
+                                                              {roundMatches.length >
+                                                                1 &&
+                                                                matchIndex %
+                                                                  2 ===
+                                                                  0 &&
+                                                                matchIndex + 1 <
+                                                                  roundMatches.length && (
+                                                                  <>
+                                                                    {/* Vertical line */}
+                                                                    <div
+                                                                      className="absolute left-full z-0 w-[1.5px] bg-border"
+                                                                      style={{
+                                                                        left: 'calc(100% + 1.5rem)',
+                                                                        top: `${matchCenter}px`,
+                                                                        height: `${matchHeight + gap}px`,
+                                                                        transform:
+                                                                          'translateX(-50%)',
+                                                                      }}
+                                                                    />
+                                                                    {/* Horizontal lines to next round matches */}
+                                                                    <div
+                                                                      className="absolute left-full z-0 h-[1.5px] w-6 bg-border"
+                                                                      style={{
+                                                                        left: 'calc(100% + 1.5rem)',
+                                                                        top: `${matchCenter}px`,
+                                                                        transform:
+                                                                          'translateX(-50%) translateY(-50%)',
+                                                                      }}
+                                                                    />
+                                                                    <div
+                                                                      className="absolute left-full z-0 h-[1.5px] w-6 bg-border"
+                                                                      style={{
+                                                                        left: 'calc(100% + 1.5rem)',
+                                                                        top: `${matchCenter + matchHeight + gap}px`,
+                                                                        transform:
+                                                                          'translateX(-50%) translateY(-50%)',
+                                                                      }}
+                                                                    />
+                                                                  </>
+                                                                )}
+                                                            </>
+                                                          )}
+
+                                                          {/* Match box */}
+                                                          <div className="relative z-10 w-44 rounded-md border border-border bg-card p-2 shadow-sm transition-all hover:border-primary/50 hover:shadow-md">
+                                                            {/* Match label badge */}
+                                                            <div className="mb-1.5 flex items-center justify-between">
+                                                              <span className="rounded bg-muted px-1.5 py-0.5 text-[9px] font-semibold text-muted-foreground">
+                                                                {
+                                                                  match.matchLabel
+                                                                }
+                                                              </span>
+                                                              {/* Edge labels showing where winner/loser goes */}
+                                                              {winnerTarget && (
+                                                                <span className="text-[9px] text-muted-foreground">
+                                                                  W→
+                                                                  {
+                                                                    winnerTarget.matchLabel
+                                                                  }
+                                                                </span>
+                                                              )}
+                                                              {loserTarget && (
+                                                                <span className="text-[9px] text-muted-foreground">
+                                                                  L→
+                                                                  {
+                                                                    loserTarget.matchLabel
+                                                                  }
+                                                                </span>
+                                                              )}
+                                                            </div>
+
+                                                            <div className="space-y-1">
+                                                              {/* Home team */}
+                                                              <div className="rounded border border-border/50 bg-muted/30 px-2 py-1 text-xs">
+                                                                <div className="truncate font-medium text-foreground">
+                                                                  {homeDisplay}
+                                                                </div>
+                                                                {getTeamPositionLabel(
+                                                                  match.homeTeam
+                                                                ) && (
+                                                                  <div className="mt-0.5 truncate text-[10px] text-muted-foreground">
+                                                                    {getTeamPositionLabel(
+                                                                      match.homeTeam
+                                                                    )}
+                                                                  </div>
+                                                                )}
+                                                              </div>
+
+                                                              {/* VS separator */}
+                                                              <div className="text-center text-[10px] font-semibold text-muted-foreground">
+                                                                vs
+                                                              </div>
+
+                                                              {/* Away team */}
+                                                              <div className="rounded border border-border/50 bg-muted/30 px-2 py-1 text-xs">
+                                                                <div className="truncate font-medium text-foreground">
+                                                                  {awayDisplay}
+                                                                </div>
+                                                                {getTeamPositionLabel(
+                                                                  match.awayTeam
+                                                                ) && (
+                                                                  <div className="mt-0.5 truncate text-[10px] text-muted-foreground">
+                                                                    {getTeamPositionLabel(
+                                                                      match.awayTeam
+                                                                    )}
+                                                                  </div>
+                                                                )}
+                                                              </div>
+                                                            </div>
+                                                          </div>
+                                                        </div>
+                                                      );
+                                                    }
+                                                  )}
+                                                </div>
+                                              </div>
+                                            );
+                                          })}
+                                        </div>
+                                      </div>
+
+                                      {/* Standings List - Show for all brackets */}
+                                      {(() => {
+                                        // Calculate standings from bracket structure
+                                        // Get teams in this bracket
+                                        const bracketConfig =
+                                          placementConfig.brackets.find(
+                                            (b) =>
+                                              b.id === bracketData.bracketId
+                                          );
+                                        if (!bracketConfig) return null;
+
+                                        const bracketTeams =
+                                          groupStandings.reduce((acc, gs) => {
+                                            const teams = gs.teams.filter((t) =>
+                                              bracketConfig.positions.includes(
+                                                (
+                                                  t as typeof t & {
+                                                    position: number;
+                                                  }
+                                                ).position
+                                              )
+                                            );
+                                            return acc + teams.length;
+                                          }, 0);
+
+                                        const positions: Array<{
+                                          position: number;
+                                          label: string;
+                                        }> = [];
+
+                                        // Find final match
+                                        const finalMatch =
+                                          bracketData.matches.find(
+                                            (m) => m.roundLabel === 'Final'
+                                          );
+                                        const thirdPlaceMatch =
+                                          bracketData.matches.find(
+                                            (m) =>
+                                              m.roundLabel === 'Third Place'
+                                          );
+
+                                        // Add positions based on bracket structure
+                                        if (finalMatch) {
+                                          positions.push({
+                                            position: 1,
+                                            label: 'Winner of Final',
+                                          });
+                                          positions.push({
+                                            position: 2,
+                                            label: 'Runner-up of Final',
+                                          });
+                                        }
+                                        if (thirdPlaceMatch) {
+                                          positions.push({
+                                            position: 3,
+                                            label: 'Winner of Third Place',
+                                          });
+                                          positions.push({
+                                            position: 4,
+                                            label: 'Loser of Third Place',
+                                          });
+                                        }
+
+                                        // Add remaining positions
+                                        for (
+                                          let i = positions.length + 1;
+                                          i <= bracketTeams;
+                                          i++
+                                        ) {
+                                          positions.push({
+                                            position: i,
+                                            label: `Position ${i}`,
+                                          });
+                                        }
+
+                                        if (positions.length === 0) return null;
+
+                                        return (
+                                          <Card className="mt-6">
+                                            <CardHeader>
+                                              <CardTitle className="text-base">
+                                                {bracketData.bracketName}{' '}
+                                                Standings
+                                              </CardTitle>
+                                            </CardHeader>
+                                            <CardContent>
+                                              <div className="space-y-1.5">
+                                                {positions.map((pos) => (
+                                                  <div
+                                                    key={pos.position}
+                                                    className="flex items-center gap-3 rounded-md border border-border/50 bg-muted/20 px-3 py-2"
+                                                  >
+                                                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
+                                                      {pos.position}.
+                                                    </div>
+                                                    <div className="flex-1 text-sm font-medium">
+                                                      {pos.label}
+                                                    </div>
+                                                  </div>
+                                                ))}
+                                              </div>
+                                            </CardContent>
+                                          </Card>
+                                        );
+                                      })()}
+                                    </div>
+                                  );
+                                })()}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })()}
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          )}
           {selectedDivision === 'all' && (
             <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-4">
               <div className="flex items-center space-x-2">
