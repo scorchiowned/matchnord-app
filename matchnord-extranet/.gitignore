@@ -50,3 +50,6 @@ coverage/
 
 # Docker
 .dockerignore
+
+# Downloaded team logos (remove this line if you want to commit logos to git)
+/logos/
