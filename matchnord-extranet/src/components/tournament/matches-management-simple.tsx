@@ -65,11 +65,23 @@ interface Match {
     id: string;
     name: string;
     shortName?: string;
+    logo?: string;
+    clubRef?: {
+      id: string;
+      name: string;
+      logo?: string;
+    };
   };
   awayTeam: {
     id: string;
     name: string;
     shortName?: string;
+    logo?: string;
+    clubRef?: {
+      id: string;
+      name: string;
+      logo?: string;
+    };
   };
   venue?: {
     id: string;
@@ -130,6 +142,328 @@ interface MatchesManagementSimpleProps {
   divisions?: Division[];
   division?: Division;
   onMatchesChange?: (matches: Match[]) => void;
+}
+
+// Component for rendering a single group's matches interface
+function GroupMatchesView({
+  group,
+  groupTeams,
+  groupPlaceholders,
+  draggedTeam,
+  dragOverTarget,
+  onDragStart,
+  onDragEnd,
+  onDragOver,
+  onDragLeave,
+  onDrop,
+  onRemoveTeam,
+  getTeamMatchCount,
+}: {
+  group: Group;
+  groupTeams: Team[];
+  groupPlaceholders: Array<{
+    id: string;
+    homeTeamId: string | null;
+    awayTeamId: string | null;
+  }>;
+  draggedTeam: Team | null;
+  dragOverTarget: { matchIndex: number; position: 'home' | 'away' } | null;
+  onDragStart: (e: React.DragEvent, team: Team) => void;
+  onDragEnd: () => void;
+  onDragOver: (
+    e: React.DragEvent,
+    matchIndex: number,
+    position: 'home' | 'away'
+  ) => void;
+  onDragLeave: () => void;
+  onDrop: (
+    e: React.DragEvent,
+    matchIndex: number,
+    position: 'home' | 'away'
+  ) => void;
+  onRemoveTeam: (matchIndex: number, position: 'home' | 'away') => void;
+  getTeamMatchCount: (teamId: string) => number;
+}) {
+  const [localPlaceholders, setLocalPlaceholders] = useState(groupPlaceholders);
+
+  // Sync local placeholders when prop changes
+  useEffect(() => {
+    setLocalPlaceholders(groupPlaceholders);
+  }, [groupPlaceholders]);
+
+  const handleDrop = (
+    e: React.DragEvent,
+    matchIndex: number,
+    position: 'home' | 'away'
+  ) => {
+    e.preventDefault();
+    if (!draggedTeam) return;
+
+    const updatedPlaceholders = [...localPlaceholders];
+    const placeholder = updatedPlaceholders[matchIndex];
+
+    if (!placeholder) return;
+
+    // Don't allow dropping on the same team
+    if (
+      (position === 'home' && placeholder.homeTeamId === draggedTeam.id) ||
+      (position === 'away' && placeholder.awayTeamId === draggedTeam.id)
+    ) {
+      return;
+    }
+
+    // Don't allow same team in both positions
+    if (
+      (position === 'home' && placeholder.awayTeamId === draggedTeam.id) ||
+      (position === 'away' && placeholder.homeTeamId === draggedTeam.id)
+    ) {
+      return;
+    }
+
+    updatedPlaceholders[matchIndex] = {
+      id: placeholder.id,
+      homeTeamId: position === 'home' ? draggedTeam.id : placeholder.homeTeamId,
+      awayTeamId: position === 'away' ? draggedTeam.id : placeholder.awayTeamId,
+    };
+
+    setLocalPlaceholders(updatedPlaceholders);
+    onDrop(e, matchIndex, position);
+  };
+
+  const handleRemoveTeam = (matchIndex: number, position: 'home' | 'away') => {
+    const updatedPlaceholders = [...localPlaceholders];
+    const placeholder = updatedPlaceholders[matchIndex];
+    if (!placeholder) return;
+
+    updatedPlaceholders[matchIndex] = {
+      id: placeholder.id,
+      homeTeamId: position === 'home' ? null : placeholder.homeTeamId,
+      awayTeamId: position === 'away' ? null : placeholder.awayTeamId,
+    };
+    setLocalPlaceholders(updatedPlaceholders);
+    onRemoveTeam(matchIndex, position);
+  };
+
+  return (
+    <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+      {/* Left Column: Teams Table */}
+      <Card className="border-0 shadow-none">
+        <CardHeader>
+          <CardTitle>{group.name}</CardTitle>
+          <CardDescription>Drag teams to match placeholders</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Team</TableHead>
+                  <TableHead className="text-right">Matches</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {groupTeams.length === 0 ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={2}
+                      className="text-center text-muted-foreground"
+                    >
+                      No teams in this group. Add teams to the group first.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  groupTeams.map((team) => {
+                    const matchCount = getTeamMatchCount(team.id);
+                    return (
+                      <TableRow
+                        key={team.id}
+                        className="group transition-colors hover:bg-muted/50"
+                      >
+                        <TableCell className="py-2 font-medium">
+                          <div
+                            draggable
+                            onDragStart={(e) => onDragStart(e, team)}
+                            onDragEnd={onDragEnd}
+                            className="flex h-10 cursor-grab items-center gap-2 active:cursor-grabbing"
+                          >
+                            <GripVertical className="h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+                            {(team.logo || team.clubRef?.logo) && (
+                              <img
+                                src={team.logo || team.clubRef?.logo}
+                                alt={`${team.name} logo`}
+                                className="h-5 w-5 rounded object-cover"
+                              />
+                            )}
+                            <span>{team.shortName || team.name}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-2 text-right">
+                          {matchCount}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Right Column: Match Placeholders */}
+      <Card className="border-0 shadow-none">
+        <CardHeader>
+          <CardTitle>Matches</CardTitle>
+          <CardDescription>
+            Drop teams to create matches (Round-robin format)
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-1">
+            {groupTeams.length < 2 ? (
+              <div className="py-8 text-center text-muted-foreground">
+                Add at least 2 teams to the group to generate matches
+              </div>
+            ) : localPlaceholders.length === 0 ? (
+              <div className="py-8 text-center text-muted-foreground">
+                Calculating match placeholders...
+              </div>
+            ) : (
+              localPlaceholders.map((placeholder, index) => {
+                const homeTeam = groupTeams.find(
+                  (t) => t.id === placeholder.homeTeamId
+                );
+                const awayTeam = groupTeams.find(
+                  (t) => t.id === placeholder.awayTeamId
+                );
+
+                return (
+                  <div
+                    key={placeholder.id}
+                    className="flex items-center gap-2 rounded-lg p-2"
+                  >
+                    {/* Home Team Drop Zone */}
+                    <div
+                      className={`flex-1 rounded border-2 border-dashed p-2 text-center transition-colors hover:border-primary/50 hover:bg-muted/30 ${
+                        dragOverTarget?.matchIndex === index &&
+                        dragOverTarget?.position === 'home'
+                          ? 'border-green-500 bg-green-50'
+                          : ''
+                      }`}
+                      onDragOver={(e) => onDragOver(e, index, 'home')}
+                      onDragLeave={onDragLeave}
+                      onDrop={(e) => handleDrop(e, index, 'home')}
+                      style={{
+                        backgroundColor:
+                          dragOverTarget?.matchIndex === index &&
+                          dragOverTarget?.position === 'home'
+                            ? undefined
+                            : placeholder.homeTeamId
+                              ? 'transparent'
+                              : 'rgba(0, 0, 0, 0.02)',
+                        minHeight: '2.5rem',
+                      }}
+                    >
+                      {homeTeam ? (
+                        <div className="flex items-center justify-between">
+                          <div className="pointer-events-none flex items-center gap-2">
+                            {(homeTeam.logo || homeTeam.clubRef?.logo) && (
+                              <img
+                                src={homeTeam.logo || homeTeam.clubRef?.logo}
+                                alt={`${homeTeam.name} logo`}
+                                className="h-5 w-5 rounded object-cover"
+                              />
+                            )}
+                            <span className="font-medium">
+                              {homeTeam.shortName || homeTeam.name}
+                            </span>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRemoveTeam(index, 'home');
+                            }}
+                            onMouseDown={(e) => e.stopPropagation()}
+                            className="cursor-pointer"
+                          >
+                            ×
+                          </Button>
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">
+                          Drop home team
+                        </span>
+                      )}
+                    </div>
+
+                    <span className="font-medium">vs</span>
+
+                    {/* Away Team Drop Zone */}
+                    <div
+                      className={`flex-1 rounded border-2 border-dashed p-2 text-center transition-colors hover:border-primary/50 hover:bg-muted/30 ${
+                        dragOverTarget?.matchIndex === index &&
+                        dragOverTarget?.position === 'away'
+                          ? 'border-green-500 bg-green-50'
+                          : ''
+                      }`}
+                      onDragOver={(e) => onDragOver(e, index, 'away')}
+                      onDragLeave={onDragLeave}
+                      onDrop={(e) => handleDrop(e, index, 'away')}
+                      style={{
+                        backgroundColor:
+                          dragOverTarget?.matchIndex === index &&
+                          dragOverTarget?.position === 'away'
+                            ? undefined
+                            : placeholder.awayTeamId
+                              ? 'transparent'
+                              : 'rgba(0, 0, 0, 0.02)',
+                        minHeight: '2.5rem',
+                      }}
+                    >
+                      {awayTeam ? (
+                        <div className="flex items-center justify-between">
+                          <div className="pointer-events-none flex items-center gap-2">
+                            {(awayTeam.logo || awayTeam.clubRef?.logo) && (
+                              <img
+                                src={awayTeam.logo || awayTeam.clubRef?.logo}
+                                alt={`${awayTeam.name} logo`}
+                                className="h-5 w-5 rounded object-cover"
+                              />
+                            )}
+                            <span className="font-medium">
+                              {awayTeam.shortName || awayTeam.name}
+                            </span>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRemoveTeam(index, 'away');
+                            }}
+                            onMouseDown={(e) => e.stopPropagation()}
+                            className="cursor-pointer"
+                          >
+                            ×
+                          </Button>
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">
+                          Drop away team
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
 }
 
 export function MatchesManagementSimple({
@@ -465,19 +799,65 @@ export function MatchesManagementSimple({
     }
   }, [selectedGroup, selectedGroupTeams.length, matches]);
 
-  // Calculate team match counts (includes both saved matches and placeholders)
-  const getTeamMatchCount = (teamId: string): number => {
-    if (selectedGroup === 'all') return 0;
+  // Helper function to get teams for a specific group
+  const getGroupTeams = (groupId: string): Team[] => {
+    const groupData = propGroups.find((g) => g.id === groupId);
+    if (groupData?.teams) {
+      return groupData.teams;
+    }
+    // Fallback: Check if team appears in any match for this group
+    return teams.filter((team) => {
+      return matches.some(
+        (match) =>
+          match.group?.id === groupId &&
+          (match.homeTeam?.id === team.id || match.awayTeam?.id === team.id)
+      );
+    });
+  };
 
+  // Helper function to get match placeholders for a specific group
+  const getGroupMatchPlaceholders = (groupId: string) => {
+    const groupTeams = getGroupTeams(groupId);
+    if (groupTeams.length < 2) return [];
+
+    const numMatches = calculateRoundRobinMatches(groupTeams.length);
+    const placeholders: Array<{
+      id: string;
+      homeTeamId: string | null;
+      awayTeamId: string | null;
+    }> = [];
+
+    // Get existing matches for this group
+    const groupMatches = matches.filter((m) => m.group?.id === groupId);
+
+    // Create placeholders - initialize with existing match data
+    for (let i = 0; i < numMatches; i++) {
+      const existingMatch = groupMatches[i];
+      placeholders.push({
+        id: existingMatch?.id || `placeholder-${groupId}-${i}`,
+        homeTeamId: existingMatch?.homeTeam?.id || null,
+        awayTeamId: existingMatch?.awayTeam?.id || null,
+      });
+    }
+
+    return placeholders;
+  };
+
+  // Helper function to get team match count for a specific group
+  const getTeamMatchCountForGroup = (
+    teamId: string,
+    groupId: string
+  ): number => {
     // Count saved matches
     const savedMatches = matches.filter(
       (match) =>
-        match.group?.id === selectedGroup &&
+        match.group?.id === groupId &&
         (match.homeTeam?.id === teamId || match.awayTeam?.id === teamId)
     ).length;
 
     // Count placeholders where team is assigned
-    const placeholderMatches = matchPlaceholders.filter(
+    const groupPlaceholders = getGroupMatchPlaceholders(groupId);
+    const placeholderMatches = groupPlaceholders.filter(
       (placeholder) =>
         (placeholder.homeTeamId === teamId ||
           placeholder.awayTeamId === teamId) &&
@@ -487,6 +867,12 @@ export function MatchesManagementSimple({
     ).length;
 
     return savedMatches + placeholderMatches;
+  };
+
+  // Calculate team match counts (includes both saved matches and placeholders)
+  const getTeamMatchCount = (teamId: string): number => {
+    if (selectedGroup === 'all') return 0;
+    return getTeamMatchCountForGroup(teamId, selectedGroup);
   };
 
   // Drag and drop handlers
@@ -603,9 +989,11 @@ export function MatchesManagementSimple({
       homeTeamId: string | null;
       awayTeamId: string | null;
     },
-    matchIndex: number
+    matchIndex: number,
+    groupId?: string
   ) => {
-    if (selectedGroup === 'all' || !selectedGroupData) return;
+    const targetGroupId = groupId || selectedGroup;
+    if (targetGroupId === 'all') return;
     if (selectedDivision === 'all') {
       toast.error('Please select a specific division');
       return;
@@ -701,7 +1089,7 @@ export function MatchesManagementSimple({
               credentials: 'include',
               body: JSON.stringify({
                 divisionId: selectedDivision,
-                groupId: selectedGroup,
+                groupId: targetGroupId,
                 homeTeamId: placeholder.homeTeamId || null,
                 awayTeamId: placeholder.awayTeamId || null,
               }),
@@ -1200,6 +1588,146 @@ export function MatchesManagementSimple({
               </Card>
             </div>
           )}
+          {/* All Groups View: Render each group stacked vertically with separators */}
+          {selectedGroup === 'all' &&
+            selectedDivision !== 'all' &&
+            (() => {
+              const divisionGroups = propGroups.filter(
+                (group) => group.division?.id === selectedDivision
+              );
+
+              if (divisionGroups.length === 0) {
+                return null;
+              }
+
+              const handleGroupDragOver = (
+                e: React.DragEvent,
+                matchIndex: number,
+                position: 'home' | 'away'
+              ) => {
+                e.preventDefault();
+                if (!draggedTeam) return;
+
+                // The component manages its own placeholders, so we just set the drag target
+                // The actual validation happens in the component's handleDrop
+                e.dataTransfer.dropEffect = 'move';
+                setDragOverTarget({ matchIndex, position });
+              };
+
+              const handleGroupDrop = (
+                e: React.DragEvent,
+                matchIndex: number,
+                position: 'home' | 'away',
+                groupId: string
+              ) => {
+                e.preventDefault();
+                if (!draggedTeam) return;
+
+                const groupPlaceholders = getGroupMatchPlaceholders(groupId);
+                const placeholder = groupPlaceholders[matchIndex];
+
+                if (!placeholder) return;
+
+                // Don't allow dropping on the same team
+                if (
+                  (position === 'home' &&
+                    placeholder.homeTeamId === draggedTeam.id) ||
+                  (position === 'away' &&
+                    placeholder.awayTeamId === draggedTeam.id)
+                ) {
+                  return;
+                }
+
+                // Don't allow same team in both positions
+                if (
+                  (position === 'home' &&
+                    placeholder.awayTeamId === draggedTeam.id) ||
+                  (position === 'away' &&
+                    placeholder.homeTeamId === draggedTeam.id)
+                ) {
+                  return;
+                }
+
+                const updatedPlaceholder = {
+                  id: placeholder.id,
+                  homeTeamId:
+                    position === 'home'
+                      ? draggedTeam.id
+                      : placeholder.homeTeamId,
+                  awayTeamId:
+                    position === 'away'
+                      ? draggedTeam.id
+                      : placeholder.awayTeamId,
+                };
+
+                setDraggedTeam(null);
+                setDragOverTarget(null);
+
+                // Save match to database
+                saveMatchPlaceholder(updatedPlaceholder, matchIndex, groupId);
+              };
+
+              const handleGroupRemoveTeam = (
+                matchIndex: number,
+                position: 'home' | 'away',
+                groupId: string
+              ) => {
+                const groupPlaceholders = getGroupMatchPlaceholders(groupId);
+                const placeholder = groupPlaceholders[matchIndex];
+                if (!placeholder) return;
+
+                const updatedPlaceholder = {
+                  id: placeholder.id,
+                  homeTeamId:
+                    position === 'home' ? null : placeholder.homeTeamId,
+                  awayTeamId:
+                    position === 'away' ? null : placeholder.awayTeamId,
+                };
+
+                saveMatchPlaceholder(updatedPlaceholder, matchIndex, groupId);
+              };
+
+              return (
+                <div className="mb-6 space-y-8">
+                  {divisionGroups.map((group, groupIndex) => {
+                    const groupTeams = getGroupTeams(group.id);
+                    const groupPlaceholders = getGroupMatchPlaceholders(
+                      group.id
+                    );
+
+                    return (
+                      <div key={group.id}>
+                        {groupIndex > 0 && (
+                          <div className="my-8 border-t border-gray-300"></div>
+                        )}
+                        <GroupMatchesView
+                          group={group}
+                          groupTeams={groupTeams}
+                          groupPlaceholders={groupPlaceholders}
+                          draggedTeam={draggedTeam}
+                          dragOverTarget={dragOverTarget}
+                          onDragStart={handleDragStart}
+                          onDragEnd={handleDragEnd}
+                          onDragOver={(e, index, position) =>
+                            handleGroupDragOver(e, index, position)
+                          }
+                          onDragLeave={handleDragLeave}
+                          onDrop={(e, index, position) =>
+                            handleGroupDrop(e, index, position, group.id)
+                          }
+                          onRemoveTeam={(index, position) =>
+                            handleGroupRemoveTeam(index, position, group.id)
+                          }
+                          getTeamMatchCount={(teamId) =>
+                            getTeamMatchCountForGroup(teamId, group.id)
+                          }
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
           {selectedDivision === 'all' && (
             <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-4">
               <div className="flex items-center space-x-2">
