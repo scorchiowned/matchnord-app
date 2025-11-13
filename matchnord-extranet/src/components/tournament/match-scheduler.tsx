@@ -715,7 +715,7 @@ export function MatchScheduler({
                           </span>
                         </div>
                       </div>
-                      {match.group && (
+                      {match.group && match.group.division && (
                         <div className="text-muted-foreground">
                           {match.group.division.name} - {match.group.name}
                         </div>

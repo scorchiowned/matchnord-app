@@ -89,6 +89,12 @@ export async function GET(
           select: {
             id: true,
             name: true,
+            division: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
           },
         },
         division: {

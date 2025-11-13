@@ -46,6 +46,7 @@ import {
   CheckCircle,
   AlertCircle,
   Info,
+  GripVertical,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { DivisionMatchSettings } from './division-match-settings';
@@ -161,6 +162,10 @@ export function MatchesManagementSimple({
   );
   const [selectedGroup, setSelectedGroup] = useState<string>(groupId || 'all');
   const [draggedTeam, setDraggedTeam] = useState<Team | null>(null);
+  const [dragOverTarget, setDragOverTarget] = useState<{
+    matchIndex: number;
+    position: 'home' | 'away';
+  } | null>(null);
   const [matchPlaceholders, setMatchPlaceholders] = useState<
     Array<{
       id: string;
@@ -490,9 +495,43 @@ export function MatchesManagementSimple({
     e.dataTransfer.effectAllowed = 'move';
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
+  const handleDragEnd = () => {
+    setDraggedTeam(null);
+    setDragOverTarget(null);
+  };
+
+  const handleDragOver = (
+    e: React.DragEvent,
+    matchIndex: number,
+    position: 'home' | 'away'
+  ) => {
     e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
+    if (!draggedTeam) return;
+
+    const placeholder = matchPlaceholders[matchIndex];
+    if (!placeholder) return;
+
+    // Check if drop is valid
+    const isValidDrop =
+      (position === 'home' && placeholder.homeTeamId !== draggedTeam.id) ||
+      (position === 'away' && placeholder.awayTeamId !== draggedTeam.id);
+
+    // Don't allow same team in both positions
+    const notSameTeamInBoth =
+      (position === 'home' && placeholder.awayTeamId !== draggedTeam.id) ||
+      (position === 'away' && placeholder.homeTeamId !== draggedTeam.id);
+
+    if (isValidDrop && notSameTeamInBoth) {
+      e.dataTransfer.dropEffect = 'move';
+      setDragOverTarget({ matchIndex, position });
+    } else {
+      e.dataTransfer.dropEffect = 'none';
+      setDragOverTarget(null);
+    }
+  };
+
+  const handleDragLeave = () => {
+    setDragOverTarget(null);
   };
 
   const handleDrop = (
@@ -532,6 +571,7 @@ export function MatchesManagementSimple({
 
     setMatchPlaceholders(updatedPlaceholders);
     setDraggedTeam(null);
+    setDragOverTarget(null);
 
     // Save match to database
     const updatedPlaceholder = updatedPlaceholders[matchIndex];
@@ -566,53 +606,42 @@ export function MatchesManagementSimple({
     matchIndex: number
   ) => {
     if (selectedGroup === 'all' || !selectedGroupData) return;
+    if (selectedDivision === 'all') {
+      toast.error('Please select a specific division');
+      return;
+    }
 
     try {
       const division = divisions.find((d) => d.id === selectedDivision);
-      if (!division) return;
+      if (!division) {
+        toast.error('Division not found');
+        return;
+      }
 
       // Check if this is an existing match or new placeholder
       const isExisting = !placeholder.id.startsWith('placeholder-');
 
       if (isExisting) {
-        // Update existing match - only if both teams are assigned
-        if (placeholder.homeTeamId && placeholder.awayTeamId) {
-          const response = await fetch(`/api/v1/matches/${placeholder.id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify({
-              homeTeamId: placeholder.homeTeamId,
-              awayTeamId: placeholder.awayTeamId,
-              startTime: new Date().toISOString(), // Required by API, will be updated later
-            }),
-          });
+        // Get the existing match to preserve its data
+        const existingMatch = matches.find((m) => m.id === placeholder.id);
 
-          if (response.ok) {
-            // Refresh matches to update counts
-            const matchesResponse = await fetch(
-              `/api/v1/tournaments/${tournamentId}/matches`,
-              { credentials: 'include' }
-            );
-            if (matchesResponse.ok) {
-              const matchesData = await matchesResponse.json();
-              setMatches(matchesData);
-              onMatchesChange?.(matchesData);
-              toast.success('Match updated successfully');
-            }
-          } else {
-            const error = await response.json();
-            toast.error(error.error || 'Failed to update match');
-          }
-        } else {
-          // If one or both teams are removed, delete the match
+        if (!existingMatch) {
+          console.error('Existing match not found:', placeholder.id);
+          return;
+        }
+
+        // Use placeholder values directly (they always contain the current state)
+        const homeTeamId = placeholder.homeTeamId;
+        const awayTeamId = placeholder.awayTeamId;
+
+        // If both teams are removed, delete the match
+        if (!homeTeamId && !awayTeamId) {
           const response = await fetch(`/api/v1/matches/${placeholder.id}`, {
             method: 'DELETE',
             credentials: 'include',
           });
 
           if (response.ok) {
-            // Refresh matches
             const matchesResponse = await fetch(
               `/api/v1/tournaments/${tournamentId}/matches`,
               { credentials: 'include' }
@@ -621,12 +650,49 @@ export function MatchesManagementSimple({
               const matchesData = await matchesResponse.json();
               setMatches(matchesData);
               onMatchesChange?.(matchesData);
+              toast.success('Match removed');
             }
+          } else {
+            const error = await response.json();
+            toast.error(error.error || 'Failed to remove match');
           }
+          return;
+        }
+
+        // Update existing match - allow null values for teams
+        // Use placeholder values directly (null means team was removed)
+        const response = await fetch(`/api/v1/matches/${placeholder.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            homeTeamId: homeTeamId ?? null,
+            awayTeamId: awayTeamId ?? null,
+            startTime: existingMatch.startTime
+              ? new Date(existingMatch.startTime).toISOString()
+              : new Date().toISOString(), // Required by API
+          }),
+        });
+
+        if (response.ok) {
+          // Refresh matches to update counts
+          const matchesResponse = await fetch(
+            `/api/v1/tournaments/${tournamentId}/matches`,
+            { credentials: 'include' }
+          );
+          if (matchesResponse.ok) {
+            const matchesData = await matchesResponse.json();
+            setMatches(matchesData);
+            onMatchesChange?.(matchesData);
+            toast.success('Match updated successfully');
+          }
+        } else {
+          const error = await response.json();
+          toast.error(error.error || 'Failed to update match');
         }
       } else {
-        // Create new match if both teams are assigned
-        if (placeholder.homeTeamId && placeholder.awayTeamId) {
+        // Create new match immediately when ANY team is dropped
+        if (placeholder.homeTeamId || placeholder.awayTeamId) {
           const response = await fetch(
             `/api/v1/tournaments/${tournamentId}/matches`,
             {
@@ -636,8 +702,8 @@ export function MatchesManagementSimple({
               body: JSON.stringify({
                 divisionId: selectedDivision,
                 groupId: selectedGroup,
-                homeTeamId: placeholder.homeTeamId,
-                awayTeamId: placeholder.awayTeamId,
+                homeTeamId: placeholder.homeTeamId || null,
+                awayTeamId: placeholder.awayTeamId || null,
               }),
             }
           );
@@ -647,8 +713,8 @@ export function MatchesManagementSimple({
             const updatedPlaceholders = [...matchPlaceholders];
             updatedPlaceholders[matchIndex] = {
               id: newMatch.id,
-              homeTeamId: newMatch.homeTeamId,
-              awayTeamId: newMatch.awayTeamId,
+              homeTeamId: newMatch.homeTeam?.id || null,
+              awayTeamId: newMatch.awayTeam?.id || null,
             };
             setMatchPlaceholders(updatedPlaceholders);
 
@@ -661,11 +727,11 @@ export function MatchesManagementSimple({
               const matchesData = await matchesResponse.json();
               setMatches(matchesData);
               onMatchesChange?.(matchesData);
-              toast.success('Match created successfully');
+              toast.success('Match saved');
             }
           } else {
             const error = await response.json();
-            toast.error(error.error || 'Failed to create match');
+            toast.error(error.error || 'Failed to save match');
           }
         }
       }
@@ -900,7 +966,7 @@ export function MatchesManagementSimple({
           {selectedGroup !== 'all' && (
             <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
               {/* Left Column: Teams Table */}
-              <Card>
+              <Card className="border-0 shadow-none">
                 <CardHeader>
                   <CardTitle>Teams</CardTitle>
                   <CardDescription>
@@ -933,23 +999,29 @@ export function MatchesManagementSimple({
                             return (
                               <TableRow
                                 key={team.id}
-                                draggable
-                                onDragStart={(e) => handleDragStart(e, team)}
-                                className="cursor-move"
+                                className="group transition-colors hover:bg-muted/50"
                               >
-                                <TableCell className="font-medium">
-                                  <div className="flex items-center gap-2">
+                                <TableCell className="py-2 font-medium">
+                                  <div
+                                    draggable
+                                    onDragStart={(e) =>
+                                      handleDragStart(e, team)
+                                    }
+                                    onDragEnd={handleDragEnd}
+                                    className="flex h-10 cursor-grab items-center gap-2 active:cursor-grabbing"
+                                  >
+                                    <GripVertical className="h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
                                     {(team.logo || team.clubRef?.logo) && (
                                       <img
                                         src={team.logo || team.clubRef?.logo}
                                         alt={`${team.name} logo`}
-                                        className="h-6 w-6 rounded object-cover"
+                                        className="h-5 w-5 rounded object-cover"
                                       />
                                     )}
                                     <span>{team.shortName || team.name}</span>
                                   </div>
                                 </TableCell>
-                                <TableCell className="text-right">
+                                <TableCell className="py-2 text-right">
                                   {matchCount}
                                 </TableCell>
                               </TableRow>
@@ -963,7 +1035,7 @@ export function MatchesManagementSimple({
               </Card>
 
               {/* Right Column: Match Placeholders */}
-              <Card>
+              <Card className="border-0 shadow-none">
                 <CardHeader>
                   <CardTitle>Matches</CardTitle>
                   <CardDescription>
@@ -971,7 +1043,7 @@ export function MatchesManagementSimple({
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3">
+                  <div className="space-y-1">
                     {selectedGroupTeams.length < 2 ? (
                       <div className="py-8 text-center text-muted-foreground">
                         Add at least 2 teams to the group to generate matches
@@ -992,28 +1064,42 @@ export function MatchesManagementSimple({
                         return (
                           <div
                             key={placeholder.id}
-                            className="flex items-center gap-2 rounded-lg border p-3"
+                            className="flex items-center gap-2 rounded-lg p-2"
                           >
                             {/* Home Team Drop Zone */}
                             <div
-                              className="flex-1 rounded border-2 border-dashed p-3 text-center transition-colors"
-                              onDragOver={handleDragOver}
+                              className={`flex-1 rounded border-2 border-dashed p-2 text-center transition-colors hover:border-primary/50 hover:bg-muted/30 ${
+                                dragOverTarget?.matchIndex === index &&
+                                dragOverTarget?.position === 'home'
+                                  ? 'border-green-500 bg-green-50'
+                                  : ''
+                              }`}
+                              onDragOver={(e) =>
+                                handleDragOver(e, index, 'home')
+                              }
+                              onDragLeave={handleDragLeave}
                               onDrop={(e) => handleDrop(e, index, 'home')}
                               style={{
-                                backgroundColor: placeholder.homeTeamId
-                                  ? 'transparent'
-                                  : 'rgba(0, 0, 0, 0.02)',
-                                borderColor: placeholder.homeTeamId
-                                  ? 'currentColor'
-                                  : 'currentColor',
+                                backgroundColor:
+                                  dragOverTarget?.matchIndex === index &&
+                                  dragOverTarget?.position === 'home'
+                                    ? undefined
+                                    : placeholder.homeTeamId
+                                      ? 'transparent'
+                                      : 'rgba(0, 0, 0, 0.02)',
+                                minHeight: '2.5rem',
                               }}
                             >
                               {homeTeam ? (
                                 <div className="flex items-center justify-between">
-                                  <div className="flex items-center gap-2">
-                                    {(homeTeam.logo || homeTeam.clubRef?.logo) && (
+                                  <div className="pointer-events-none flex items-center gap-2">
+                                    {(homeTeam.logo ||
+                                      homeTeam.clubRef?.logo) && (
                                       <img
-                                        src={homeTeam.logo || homeTeam.clubRef?.logo}
+                                        src={
+                                          homeTeam.logo ||
+                                          homeTeam.clubRef?.logo
+                                        }
                                         alt={`${homeTeam.name} logo`}
                                         className="h-5 w-5 rounded object-cover"
                                       />
@@ -1025,9 +1111,12 @@ export function MatchesManagementSimple({
                                   <Button
                                     variant="ghost"
                                     size="sm"
-                                    onClick={() =>
-                                      handleRemoveTeam(index, 'home')
-                                    }
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleRemoveTeam(index, 'home');
+                                    }}
+                                    onMouseDown={(e) => e.stopPropagation()}
+                                    className="cursor-pointer"
                                   >
                                     ×
                                   </Button>
@@ -1043,24 +1132,38 @@ export function MatchesManagementSimple({
 
                             {/* Away Team Drop Zone */}
                             <div
-                              className="flex-1 rounded border-2 border-dashed p-3 text-center transition-colors"
-                              onDragOver={handleDragOver}
+                              className={`flex-1 rounded border-2 border-dashed p-2 text-center transition-colors hover:border-primary/50 hover:bg-muted/30 ${
+                                dragOverTarget?.matchIndex === index &&
+                                dragOverTarget?.position === 'away'
+                                  ? 'border-green-500 bg-green-50'
+                                  : ''
+                              }`}
+                              onDragOver={(e) =>
+                                handleDragOver(e, index, 'away')
+                              }
+                              onDragLeave={handleDragLeave}
                               onDrop={(e) => handleDrop(e, index, 'away')}
                               style={{
-                                backgroundColor: placeholder.awayTeamId
-                                  ? 'transparent'
-                                  : 'rgba(0, 0, 0, 0.02)',
-                                borderColor: placeholder.awayTeamId
-                                  ? 'currentColor'
-                                  : 'currentColor',
+                                backgroundColor:
+                                  dragOverTarget?.matchIndex === index &&
+                                  dragOverTarget?.position === 'away'
+                                    ? undefined
+                                    : placeholder.awayTeamId
+                                      ? 'transparent'
+                                      : 'rgba(0, 0, 0, 0.02)',
+                                minHeight: '2.5rem',
                               }}
                             >
                               {awayTeam ? (
                                 <div className="flex items-center justify-between">
-                                  <div className="flex items-center gap-2">
-                                    {(awayTeam.logo || awayTeam.clubRef?.logo) && (
+                                  <div className="pointer-events-none flex items-center gap-2">
+                                    {(awayTeam.logo ||
+                                      awayTeam.clubRef?.logo) && (
                                       <img
-                                        src={awayTeam.logo || awayTeam.clubRef?.logo}
+                                        src={
+                                          awayTeam.logo ||
+                                          awayTeam.clubRef?.logo
+                                        }
                                         alt={`${awayTeam.name} logo`}
                                         className="h-5 w-5 rounded object-cover"
                                       />
@@ -1072,9 +1175,12 @@ export function MatchesManagementSimple({
                                   <Button
                                     variant="ghost"
                                     size="sm"
-                                    onClick={() =>
-                                      handleRemoveTeam(index, 'away')
-                                    }
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleRemoveTeam(index, 'away');
+                                    }}
+                                    onMouseDown={(e) => e.stopPropagation()}
+                                    className="cursor-pointer"
                                   >
                                     ×
                                   </Button>
@@ -1330,9 +1436,13 @@ export function MatchesManagementSimple({
                                   {match.homeTeam && match.awayTeam ? (
                                     <div className="flex items-center gap-2">
                                       <div className="flex items-center gap-1">
-                                        {(match.homeTeam.logo || match.homeTeam.clubRef?.logo) && (
+                                        {(match.homeTeam.logo ||
+                                          match.homeTeam.clubRef?.logo) && (
                                           <img
-                                            src={match.homeTeam.logo || match.homeTeam.clubRef?.logo}
+                                            src={
+                                              match.homeTeam.logo ||
+                                              match.homeTeam.clubRef?.logo
+                                            }
                                             alt={`${match.homeTeam.name} logo`}
                                             className="h-6 w-6 rounded object-cover"
                                           />
@@ -1342,11 +1452,17 @@ export function MatchesManagementSimple({
                                             match.homeTeam.name}
                                         </span>
                                       </div>
-                                      <span className="text-muted-foreground">vs</span>
+                                      <span className="text-muted-foreground">
+                                        vs
+                                      </span>
                                       <div className="flex items-center gap-1">
-                                        {(match.awayTeam.logo || match.awayTeam.clubRef?.logo) && (
+                                        {(match.awayTeam.logo ||
+                                          match.awayTeam.clubRef?.logo) && (
                                           <img
-                                            src={match.awayTeam.logo || match.awayTeam.clubRef?.logo}
+                                            src={
+                                              match.awayTeam.logo ||
+                                              match.awayTeam.clubRef?.logo
+                                            }
                                             alt={`${match.awayTeam.name} logo`}
                                             className="h-6 w-6 rounded object-cover"
                                           />
@@ -1403,8 +1519,8 @@ export function MatchesManagementSimple({
                                     onClick={() => {
                                       setEditingMatch(match);
                                       setFormData({
-                                        homeTeamId: match.homeTeam.id,
-                                        awayTeamId: match.awayTeam.id,
+                                        homeTeamId: match.homeTeam?.id || '',
+                                        awayTeamId: match.awayTeam?.id || '',
                                         groupId: match.group?.id || '',
                                         referee: match.referee || '',
                                         notes: match.notes || '',
@@ -1461,11 +1577,23 @@ export function MatchesManagementSimple({
                                   <TableRow key={match.id}>
                                     <TableCell>
                                       <div className="font-medium">
-                                        {match.homeTeam.shortName ||
-                                          match.homeTeam.name}{' '}
-                                        vs{' '}
-                                        {match.awayTeam.shortName ||
-                                          match.awayTeam.name}
+                                        {match.homeTeam && match.awayTeam ? (
+                                          <>
+                                            {match.homeTeam.shortName ||
+                                              match.homeTeam.name}{' '}
+                                            vs{' '}
+                                            {match.awayTeam.shortName ||
+                                              match.awayTeam.name}
+                                          </>
+                                        ) : (
+                                          <span className="text-muted-foreground">
+                                            {match.homeTeam
+                                              ? `${match.homeTeam.shortName || match.homeTeam.name} vs TBD`
+                                              : match.awayTeam
+                                                ? `TBD vs ${match.awayTeam.shortName || match.awayTeam.name}`
+                                                : 'TBD vs TBD'}
+                                          </span>
+                                        )}
                                       </div>
                                       {match.venue && match.pitch && (
                                         <div className="text-sm text-muted-foreground">

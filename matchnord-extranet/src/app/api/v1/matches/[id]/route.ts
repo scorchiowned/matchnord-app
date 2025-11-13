@@ -28,16 +28,16 @@ export async function PUT(
     const user = session.user as any;
     const body = await request.json();
 
-    // Validate required fields
-    if (!body.homeTeamId || !body.awayTeamId || !body.startTime) {
+    // Validate required fields - startTime is required, teams can be null
+    if (!body.startTime) {
       return NextResponse.json(
-        { error: 'Home team, away team, and start time are required' },
+        { error: 'Start time is required' },
         { status: 400 }
       );
     }
 
-    // Check if teams are different
-    if (body.homeTeamId === body.awayTeamId) {
+    // Check if teams are different (only if both are provided)
+    if (body.homeTeamId && body.awayTeamId && body.homeTeamId === body.awayTeamId) {
       return NextResponse.json(
         { error: 'Home team and away team must be different' },
         { status: 400 }
@@ -82,27 +82,30 @@ export async function PUT(
       );
     }
 
-    // Verify teams belong to this tournament
-    const teams = await db.team.findMany({
-      where: {
-        id: { in: [body.homeTeamId, body.awayTeamId] },
-        tournamentId: match.tournamentId,
-      },
-    });
+    // Verify teams belong to this tournament (only if provided)
+    const teamIds = [body.homeTeamId, body.awayTeamId].filter(Boolean);
+    if (teamIds.length > 0) {
+      const teams = await db.team.findMany({
+        where: {
+          id: { in: teamIds },
+          tournamentId: match.tournamentId,
+        },
+      });
 
-    if (teams.length !== 2) {
-      return NextResponse.json(
-        { error: 'One or both teams do not belong to this tournament' },
-        { status: 400 }
-      );
+      if (teams.length !== teamIds.length) {
+        return NextResponse.json(
+          { error: 'One or more teams do not belong to this tournament' },
+          { status: 400 }
+        );
+      }
     }
 
     // Update the match
     const updatedMatch = await db.match.update({
       where: { id: matchId },
       data: {
-        homeTeamId: body.homeTeamId,
-        awayTeamId: body.awayTeamId,
+        homeTeamId: body.homeTeamId ?? null,
+        awayTeamId: body.awayTeamId ?? null,
         startTime: new Date(body.startTime),
         endTime: body.endTime ? new Date(body.endTime) : null,
         venueId: body.venueId || null,
