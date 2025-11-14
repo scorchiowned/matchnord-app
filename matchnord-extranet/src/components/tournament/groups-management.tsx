@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useTranslations } from 'next-intl';
 import {
   Card,
   CardContent,
@@ -11,15 +10,7 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Dialog,
   DialogContent,
@@ -28,61 +19,71 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import {
   Plus,
   Edit,
   Trash2,
   Users,
   Trophy,
-  Settings,
   Shuffle,
-  ArrowRight,
   RefreshCw,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   assignTeamsToGroups,
   generateGroupNames,
-  type Group,
   type Team,
-  type Division,
 } from '@/lib/tournament/group-assignment';
 import { StandingsTable } from './standings-table';
 
-interface GroupWithDetails extends Group {
+interface TeamWithDivision {
   id: string;
+  name: string;
+  shortName?: string;
+  divisionId?: string;
+  club?: string | { name: string };
+  clubRef?: {
+    id: string;
+    name: string;
+    logo?: string;
+  };
+  city?: string;
+  level?: string;
+  seed?: number;
+}
+
+interface GroupWithDetails {
+  id: string;
+  name: string;
+  divisionId: string;
   division: {
     id: string;
     name: string;
     level?: string;
   };
-  teams: Team[];
+  teams: TeamWithDivision[];
   _count: {
     teams: number;
     matches: number;
   };
 }
 
-interface DivisionWithTeams extends Division {
+interface DivisionWithTeams {
   id: string;
-  teams: Team[];
+  name: string;
+  level?: string;
+  maxTeams: number;
+  minTeams: number;
+  teams: TeamWithDivision[];
   groups: GroupWithDetails[];
 }
 
 interface GroupsManagementProps {
   tournamentId: string;
-  onGroupsChange?: (groups: any[]) => void;
-  onMatchesChange?: (matches: any[]) => void;
+  onGroupsChange?: (groups: { id: string }[]) => void;
+  onMatchesChange?: (matches: unknown[]) => void;
 }
 
 export function GroupsManagement({
@@ -90,10 +91,10 @@ export function GroupsManagement({
   onGroupsChange,
   onMatchesChange,
 }: GroupsManagementProps) {
-  const t = useTranslations();
   const [divisions, setDivisions] = useState<DivisionWithTeams[]>([]);
-  const [allTournamentTeams, setAllTournamentTeams] = useState<Team[]>([]);
-  const [unassignedTeams, setUnassignedTeams] = useState<Team[]>([]);
+  const [allTournamentTeams, setAllTournamentTeams] = useState<
+    TeamWithDivision[]
+  >([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -157,18 +158,20 @@ export function GroupsManagement({
           setAllTournamentTeams(allTeams);
 
           // Assign teams to their respective divisions
-          const divisionsWithTeams = divisionsData.map((division: any) => {
-            // Filter teams that are actually assigned to this division
-            const teamsForDivision = allTeams.filter(
-              (team: any) => team.divisionId === division.id
-            );
+          const divisionsWithTeams = divisionsData.map(
+            (division: DivisionWithTeams) => {
+              // Filter teams that are actually assigned to this division
+              const teamsForDivision = allTeams.filter(
+                (team: TeamWithDivision) => team.divisionId === division.id
+              );
 
-            return {
-              ...division,
-              teams: teamsForDivision,
-              groups: [],
-            };
-          });
+              return {
+                ...division,
+                teams: teamsForDivision,
+                groups: [],
+              };
+            }
+          );
 
           updateDivisions(() => divisionsWithTeams);
 
@@ -191,7 +194,10 @@ export function GroupsManagement({
 
           // Group groups by division
           const groupsByDivision = groupsData.reduce(
-            (acc: any, group: GroupWithDetails) => {
+            (
+              acc: Record<string, GroupWithDetails[]>,
+              group: GroupWithDetails
+            ) => {
               const divisionId = group.division.id;
               if (!acc[divisionId]) {
                 acc[divisionId] = [];
@@ -213,15 +219,12 @@ export function GroupsManagement({
           // Calculate unassigned teams
           const assignedTeamIds = new Set();
           groupsData.forEach((group: GroupWithDetails) => {
-            group.teams.forEach((team: Team) => {
+            group.teams.forEach((team: TeamWithDivision) => {
               assignedTeamIds.add(team.id);
             });
           });
 
-          const unassigned = allTournamentTeams.filter(
-            (team: Team) => !assignedTeamIds.has(team.id)
-          );
-          setUnassignedTeams(unassigned);
+          // Unassigned teams are now calculated on the fly when needed
         }
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -232,6 +235,7 @@ export function GroupsManagement({
     };
 
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tournamentId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -254,7 +258,7 @@ export function GroupsManagement({
       // Check if adding a new group (not editing) and if there are existing matches
       if (!editingGroup) {
         const existingMatches = division.groups.reduce(
-          (total, group) => total + (group.matches?.length || 0),
+          (total, group) => total + (group._count.matches || 0),
           0
         );
 
@@ -467,18 +471,32 @@ export function GroupsManagement({
       }
 
       // All teams can be assigned to any division - the division level is already determined
-      const eligibleTeams = allTournamentTeams;
+      const eligibleTeams = allTournamentTeams.filter(
+        (team) => team.divisionId === division.id
+      );
+
+      // Convert groups to the format expected by assignTeamsToGroups
+      const groupsForAssignment = currentDivision.groups.map((g) => ({
+        id: g.id,
+        name: g.name,
+        maxTeams: 8, // Default max teams per group
+        teams: [],
+        divisionId: g.divisionId,
+      }));
 
       // Assign teams to groups
       const updatedGroups = assignTeamsToGroups(
-        eligibleTeams,
-        currentDivision.groups,
+        eligibleTeams as Team[],
+        groupsForAssignment,
         { strategy: 'balanced' }
       );
 
       // Update each group with assigned teams
       for (const group of updatedGroups) {
-        if (group.teams.length > 0) {
+        const matchingGroup = currentDivision.groups.find(
+          (g) => g.id === group.id
+        );
+        if (matchingGroup && group.teams.length > 0) {
           await fetch(`/api/v1/groups/${group.id}/teams`, {
             method: 'POST',
             headers: {
@@ -511,17 +529,7 @@ export function GroupsManagement({
           )
         );
 
-        // Update unassigned teams - remove all assigned teams
-        const assignedTeamIds = new Set();
-        divisionGroups.forEach((group: GroupWithDetails) => {
-          group.teams.forEach((team: Team) => {
-            assignedTeamIds.add(team.id);
-          });
-        });
-
-        setUnassignedTeams((prev) =>
-          prev.filter((team) => !assignedTeamIds.has(team.id))
-        );
+        // Unassigned teams are now calculated on the fly when needed
       }
 
       toast.success('Teams assigned to groups successfully');
@@ -570,10 +578,7 @@ export function GroupsManagement({
           }))
         );
 
-        // Update unassigned teams - remove assigned teams
-        setUnassignedTeams((prev) =>
-          prev.filter((team) => !selectedTeams.includes(team.id))
-        );
+        // Unassigned teams are now calculated on the fly when needed
 
         toast.success('Teams assigned successfully');
         setAssigningTeams(null);
@@ -614,13 +619,7 @@ export function GroupsManagement({
           }))
         );
 
-        // Add removed team back to unassigned teams
-        const removedTeam = allTournamentTeams.find(
-          (team) => team.id === teamId
-        );
-        if (removedTeam) {
-          setUnassignedTeams((prev) => [...prev, removedTeam]);
-        }
+        // Unassigned teams are now calculated on the fly when needed
 
         toast.success('Team removed successfully');
       } else {
@@ -649,7 +648,6 @@ export function GroupsManagement({
 
   // Get the selected division
   const currentDivision = divisions.find((d) => d.id === selectedDivision);
-  const otherDivisions = divisions.filter((d) => d.id !== selectedDivision);
 
   return (
     <div className="space-y-6">
@@ -856,8 +854,8 @@ export function GroupsManagement({
                       </Badge>
                     </CardTitle>
                     <CardDescription className="text-red-700">
-                      <strong>Action Required:</strong> These teams haven't been
-                      assigned to any group yet. You need to assign them to
+                      <strong>Action Required:</strong> These teams haven&apos;t
+                      been assigned to any group yet. You need to assign them to
                       groups to complete the tournament organization.
                     </CardDescription>
                   </CardHeader>
@@ -886,7 +884,9 @@ export function GroupsManagement({
                               </p>
                               {team.club && (
                                 <p className="text-xs text-gray-600">
-                                  {team.club.name}
+                                  {typeof team.club === 'string'
+                                    ? team.club
+                                    : (team.club as { name: string }).name}
                                 </p>
                               )}
                               {team.level && (
@@ -970,7 +970,34 @@ export function GroupsManagement({
                     </div>
 
                     <StandingsTable
-                      group={group}
+                      group={{
+                        id: group.id,
+                        name: group.name,
+                        stage: {
+                          id: group.id,
+                          name: group.name,
+                          type: 'GROUP',
+                          division: {
+                            id: group.division.id,
+                            name: group.division.name,
+                            level: group.division.level || '',
+                          },
+                        },
+                        teams: group.teams.map((team) => ({
+                          id: team.id,
+                          name: team.name,
+                          shortName: team.shortName,
+                          logo: undefined,
+                          club:
+                            typeof team.club === 'string'
+                              ? team.club
+                              : undefined,
+                          clubRef: team.clubRef,
+                          city: team.city,
+                          level: team.level,
+                        })),
+                        _count: group._count,
+                      }}
                       showDivisionInfo={false}
                       onRemoveTeam={handleRemoveTeam}
                     />
@@ -1010,9 +1037,6 @@ export function GroupsManagement({
             <div className="space-y-4">
               <div className="max-h-60 space-y-2 overflow-y-auto">
                 {(() => {
-                  const group = divisions
-                    .flatMap((d) => d.groups)
-                    .find((g) => g.id === assigningTeams);
                   const division = divisions.find((d) =>
                     d.groups.some((g) => g.id === assigningTeams)
                   );
@@ -1083,7 +1107,9 @@ export function GroupsManagement({
                           <p className="text-sm font-medium">{team.name}</p>
                           {team.club && (
                             <p className="text-xs text-muted-foreground">
-                              {team.club.name}
+                              {typeof team.club === 'string'
+                                ? team.club
+                                : (team.club as { name: string }).name}
                             </p>
                           )}
                           {team.level && (

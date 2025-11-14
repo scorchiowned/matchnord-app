@@ -454,13 +454,27 @@ export function DivisionsManagement({
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Division</TableHead>
-                  <TableHead>Age Group</TableHead>
-                  <TableHead>Format</TableHead>
-                  <TableHead>Level</TableHead>
-                  <TableHead>Teams</TableHead>
-                  <TableHead>Stages</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead className="bg-[#489a66] text-white">
+                    Division
+                  </TableHead>
+                  <TableHead className="bg-[#489a66] text-white">
+                    Age Group
+                  </TableHead>
+                  <TableHead className="bg-[#489a66] text-white">
+                    Format
+                  </TableHead>
+                  <TableHead className="bg-[#489a66] text-white">
+                    Level
+                  </TableHead>
+                  <TableHead className="bg-[#489a66] text-white">
+                    Teams
+                  </TableHead>
+                  <TableHead className="bg-[#489a66] text-white">
+                    Stages
+                  </TableHead>
+                  <TableHead className="bg-[#489a66] text-right text-white">
+                    Actions
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

@@ -257,8 +257,10 @@ function GroupMatchesView({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Team</TableHead>
-              <TableHead className="text-right">Matches</TableHead>
+              <TableHead className="bg-[#489a66] text-white">Team</TableHead>
+              <TableHead className="bg-[#489a66] text-right text-white">
+                Matches
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -2577,11 +2579,21 @@ export function MatchesManagementSimple({
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Teams</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Score</TableHead>
-                        <TableHead>Referee</TableHead>
-                        <TableHead>Actions</TableHead>
+                        <TableHead className="bg-[#489a66] text-white">
+                          Teams
+                        </TableHead>
+                        <TableHead className="bg-[#489a66] text-white">
+                          Status
+                        </TableHead>
+                        <TableHead className="bg-[#489a66] text-white">
+                          Score
+                        </TableHead>
+                        <TableHead className="bg-[#489a66] text-white">
+                          Referee
+                        </TableHead>
+                        <TableHead className="bg-[#489a66] text-white">
+                          Actions
+                        </TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>

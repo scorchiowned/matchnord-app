@@ -95,17 +95,17 @@ export function StandingsTable({
       <div className="rounded-lg border">
         <Table>
           <TableHeader>
-            <TableRow className="bg-blue-600 text-white">
-              <TableHead className="w-12 text-center text-white">#</TableHead>
-              <TableHead className="text-white">Joukkue</TableHead>
-              <TableHead className="w-12 text-center text-white">O</TableHead>
-              <TableHead className="w-12 text-center text-white">V</TableHead>
-              <TableHead className="w-12 text-center text-white">T</TableHead>
-              <TableHead className="w-12 text-center text-white">H</TableHead>
-              <TableHead className="w-16 text-center text-white">M</TableHead>
-              <TableHead className="w-12 text-center text-white">P</TableHead>
+            <TableRow className="bg-[#489a66] text-white">
+              <TableHead className="w-12 text-center bg-[#489a66] text-white">#</TableHead>
+              <TableHead className="bg-[#489a66] text-white">Joukkue</TableHead>
+              <TableHead className="w-12 text-center bg-[#489a66] text-white">O</TableHead>
+              <TableHead className="w-12 text-center bg-[#489a66] text-white">V</TableHead>
+              <TableHead className="w-12 text-center bg-[#489a66] text-white">T</TableHead>
+              <TableHead className="w-12 text-center bg-[#489a66] text-white">H</TableHead>
+              <TableHead className="w-16 text-center bg-[#489a66] text-white">M</TableHead>
+              <TableHead className="w-12 text-center bg-[#489a66] text-white">P</TableHead>
               {onRemoveTeam && (
-                <TableHead className="w-12 text-center text-white">
+                <TableHead className="w-12 text-center bg-[#489a66] text-white">
                   Actions
                 </TableHead>
               )}

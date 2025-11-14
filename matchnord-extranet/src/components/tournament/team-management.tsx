@@ -715,7 +715,7 @@ export function TeamManagement({
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-12">
+                  <TableHead className="w-12 bg-[#489a66] text-white">
                     <Checkbox
                       checked={selectedTeams.length === filteredTeams.length}
                       onCheckedChange={(checked) => {
@@ -727,12 +727,24 @@ export function TeamManagement({
                       }}
                     />
                   </TableHead>
-                  <TableHead>Team</TableHead>
-                  <TableHead>Division</TableHead>
-                  <TableHead>Contact</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Submitted</TableHead>
-                  <TableHead className="w-12">Actions</TableHead>
+                  <TableHead className="bg-[#489a66] text-white">
+                    Team
+                  </TableHead>
+                  <TableHead className="bg-[#489a66] text-white">
+                    Division
+                  </TableHead>
+                  <TableHead className="bg-[#489a66] text-white">
+                    Contact
+                  </TableHead>
+                  <TableHead className="bg-[#489a66] text-white">
+                    Status
+                  </TableHead>
+                  <TableHead className="bg-[#489a66] text-white">
+                    Submitted
+                  </TableHead>
+                  <TableHead className="w-12 bg-[#489a66] text-white">
+                    Actions
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
