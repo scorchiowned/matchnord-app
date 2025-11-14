@@ -37,7 +37,15 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Edit, Trash2, Trophy, Users, Calendar } from 'lucide-react';
+import {
+  Plus,
+  Edit,
+  Trash2,
+  Trophy,
+  Users,
+  Calendar,
+  RefreshCw,
+} from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Division {
@@ -254,22 +262,20 @@ export function DivisionsManagement({
 
   if (isLoading) {
     return (
-      <Card>
-        <CardContent className="py-12 text-center">
-          <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-b-2 border-primary"></div>
-          <p className="text-muted-foreground">Loading divisions...</p>
-        </CardContent>
-      </Card>
+      <div className="flex items-center justify-center p-8">
+        <RefreshCw className="h-6 w-6 animate-spin" />
+        <span className="ml-2">Loading divisions...</span>
+      </div>
     );
   }
 
   return (
-    <Card>
+    <Card className="border-0 shadow-none">
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <Trophy className="h-5 w-5" />
-            <span>Divisions ({divisions.length})</span>
+            {/* <Trophy className="h-5 w-5" /> */}
+            <span>Divisions</span>
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
@@ -426,9 +432,9 @@ export function DivisionsManagement({
             </DialogContent>
           </Dialog>
         </CardTitle>
-        <CardDescription>
+        {/* <CardDescription>
           Manage tournament divisions and age groups
-        </CardDescription>
+        </CardDescription> */}
       </CardHeader>
       <CardContent>
         {divisions.length === 0 ? (

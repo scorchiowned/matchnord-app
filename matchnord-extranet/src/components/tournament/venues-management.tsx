@@ -27,7 +27,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Plus, Edit, Trash2, MapPin, Square } from 'lucide-react';
+import { Plus, Edit, Trash2, MapPin, Square, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { PitchesManagement } from './pitches-management';
 import { VenueLocationFormV2 } from './venue-location-form-v2';
@@ -205,23 +205,21 @@ export function VenuesManagement({
 
   if (isLoading) {
     return (
-      <Card>
-        <CardContent className="py-12 text-center">
-          <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-b-2 border-primary"></div>
-          <p className="text-muted-foreground">Loading venues...</p>
-        </CardContent>
-      </Card>
+      <div className="flex items-center justify-center p-8">
+        <RefreshCw className="h-6 w-6 animate-spin" />
+        <span className="ml-2">Loading venues...</span>
+      </div>
     );
   }
 
   return (
     <div>
-      <Card>
+      <Card className="border-0 shadow-none">
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              <MapPin className="h-5 w-5" />
-              <span>Venues ({venues.length})</span>
+              {/* <MapPin className="h-5 w-5" /> */}
+              <span>Venues</span>
             </div>
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
@@ -255,7 +253,7 @@ export function VenuesManagement({
               </DialogContent>
             </Dialog>
           </CardTitle>
-          <CardDescription>Manage venues for this tournament</CardDescription>
+          {/* <CardDescription>Manage venues for this tournament</CardDescription> */}
         </CardHeader>
         <CardContent>
           {venues.length === 0 ? (

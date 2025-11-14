@@ -147,7 +147,7 @@ export function TeamManagement({
   const { data: session } = useSession();
   const user = session?.user as any;
   const isAdmin = user?.role === 'ADMIN';
-  
+
   const [teams, setTeams] = useState<Team[]>([]);
   const [countries, setCountries] = useState<Country[]>([]);
   const [clubs, setClubs] = useState<Club[]>([]);
@@ -159,12 +159,14 @@ export function TeamManagement({
   const [isUpdating, setIsUpdating] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
-  
+
   // Club selection state
   const [clubSearchTerm, setClubSearchTerm] = useState('');
-  const [clubSelectionType, setClubSelectionType] = useState<'existing' | 'custom'>('existing');
+  const [clubSelectionType, setClubSelectionType] = useState<
+    'existing' | 'custom'
+  >('existing');
   const [isLoadingClubs, setIsLoadingClubs] = useState(false);
-  
+
   // Form state
   const [formData, setFormData] = useState({
     name: '',
@@ -193,7 +195,7 @@ export function TeamManagement({
     const fetchData = async () => {
       try {
         setIsLoading(true);
-        
+
         // Fetch teams
         const teamsResponse = await fetch(
           `/api/v1/tournaments/${tournamentId}/registrations`,
@@ -301,7 +303,7 @@ export function TeamManagement({
     setSelectedTeam(team);
     const clubId = team.clubRef?.id || '';
     const clubName = team.club || team.clubRef?.name || '';
-    
+
     setFormData({
       name: team.name || '',
       logo: team.logo || team.clubRef?.logo || '',
@@ -323,7 +325,7 @@ export function TeamManagement({
       billingCity: team.billingCity || '',
       billingEmail: team.billingEmail || '',
     });
-    
+
     // Set club selection type
     if (clubId) {
       setClubSelectionType('existing');
@@ -333,11 +335,11 @@ export function TeamManagement({
     } else {
       setClubSelectionType('existing');
     }
-    
+
     setIsEditing(true);
     setIsDetailDialogOpen(true);
   };
-  
+
   // Handle club selection
   const handleClubSelect = (clubId: string) => {
     const selectedClub = clubs.find((c) => c.id === clubId);
@@ -348,10 +350,12 @@ export function TeamManagement({
         club: selectedClub.name,
         logo: selectedClub.logo || formData.logo, // Inherit logo from club, keep existing if club has no logo
       });
-      toast.success(`Selected club: ${selectedClub.name}${selectedClub.logo ? ' (logo inherited)' : ''}`);
+      toast.success(
+        `Selected club: ${selectedClub.name}${selectedClub.logo ? ' (logo inherited)' : ''}`
+      );
     }
   };
-  
+
   // Handle custom club name change
   const handleCustomClubChange = (clubName: string) => {
     setFormData({
@@ -388,7 +392,9 @@ export function TeamManagement({
     });
   };
 
-  const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogoUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -449,7 +455,7 @@ export function TeamManagement({
         clubId: formData.clubId || undefined,
         club: formData.clubId ? undefined : formData.club, // Don't send club name if clubId is set
       };
-      
+
       const response = await fetch(`/api/v1/teams/${selectedTeam.id}`, {
         method: 'PUT',
         headers: {
@@ -462,10 +468,14 @@ export function TeamManagement({
       if (response.ok) {
         const updatedTeam = await response.json();
         setTeams((prevTeams) =>
-          prevTeams.map((team) => (team.id === selectedTeam.id ? updatedTeam : team))
+          prevTeams.map((team) =>
+            team.id === selectedTeam.id ? updatedTeam : team
+          )
         );
         onTeamsChange?.(
-          teams.map((team) => (team.id === selectedTeam.id ? updatedTeam : team))
+          teams.map((team) =>
+            team.id === selectedTeam.id ? updatedTeam : team
+          )
         );
         toast.success('Team updated successfully');
         setIsEditing(false);
@@ -579,18 +589,18 @@ export function TeamManagement({
     <div className="space-y-6">
       {/* Status Overview */}
       <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
-        <Card>
-          <CardContent className="p-4">
+        <Card className="border-0 shadow-none">
+          <CardContent className="border-0 p-4">
             <div className="flex items-center space-x-2">
               <Users className="h-4 w-4 text-blue-600" />
-              <div>
+              <div className="border-0 ">
                 <p className="text-sm font-medium">Total</p>
                 <p className="text-2xl font-bold">{statusCounts.total}</p>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="border-0 shadow-none">
           <CardContent className="p-4">
             <div className="flex items-center space-x-2">
               <Clock className="h-4 w-4 text-yellow-600" />
@@ -601,7 +611,7 @@ export function TeamManagement({
             </div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="border-0 shadow-none">
           <CardContent className="p-4">
             <div className="flex items-center space-x-2">
               <CheckCircle className="h-4 w-4 text-green-600" />
@@ -612,7 +622,7 @@ export function TeamManagement({
             </div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="border-0 shadow-none">
           <CardContent className="p-4">
             <div className="flex items-center space-x-2">
               <XCircle className="h-4 w-4 text-red-600" />
@@ -623,7 +633,7 @@ export function TeamManagement({
             </div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="border-0 shadow-none">
           <CardContent className="p-4">
             <div className="flex items-center space-x-2">
               <Clock className="h-4 w-4 text-orange-600" />
@@ -637,15 +647,15 @@ export function TeamManagement({
       </div>
 
       {/* Filters and Actions */}
-      <Card>
+      <Card className="border-0 shadow-none">
         <CardHeader>
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <CardTitle>Teams & Registrations</CardTitle>
-              <CardDescription>
+              {/* <CardDescription>
                 Manage team registrations and approvals. Use filters to view
                 different team statuses.
-              </CardDescription>
+              </CardDescription> */}
             </div>
             <div className="flex items-center gap-2">
               <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -754,7 +764,8 @@ export function TeamManagement({
                         <div>
                           <div className="font-medium">{team.name}</div>
                           <div className="text-sm text-gray-500">
-                            {(team.club || team.clubRef?.name) && `${team.club || team.clubRef?.name} • `}
+                            {(team.club || team.clubRef?.name) &&
+                              `${team.club || team.clubRef?.name} • `}
                             {team.city && `${team.city}, `}
                             {team.country?.name}
                           </div>
@@ -802,7 +813,9 @@ export function TeamManagement({
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Dialog
-                          open={isDetailDialogOpen && selectedTeam?.id === team.id}
+                          open={
+                            isDetailDialogOpen && selectedTeam?.id === team.id
+                          }
                           onOpenChange={(open) => {
                             setIsDetailDialogOpen(open);
                             if (!open) {
@@ -824,7 +837,7 @@ export function TeamManagement({
                               <Eye className="h-4 w-4" />
                             </Button>
                           </DialogTrigger>
-                          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+                          <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
                             <DialogHeader>
                               <div className="flex items-center justify-between">
                                 <div>
@@ -841,7 +854,7 @@ export function TeamManagement({
                                     size="sm"
                                     onClick={() => handleEdit(team)}
                                   >
-                                    <Edit className="h-4 w-4 mr-2" />
+                                    <Edit className="mr-2 h-4 w-4" />
                                     Edit
                                   </Button>
                                 )}
@@ -875,7 +888,7 @@ export function TeamManagement({
                                               className="cursor-pointer"
                                             />
                                             {isUploadingLogo && (
-                                              <p className="text-xs text-muted-foreground mt-1">
+                                              <p className="mt-1 text-xs text-muted-foreground">
                                                 Uploading...
                                               </p>
                                             )}
@@ -910,9 +923,15 @@ export function TeamManagement({
                                           <div className="flex gap-2">
                                             <Button
                                               type="button"
-                                              variant={clubSelectionType === 'existing' ? 'default' : 'outline'}
+                                              variant={
+                                                clubSelectionType === 'existing'
+                                                  ? 'default'
+                                                  : 'outline'
+                                              }
                                               size="sm"
-                                              onClick={() => setClubSelectionType('existing')}
+                                              onClick={() =>
+                                                setClubSelectionType('existing')
+                                              }
                                               className="flex items-center gap-2"
                                             >
                                               <Search className="h-4 w-4" />
@@ -920,11 +939,18 @@ export function TeamManagement({
                                             </Button>
                                             <Button
                                               type="button"
-                                              variant={clubSelectionType === 'custom' ? 'default' : 'outline'}
+                                              variant={
+                                                clubSelectionType === 'custom'
+                                                  ? 'default'
+                                                  : 'outline'
+                                              }
                                               size="sm"
                                               onClick={() => {
                                                 setClubSelectionType('custom');
-                                                setFormData({ ...formData, clubId: '' });
+                                                setFormData({
+                                                  ...formData,
+                                                  clubId: '',
+                                                });
                                               }}
                                               className="flex items-center gap-2"
                                             >
@@ -938,7 +964,11 @@ export function TeamManagement({
                                               <Input
                                                 placeholder="Search clubs..."
                                                 value={clubSearchTerm}
-                                                onChange={(e) => setClubSearchTerm(e.target.value)}
+                                                onChange={(e) =>
+                                                  setClubSearchTerm(
+                                                    e.target.value
+                                                  )
+                                                }
                                                 className="w-full"
                                               />
                                               {isLoadingClubs ? (
@@ -946,14 +976,21 @@ export function TeamManagement({
                                                   Loading clubs...
                                                 </div>
                                               ) : clubs.length > 0 ? (
-                                                <div className="max-h-40 overflow-y-auto border rounded-md">
+                                                <div className="max-h-40 overflow-y-auto rounded-md border">
                                                   {clubs.map((club) => (
                                                     <div
                                                       key={club.id}
-                                                      className={`p-2 cursor-pointer hover:bg-gray-50 ${
-                                                        formData.clubId === club.id ? 'bg-blue-50' : ''
+                                                      className={`cursor-pointer p-2 hover:bg-gray-50 ${
+                                                        formData.clubId ===
+                                                        club.id
+                                                          ? 'bg-blue-50'
+                                                          : ''
                                                       }`}
-                                                      onClick={() => handleClubSelect(club.id)}
+                                                      onClick={() =>
+                                                        handleClubSelect(
+                                                          club.id
+                                                        )
+                                                      }
                                                     >
                                                       <div className="flex items-center gap-2">
                                                         {club.logo ? (
@@ -968,7 +1005,9 @@ export function TeamManagement({
                                                           <Building2 className="h-5 w-5 text-gray-400" />
                                                         )}
                                                         <div className="flex-1">
-                                                          <div className="text-sm font-medium">{club.name}</div>
+                                                          <div className="text-sm font-medium">
+                                                            {club.name}
+                                                          </div>
                                                           {club.city && (
                                                             <div className="text-xs text-muted-foreground">
                                                               {club.city}
@@ -981,11 +1020,13 @@ export function TeamManagement({
                                                 </div>
                                               ) : clubSearchTerm ? (
                                                 <div className="py-2 text-center text-sm text-muted-foreground">
-                                                  No clubs found. Try a different search term.
+                                                  No clubs found. Try a
+                                                  different search term.
                                                 </div>
                                               ) : (
                                                 <div className="py-2 text-center text-sm text-muted-foreground">
-                                                  Start typing to search clubs...
+                                                  Start typing to search
+                                                  clubs...
                                                 </div>
                                               )}
                                               {formData.clubId && (
@@ -998,7 +1039,11 @@ export function TeamManagement({
                                             <Input
                                               placeholder="Enter custom club name"
                                               value={formData.club}
-                                              onChange={(e) => handleCustomClubChange(e.target.value)}
+                                              onChange={(e) =>
+                                                handleCustomClubChange(
+                                                  e.target.value
+                                                )
+                                              }
                                               className="mt-1"
                                             />
                                           )}
@@ -1031,7 +1076,9 @@ export function TeamManagement({
                                               countryId: value,
                                             });
                                             // Refresh clubs when country changes
-                                            if (clubSelectionType === 'existing') {
+                                            if (
+                                              clubSelectionType === 'existing'
+                                            ) {
                                               fetchClubs(clubSearchTerm);
                                             }
                                           }}
@@ -1083,7 +1130,8 @@ export function TeamManagement({
                                             onChange={(e) =>
                                               setFormData({
                                                 ...formData,
-                                                contactFirstName: e.target.value,
+                                                contactFirstName:
+                                                  e.target.value,
                                               })
                                             }
                                             className="mt-1"
@@ -1160,7 +1208,8 @@ export function TeamManagement({
                                             onChange={(e) =>
                                               setFormData({
                                                 ...formData,
-                                                contactPostalCode: e.target.value,
+                                                contactPostalCode:
+                                                  e.target.value,
                                               })
                                             }
                                             className="mt-1"
@@ -1185,7 +1234,7 @@ export function TeamManagement({
                                     </div>
 
                                     {/* Action Buttons */}
-                                    <div className="flex justify-end gap-2 pt-4 border-t">
+                                    <div className="flex justify-end gap-2 border-t pt-4">
                                       <Button
                                         variant="outline"
                                         onClick={() => {
@@ -1200,7 +1249,7 @@ export function TeamManagement({
                                         onClick={handleSave}
                                         disabled={isUpdating}
                                       >
-                                        <Save className="h-4 w-4 mr-2" />
+                                        <Save className="mr-2 h-4 w-4" />
                                         Save Changes
                                       </Button>
                                     </div>
@@ -1210,15 +1259,19 @@ export function TeamManagement({
                                   <>
                                     {/* Team Information */}
                                     <div className="grid grid-cols-2 gap-4">
-                                      {(selectedTeam.logo || selectedTeam.clubRef?.logo) && (
+                                      {(selectedTeam.logo ||
+                                        selectedTeam.clubRef?.logo) && (
                                         <div className="col-span-2">
                                           <Label className="text-sm font-medium">
                                             Logo
                                           </Label>
                                           <img
-                                            src={selectedTeam.logo || selectedTeam.clubRef?.logo}
+                                            src={
+                                              selectedTeam.logo ||
+                                              selectedTeam.clubRef?.logo
+                                            }
                                             alt="Team logo"
-                                            className="h-20 w-20 rounded object-cover mt-2"
+                                            className="mt-2 h-20 w-20 rounded object-cover"
                                           />
                                         </div>
                                       )}
@@ -1310,7 +1363,8 @@ export function TeamManagement({
                                             Address
                                           </Label>
                                           <p className="text-sm">
-                                            {selectedTeam.contactAddress || 'N/A'}
+                                            {selectedTeam.contactAddress ||
+                                              'N/A'}
                                           </p>
                                         </div>
                                       </div>

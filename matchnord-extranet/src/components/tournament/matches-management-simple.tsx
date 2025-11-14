@@ -253,221 +253,205 @@ function GroupMatchesView({
   return (
     <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
       {/* Left Column: Teams Table */}
-      <Card className="border-0 shadow-none">
-        <CardHeader>
-          <CardTitle>{group.name}</CardTitle>
-          <CardDescription>Drag teams to match placeholders</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Team</TableHead>
-                  <TableHead className="text-right">Matches</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {groupTeams.length === 0 ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={2}
-                      className="text-center text-muted-foreground"
-                    >
-                      No teams in this group. Add teams to the group first.
+      <div>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Team</TableHead>
+              <TableHead className="text-right">Matches</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {groupTeams.length === 0 ? (
+              <TableRow>
+                <TableCell
+                  colSpan={2}
+                  className="text-center text-muted-foreground"
+                >
+                  No teams in this group. Add teams to the group first.
+                </TableCell>
+              </TableRow>
+            ) : (
+              groupTeams.map((team) => {
+                const matchCount = getTeamMatchCount(team.id);
+                return (
+                  <TableRow
+                    key={team.id}
+                    className="group transition-colors hover:bg-muted/50"
+                  >
+                    <TableCell className="py-2 font-medium">
+                      <div
+                        draggable
+                        onDragStart={(e) => onDragStart(e, team)}
+                        onDragEnd={onDragEnd}
+                        className="flex h-10 cursor-grab items-center gap-2 active:cursor-grabbing"
+                      >
+                        <GripVertical className="h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+                        {(team.logo || team.clubRef?.logo) && (
+                          <img
+                            src={team.logo || team.clubRef?.logo}
+                            alt={`${team.name} logo`}
+                            className="h-5 w-5 rounded object-cover"
+                          />
+                        )}
+                        <span>{team.shortName || team.name}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-2 text-right">
+                      {matchCount}
                     </TableCell>
                   </TableRow>
-                ) : (
-                  groupTeams.map((team) => {
-                    const matchCount = getTeamMatchCount(team.id);
-                    return (
-                      <TableRow
-                        key={team.id}
-                        className="group transition-colors hover:bg-muted/50"
-                      >
-                        <TableCell className="py-2 font-medium">
-                          <div
-                            draggable
-                            onDragStart={(e) => onDragStart(e, team)}
-                            onDragEnd={onDragEnd}
-                            className="flex h-10 cursor-grab items-center gap-2 active:cursor-grabbing"
-                          >
-                            <GripVertical className="h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
-                            {(team.logo || team.clubRef?.logo) && (
-                              <img
-                                src={team.logo || team.clubRef?.logo}
-                                alt={`${team.name} logo`}
-                                className="h-5 w-5 rounded object-cover"
-                              />
-                            )}
-                            <span>{team.shortName || team.name}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-2 text-right">
-                          {matchCount}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Right Column: Match Placeholders */}
-      <Card className="border-0 shadow-none">
-        <CardHeader>
-          <CardTitle>Matches</CardTitle>
-          <CardDescription>
-            Drop teams to create matches (Round-robin format)
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-1">
-            {groupTeams.length < 2 ? (
-              <div className="py-8 text-center text-muted-foreground">
-                Add at least 2 teams to the group to generate matches
-              </div>
-            ) : localPlaceholders.length === 0 ? (
-              <div className="py-8 text-center text-muted-foreground">
-                Calculating match placeholders...
-              </div>
-            ) : (
-              localPlaceholders.map((placeholder, index) => {
-                const homeTeam = groupTeams.find(
-                  (t) => t.id === placeholder.homeTeamId
-                );
-                const awayTeam = groupTeams.find(
-                  (t) => t.id === placeholder.awayTeamId
-                );
-
-                return (
-                  <div
-                    key={placeholder.id}
-                    className="flex items-center gap-2 rounded-lg p-2"
-                  >
-                    {/* Home Team Drop Zone */}
-                    <div
-                      className={`flex-1 rounded border-2 border-dashed p-2 text-center transition-colors hover:border-primary/50 hover:bg-muted/30 ${
-                        dragOverTarget?.matchIndex === index &&
-                        dragOverTarget?.position === 'home'
-                          ? 'border-green-500 bg-green-50'
-                          : ''
-                      }`}
-                      onDragOver={(e) => onDragOver(e, index, 'home')}
-                      onDragLeave={onDragLeave}
-                      onDrop={(e) => handleDrop(e, index, 'home')}
-                      style={{
-                        backgroundColor:
-                          dragOverTarget?.matchIndex === index &&
-                          dragOverTarget?.position === 'home'
-                            ? undefined
-                            : placeholder.homeTeamId
-                              ? 'transparent'
-                              : 'rgba(0, 0, 0, 0.02)',
-                        minHeight: '2.5rem',
-                      }}
-                    >
-                      {homeTeam ? (
-                        <div className="flex items-center justify-between">
-                          <div className="pointer-events-none flex items-center gap-2">
-                            {(homeTeam.logo || homeTeam.clubRef?.logo) && (
-                              <img
-                                src={homeTeam.logo || homeTeam.clubRef?.logo}
-                                alt={`${homeTeam.name} logo`}
-                                className="h-5 w-5 rounded object-cover"
-                              />
-                            )}
-                            <span className="font-medium">
-                              {homeTeam.shortName || homeTeam.name}
-                            </span>
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleRemoveTeam(index, 'home');
-                            }}
-                            onMouseDown={(e) => e.stopPropagation()}
-                            className="cursor-pointer"
-                          >
-                            ×
-                          </Button>
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground">
-                          Drop home team
-                        </span>
-                      )}
-                    </div>
-
-                    <span className="font-medium">vs</span>
-
-                    {/* Away Team Drop Zone */}
-                    <div
-                      className={`flex-1 rounded border-2 border-dashed p-2 text-center transition-colors hover:border-primary/50 hover:bg-muted/30 ${
-                        dragOverTarget?.matchIndex === index &&
-                        dragOverTarget?.position === 'away'
-                          ? 'border-green-500 bg-green-50'
-                          : ''
-                      }`}
-                      onDragOver={(e) => onDragOver(e, index, 'away')}
-                      onDragLeave={onDragLeave}
-                      onDrop={(e) => handleDrop(e, index, 'away')}
-                      style={{
-                        backgroundColor:
-                          dragOverTarget?.matchIndex === index &&
-                          dragOverTarget?.position === 'away'
-                            ? undefined
-                            : placeholder.awayTeamId
-                              ? 'transparent'
-                              : 'rgba(0, 0, 0, 0.02)',
-                        minHeight: '2.5rem',
-                      }}
-                    >
-                      {awayTeam ? (
-                        <div className="flex items-center justify-between">
-                          <div className="pointer-events-none flex items-center gap-2">
-                            {(awayTeam.logo || awayTeam.clubRef?.logo) && (
-                              <img
-                                src={awayTeam.logo || awayTeam.clubRef?.logo}
-                                alt={`${awayTeam.name} logo`}
-                                className="h-5 w-5 rounded object-cover"
-                              />
-                            )}
-                            <span className="font-medium">
-                              {awayTeam.shortName || awayTeam.name}
-                            </span>
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleRemoveTeam(index, 'away');
-                            }}
-                            onMouseDown={(e) => e.stopPropagation()}
-                            className="cursor-pointer"
-                          >
-                            ×
-                          </Button>
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground">
-                          Drop away team
-                        </span>
-                      )}
-                    </div>
-                  </div>
                 );
               })
             )}
-          </div>
-        </CardContent>
-      </Card>
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* Right Column: Match Placeholders */}
+      <div>
+        <div className="space-y-1">
+          {groupTeams.length < 2 ? (
+            <div className="py-8 text-center text-muted-foreground">
+              Add at least 2 teams to the group to generate matches
+            </div>
+          ) : localPlaceholders.length === 0 ? (
+            <div className="py-8 text-center text-muted-foreground">
+              Calculating match placeholders...
+            </div>
+          ) : (
+            localPlaceholders.map((placeholder, index) => {
+              const homeTeam = groupTeams.find(
+                (t) => t.id === placeholder.homeTeamId
+              );
+              const awayTeam = groupTeams.find(
+                (t) => t.id === placeholder.awayTeamId
+              );
+
+              return (
+                <div
+                  key={placeholder.id}
+                  className="flex items-center gap-2 rounded-lg p-2"
+                >
+                  {/* Home Team Drop Zone */}
+                  <div
+                    className={`flex-1 rounded border-2 border-dashed p-2 text-center transition-colors hover:border-primary/50 hover:bg-muted/30 ${
+                      dragOverTarget?.matchIndex === index &&
+                      dragOverTarget?.position === 'home'
+                        ? 'border-green-500 bg-green-50'
+                        : ''
+                    }`}
+                    onDragOver={(e) => onDragOver(e, index, 'home')}
+                    onDragLeave={onDragLeave}
+                    onDrop={(e) => handleDrop(e, index, 'home')}
+                    style={{
+                      backgroundColor:
+                        dragOverTarget?.matchIndex === index &&
+                        dragOverTarget?.position === 'home'
+                          ? undefined
+                          : placeholder.homeTeamId
+                            ? 'transparent'
+                            : 'rgba(0, 0, 0, 0.02)',
+                      minHeight: '2.5rem',
+                    }}
+                  >
+                    {homeTeam ? (
+                      <div className="flex items-center justify-between">
+                        <div className="pointer-events-none flex items-center gap-2">
+                          {(homeTeam.logo || homeTeam.clubRef?.logo) && (
+                            <img
+                              src={homeTeam.logo || homeTeam.clubRef?.logo}
+                              alt={`${homeTeam.name} logo`}
+                              className="h-5 w-5 rounded object-cover"
+                            />
+                          )}
+                          <span className="font-medium">
+                            {homeTeam.shortName || homeTeam.name}
+                          </span>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRemoveTeam(index, 'home');
+                          }}
+                          onMouseDown={(e) => e.stopPropagation()}
+                          className="cursor-pointer"
+                        >
+                          ×
+                        </Button>
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground">
+                        Drop home team
+                      </span>
+                    )}
+                  </div>
+
+                  <span className="font-medium">vs</span>
+
+                  {/* Away Team Drop Zone */}
+                  <div
+                    className={`flex-1 rounded border-2 border-dashed p-2 text-center transition-colors hover:border-primary/50 hover:bg-muted/30 ${
+                      dragOverTarget?.matchIndex === index &&
+                      dragOverTarget?.position === 'away'
+                        ? 'border-green-500 bg-green-50'
+                        : ''
+                    }`}
+                    onDragOver={(e) => onDragOver(e, index, 'away')}
+                    onDragLeave={onDragLeave}
+                    onDrop={(e) => handleDrop(e, index, 'away')}
+                    style={{
+                      backgroundColor:
+                        dragOverTarget?.matchIndex === index &&
+                        dragOverTarget?.position === 'away'
+                          ? undefined
+                          : placeholder.awayTeamId
+                            ? 'transparent'
+                            : 'rgba(0, 0, 0, 0.02)',
+                      minHeight: '2.5rem',
+                    }}
+                  >
+                    {awayTeam ? (
+                      <div className="flex items-center justify-between">
+                        <div className="pointer-events-none flex items-center gap-2">
+                          {(awayTeam.logo || awayTeam.clubRef?.logo) && (
+                            <img
+                              src={awayTeam.logo || awayTeam.clubRef?.logo}
+                              alt={`${awayTeam.name} logo`}
+                              className="h-5 w-5 rounded object-cover"
+                            />
+                          )}
+                          <span className="font-medium">
+                            {awayTeam.shortName || awayTeam.name}
+                          </span>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRemoveTeam(index, 'away');
+                          }}
+                          onMouseDown={(e) => e.stopPropagation()}
+                          className="cursor-pointer"
+                        >
+                          ×
+                        </Button>
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground">
+                        Drop away team
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -1365,1576 +1349,1464 @@ export function MatchesManagementSimple({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex space-x-2">
-              <Button
-                variant="outline"
-                onClick={() => setShowSummary(!showSummary)}
-              >
-                <BarChart3 className="mr-2 h-4 w-4" />
-                {showSummary ? 'Hide' : 'Show'} Summary
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => setShowSettings(!showSettings)}
-              >
-                <Settings className="mr-2 h-4 w-4" />
-                {showSettings ? 'Hide' : 'Show'} Settings
-              </Button>
-              <Button variant="outline" onClick={() => setIsDialogOpen(true)}>
-                <Plus className="mr-2 h-4 w-4" />
-                Add Match
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {/* Division Selector */}
-          Divisions
-          {divisions.length > 0 && (
-            <div className="mb-4">
-              <Tabs
-                value={selectedDivision}
-                onValueChange={(value) => {
-                  setSelectedDivision(value);
-                  // Reset group filter when division changes
-                  setSelectedGroup('all');
-                }}
-              >
-                <TabsList className="grid w-full grid-cols-1 gap-2 border-0 bg-transparent p-0 md:grid-cols-2 lg:grid-cols-3">
-                  {divisions.map((division) => (
-                    <TabsTrigger
-                      key={division.id}
-                      value={division.id}
-                      className="border"
-                    >
-                      {division.name}{' '}
-                      {division.level ? `| ${division.level}` : ''}
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
-              </Tabs>
-            </div>
-          )}
-          {/* Group Selector */}
-          {propGroups.filter(
-            (group) =>
-              selectedDivision === 'all' ||
-              group.division?.id === selectedDivision
-          ).length > 0 && (
-            <div className="mb-4">
-              <Tabs value={selectedGroup} onValueChange={setSelectedGroup}>
-                <TabsList className="flex flex-wrap gap-2 border-0 bg-transparent p-0">
-                  <TabsTrigger value="all" className="border">
-                    All Groups
+      <div className="flex items-center space-x-2">
+        <Button variant="outline" onClick={() => setShowSummary(!showSummary)}>
+          <BarChart3 className="mr-2 h-4 w-4" />
+          {showSummary ? 'Hide' : 'Show'} Summary
+        </Button>
+        <Button
+          variant="outline"
+          onClick={() => setShowSettings(!showSettings)}
+        >
+          <Settings className="mr-2 h-4 w-4" />
+          {showSettings ? 'Hide' : 'Show'} Settings
+        </Button>
+        <Button variant="outline" onClick={() => setIsDialogOpen(true)}>
+          <Plus className="mr-2 h-4 w-4" />
+          Add Match
+        </Button>
+      </div>
+
+      {/* Division Selector */}
+      {divisions.length > 0 && (
+        <div>
+          <Tabs
+            value={selectedDivision}
+            onValueChange={(value) => {
+              setSelectedDivision(value);
+              // Reset group filter when division changes
+              setSelectedGroup('all');
+            }}
+          >
+            <TabsList className="grid w-full grid-cols-1 gap-2 border-0 bg-transparent p-0 md:grid-cols-2 lg:grid-cols-3">
+              {divisions.map((division) => (
+                <TabsTrigger
+                  key={division.id}
+                  value={division.id}
+                  className="border"
+                >
+                  {division.name} {division.level ? `| ${division.level}` : ''}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+        </div>
+      )}
+      {/* Group Selector */}
+      {propGroups.filter(
+        (group) =>
+          selectedDivision === 'all' || group.division?.id === selectedDivision
+      ).length > 0 && (
+        <div>
+          <Tabs value={selectedGroup} onValueChange={setSelectedGroup}>
+            <TabsList className="flex flex-wrap gap-2 border-0 bg-transparent p-0">
+              <TabsTrigger value="all" className="border">
+                All Groups
+              </TabsTrigger>
+              {propGroups
+                .filter(
+                  (group) =>
+                    selectedDivision === 'all' ||
+                    group.division?.id === selectedDivision
+                )
+                .map((group) => (
+                  <TabsTrigger
+                    key={group.id}
+                    value={group.id}
+                    className="border"
+                  >
+                    {group.name}
                   </TabsTrigger>
-                  {propGroups
-                    .filter(
-                      (group) =>
-                        selectedDivision === 'all' ||
-                        group.division?.id === selectedDivision
-                    )
-                    .map((group) => (
-                      <TabsTrigger
-                        key={group.id}
-                        value={group.id}
-                        className="border"
-                      >
-                        {group.name}
-                      </TabsTrigger>
-                    ))}
-                  {selectedDivision !== 'all' && (
-                    <TabsTrigger value="placements" className="border">
-                      Placements
-                    </TabsTrigger>
-                  )}
-                </TabsList>
-              </Tabs>
-            </div>
-          )}
-          {/* Two Column Layout: Teams Table and Match Placeholders */}
-          {selectedGroup !== 'all' && selectedGroup !== 'placements' && (
-            <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
-              {/* Left Column: Teams Table */}
-              <Card className="border-0 shadow-none">
-                <CardHeader>
-                  <CardTitle>Teams</CardTitle>
-                  <CardDescription>
-                    Drag teams to match placeholders
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="rounded-md border">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Team</TableHead>
-                          <TableHead className="text-right">Matches</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {selectedGroupTeams.length === 0 ? (
-                          <TableRow>
-                            <TableCell
-                              colSpan={2}
-                              className="text-center text-muted-foreground"
-                            >
-                              No teams in this group. Add teams to the group
-                              first.
-                            </TableCell>
-                          </TableRow>
-                        ) : (
-                          selectedGroupTeams.map((team) => {
-                            const matchCount = getTeamMatchCount(team.id);
-                            return (
-                              <TableRow
-                                key={team.id}
-                                className="group transition-colors hover:bg-muted/50"
-                              >
-                                <TableCell className="py-2 font-medium">
-                                  <div
-                                    draggable
-                                    onDragStart={(e) =>
-                                      handleDragStart(e, team)
-                                    }
-                                    onDragEnd={handleDragEnd}
-                                    className="flex h-10 cursor-grab items-center gap-2 active:cursor-grabbing"
-                                  >
-                                    <GripVertical className="h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
-                                    {(team.logo || team.clubRef?.logo) && (
-                                      <img
-                                        src={team.logo || team.clubRef?.logo}
-                                        alt={`${team.name} logo`}
-                                        className="h-5 w-5 rounded object-cover"
-                                      />
-                                    )}
-                                    <span>{team.shortName || team.name}</span>
-                                  </div>
-                                </TableCell>
-                                <TableCell className="py-2 text-right">
-                                  {matchCount}
-                                </TableCell>
-                              </TableRow>
-                            );
-                          })
-                        )}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Right Column: Match Placeholders */}
-              <Card className="border-0 shadow-none">
-                <CardHeader>
-                  <CardTitle>Matches</CardTitle>
-                  <CardDescription>
-                    Drop teams to create matches (Round-robin format)
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-1">
-                    {selectedGroupTeams.length < 2 ? (
-                      <div className="py-8 text-center text-muted-foreground">
-                        Add at least 2 teams to the group to generate matches
-                      </div>
-                    ) : matchPlaceholders.length === 0 ? (
-                      <div className="py-8 text-center text-muted-foreground">
-                        Calculating match placeholders...
-                      </div>
-                    ) : (
-                      matchPlaceholders.map((placeholder, index) => {
-                        const homeTeam = selectedGroupTeams.find(
-                          (t) => t.id === placeholder.homeTeamId
-                        );
-                        const awayTeam = selectedGroupTeams.find(
-                          (t) => t.id === placeholder.awayTeamId
-                        );
-
-                        return (
-                          <div
-                            key={placeholder.id}
-                            className="flex items-center gap-2 rounded-lg p-2"
-                          >
-                            {/* Home Team Drop Zone */}
-                            <div
-                              className={`flex-1 rounded border-2 border-dashed p-2 text-center transition-colors hover:border-primary/50 hover:bg-muted/30 ${
-                                dragOverTarget?.matchIndex === index &&
-                                dragOverTarget?.position === 'home'
-                                  ? 'border-green-500 bg-green-50'
-                                  : ''
-                              }`}
-                              onDragOver={(e) =>
-                                handleDragOver(e, index, 'home')
-                              }
-                              onDragLeave={handleDragLeave}
-                              onDrop={(e) => handleDrop(e, index, 'home')}
-                              style={{
-                                backgroundColor:
-                                  dragOverTarget?.matchIndex === index &&
-                                  dragOverTarget?.position === 'home'
-                                    ? undefined
-                                    : placeholder.homeTeamId
-                                      ? 'transparent'
-                                      : 'rgba(0, 0, 0, 0.02)',
-                                minHeight: '2.5rem',
-                              }}
-                            >
-                              {homeTeam ? (
-                                <div className="flex items-center justify-between">
-                                  <div className="pointer-events-none flex items-center gap-2">
-                                    {(homeTeam.logo ||
-                                      homeTeam.clubRef?.logo) && (
-                                      <img
-                                        src={
-                                          homeTeam.logo ||
-                                          homeTeam.clubRef?.logo
-                                        }
-                                        alt={`${homeTeam.name} logo`}
-                                        className="h-5 w-5 rounded object-cover"
-                                      />
-                                    )}
-                                    <span className="font-medium">
-                                      {homeTeam.shortName || homeTeam.name}
-                                    </span>
-                                  </div>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleRemoveTeam(index, 'home');
-                                    }}
-                                    onMouseDown={(e) => e.stopPropagation()}
-                                    className="cursor-pointer"
-                                  >
-                                    ×
-                                  </Button>
-                                </div>
-                              ) : (
-                                <span className="text-muted-foreground">
-                                  Drop home team
-                                </span>
-                              )}
-                            </div>
-
-                            <span className="font-medium">vs</span>
-
-                            {/* Away Team Drop Zone */}
-                            <div
-                              className={`flex-1 rounded border-2 border-dashed p-2 text-center transition-colors hover:border-primary/50 hover:bg-muted/30 ${
-                                dragOverTarget?.matchIndex === index &&
-                                dragOverTarget?.position === 'away'
-                                  ? 'border-green-500 bg-green-50'
-                                  : ''
-                              }`}
-                              onDragOver={(e) =>
-                                handleDragOver(e, index, 'away')
-                              }
-                              onDragLeave={handleDragLeave}
-                              onDrop={(e) => handleDrop(e, index, 'away')}
-                              style={{
-                                backgroundColor:
-                                  dragOverTarget?.matchIndex === index &&
-                                  dragOverTarget?.position === 'away'
-                                    ? undefined
-                                    : placeholder.awayTeamId
-                                      ? 'transparent'
-                                      : 'rgba(0, 0, 0, 0.02)',
-                                minHeight: '2.5rem',
-                              }}
-                            >
-                              {awayTeam ? (
-                                <div className="flex items-center justify-between">
-                                  <div className="pointer-events-none flex items-center gap-2">
-                                    {(awayTeam.logo ||
-                                      awayTeam.clubRef?.logo) && (
-                                      <img
-                                        src={
-                                          awayTeam.logo ||
-                                          awayTeam.clubRef?.logo
-                                        }
-                                        alt={`${awayTeam.name} logo`}
-                                        className="h-5 w-5 rounded object-cover"
-                                      />
-                                    )}
-                                    <span className="font-medium">
-                                      {awayTeam.shortName || awayTeam.name}
-                                    </span>
-                                  </div>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleRemoveTeam(index, 'away');
-                                    }}
-                                    onMouseDown={(e) => e.stopPropagation()}
-                                    className="cursor-pointer"
-                                  >
-                                    ×
-                                  </Button>
-                                </div>
-                              ) : (
-                                <span className="text-muted-foreground">
-                                  Drop away team
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-          {/* All Groups View: Render each group stacked vertically with separators */}
-          {selectedGroup === 'all' &&
-            selectedDivision !== 'all' &&
-            (() => {
-              const divisionGroups = propGroups.filter(
-                (group) => group.division?.id === selectedDivision
-              );
-
-              if (divisionGroups.length === 0) {
-                return null;
-              }
-
-              const handleGroupDragOver = (
-                e: React.DragEvent,
-                matchIndex: number,
-                position: 'home' | 'away'
-              ) => {
-                e.preventDefault();
-                if (!draggedTeam) return;
-
-                // The component manages its own placeholders, so we just set the drag target
-                // The actual validation happens in the component's handleDrop
-                e.dataTransfer.dropEffect = 'move';
-                setDragOverTarget({ matchIndex, position });
-              };
-
-              const handleGroupDrop = (
-                e: React.DragEvent,
-                matchIndex: number,
-                position: 'home' | 'away',
-                groupId: string
-              ) => {
-                e.preventDefault();
-                if (!draggedTeam) return;
-
-                const groupPlaceholders = getGroupMatchPlaceholders(groupId);
-                const placeholder = groupPlaceholders[matchIndex];
-
-                if (!placeholder) return;
-
-                // Don't allow dropping on the same team
-                if (
-                  (position === 'home' &&
-                    placeholder.homeTeamId === draggedTeam.id) ||
-                  (position === 'away' &&
-                    placeholder.awayTeamId === draggedTeam.id)
-                ) {
-                  return;
-                }
-
-                // Don't allow same team in both positions
-                if (
-                  (position === 'home' &&
-                    placeholder.awayTeamId === draggedTeam.id) ||
-                  (position === 'away' &&
-                    placeholder.homeTeamId === draggedTeam.id)
-                ) {
-                  return;
-                }
-
-                const updatedPlaceholder = {
-                  id: placeholder.id,
-                  homeTeamId:
-                    position === 'home'
-                      ? draggedTeam.id
-                      : placeholder.homeTeamId,
-                  awayTeamId:
-                    position === 'away'
-                      ? draggedTeam.id
-                      : placeholder.awayTeamId,
-                };
-
-                setDraggedTeam(null);
-                setDragOverTarget(null);
-
-                // Save match to database
-                saveMatchPlaceholder(updatedPlaceholder, matchIndex, groupId);
-              };
-
-              const handleGroupRemoveTeam = (
-                matchIndex: number,
-                position: 'home' | 'away',
-                groupId: string
-              ) => {
-                const groupPlaceholders = getGroupMatchPlaceholders(groupId);
-                const placeholder = groupPlaceholders[matchIndex];
-                if (!placeholder) return;
-
-                const updatedPlaceholder = {
-                  id: placeholder.id,
-                  homeTeamId:
-                    position === 'home' ? null : placeholder.homeTeamId,
-                  awayTeamId:
-                    position === 'away' ? null : placeholder.awayTeamId,
-                };
-
-                saveMatchPlaceholder(updatedPlaceholder, matchIndex, groupId);
-              };
-
-              return (
-                <div className="mb-6 space-y-8">
-                  {divisionGroups.map((group, groupIndex) => {
-                    const groupTeams = getGroupTeams(group.id);
-                    const groupPlaceholders = getGroupMatchPlaceholders(
-                      group.id
-                    );
-
-                    return (
-                      <div key={group.id}>
-                        {groupIndex > 0 && (
-                          <div className="my-8 border-t border-gray-300"></div>
-                        )}
-                        <GroupMatchesView
-                          group={group}
-                          groupTeams={groupTeams}
-                          groupPlaceholders={groupPlaceholders}
-                          draggedTeam={draggedTeam}
-                          dragOverTarget={dragOverTarget}
-                          onDragStart={handleDragStart}
-                          onDragEnd={handleDragEnd}
-                          onDragOver={(e, index, position) =>
-                            handleGroupDragOver(e, index, position)
-                          }
-                          onDragLeave={handleDragLeave}
-                          onDrop={(e, index, position) =>
-                            handleGroupDrop(e, index, position, group.id)
-                          }
-                          onRemoveTeam={(index, position) =>
-                            handleGroupRemoveTeam(index, position, group.id)
-                          }
-                          getTeamMatchCount={(teamId) =>
-                            getTeamMatchCountForGroup(teamId, group.id)
-                          }
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
-              );
-            })()}
-          {/* Placements View: Bracket visualization */}
-          {selectedGroup === 'placements' && selectedDivision !== 'all' && (
-            <div className="mb-6 space-y-6">
-              {/* Placement Configuration */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Placement Strategy</CardTitle>
-                  <CardDescription>
-                    Configure how teams advance from groups to placement matches
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="placement-strategy">Strategy</Label>
-                    <Select
-                      value={placementConfig?.id || ''}
-                      onValueChange={(value) => {
-                        const config = PLACEMENT_SYSTEM_TEMPLATES.find(
-                          (t) => t.id === value
-                        );
-                        if (config) {
-                          setPlacementConfig(config);
-                        }
-                      }}
+                ))}
+              {selectedDivision !== 'all' && (
+                <TabsTrigger value="placements" className="border">
+                  Placements
+                </TabsTrigger>
+              )}
+            </TabsList>
+          </Tabs>
+        </div>
+      )}
+      {/* Two Column Layout: Teams Table and Match Placeholders */}
+      {selectedGroup !== 'all' && selectedGroup !== 'placements' && (
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          {/* Left Column: Teams Table */}
+          <div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Team</TableHead>
+                  <TableHead className="text-right">Matches</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {selectedGroupTeams.length === 0 ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={2}
+                      className="text-center text-muted-foreground"
                     >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select placement strategy" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {PLACEMENT_SYSTEM_TEMPLATES.map((template) => (
-                          <SelectItem key={template.id} value={template.id}>
-                            {template.name} - {template.description}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  {placementConfig && (
-                    <div className="rounded-lg border p-4">
-                      <h4 className="mb-2 font-medium">
-                        {placementConfig.name}
-                      </h4>
-                      <p className="mb-4 text-sm text-muted-foreground">
-                        {placementConfig.description}
-                      </p>
-                      <div className="space-y-2">
-                        <h5 className="text-sm font-medium">Brackets:</h5>
-                        {placementConfig.brackets.map((bracket) => (
+                      No teams in this group. Add teams to the group first.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  selectedGroupTeams.map((team) => {
+                    const matchCount = getTeamMatchCount(team.id);
+                    return (
+                      <TableRow
+                        key={team.id}
+                        className="group transition-colors hover:bg-muted/50"
+                      >
+                        <TableCell className="py-2 font-medium">
                           <div
-                            key={bracket.id}
-                            className="text-sm text-muted-foreground"
+                            draggable
+                            onDragStart={(e) => handleDragStart(e, team)}
+                            onDragEnd={handleDragEnd}
+                            className="flex h-10 cursor-grab items-center gap-2 active:cursor-grabbing"
                           >
-                            • {bracket.name}: Positions{' '}
-                            {bracket.positions.join(', ')}
+                            <GripVertical className="h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+                            {(team.logo || team.clubRef?.logo) && (
+                              <img
+                                src={team.logo || team.clubRef?.logo}
+                                alt={`${team.name} logo`}
+                                className="h-5 w-5 rounded object-cover"
+                              />
+                            )}
+                            <span>{team.shortName || team.name}</span>
                           </div>
-                        ))}
+                        </TableCell>
+                        <TableCell className="py-2 text-right">
+                          {matchCount}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Right Column: Match Placeholders */}
+          <div>
+            <div className="space-y-1">
+              {selectedGroupTeams.length < 2 ? (
+                <div className="py-8 text-center text-muted-foreground">
+                  Add at least 2 teams to the group to generate matches
+                </div>
+              ) : matchPlaceholders.length === 0 ? (
+                <div className="py-8 text-center text-muted-foreground">
+                  Calculating match placeholders...
+                </div>
+              ) : (
+                matchPlaceholders.map((placeholder, index) => {
+                  const homeTeam = selectedGroupTeams.find(
+                    (t) => t.id === placeholder.homeTeamId
+                  );
+                  const awayTeam = selectedGroupTeams.find(
+                    (t) => t.id === placeholder.awayTeamId
+                  );
+
+                  return (
+                    <div
+                      key={placeholder.id}
+                      className="flex items-center gap-2 rounded-lg p-2"
+                    >
+                      {/* Home Team Drop Zone */}
+                      <div
+                        className={`flex-1 rounded border-2 border-dashed p-2 text-center transition-colors hover:border-primary/50 hover:bg-muted/30 ${
+                          dragOverTarget?.matchIndex === index &&
+                          dragOverTarget?.position === 'home'
+                            ? 'border-green-500 bg-green-50'
+                            : ''
+                        }`}
+                        onDragOver={(e) => handleDragOver(e, index, 'home')}
+                        onDragLeave={handleDragLeave}
+                        onDrop={(e) => handleDrop(e, index, 'home')}
+                        style={{
+                          backgroundColor:
+                            dragOverTarget?.matchIndex === index &&
+                            dragOverTarget?.position === 'home'
+                              ? undefined
+                              : placeholder.homeTeamId
+                                ? 'transparent'
+                                : 'rgba(0, 0, 0, 0.02)',
+                          minHeight: '2.5rem',
+                        }}
+                      >
+                        {homeTeam ? (
+                          <div className="flex items-center justify-between">
+                            <div className="pointer-events-none flex items-center gap-2">
+                              {(homeTeam.logo || homeTeam.clubRef?.logo) && (
+                                <img
+                                  src={homeTeam.logo || homeTeam.clubRef?.logo}
+                                  alt={`${homeTeam.name} logo`}
+                                  className="h-5 w-5 rounded object-cover"
+                                />
+                              )}
+                              <span className="font-medium">
+                                {homeTeam.shortName || homeTeam.name}
+                              </span>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRemoveTeam(index, 'home');
+                              }}
+                              onMouseDown={(e) => e.stopPropagation()}
+                              className="cursor-pointer"
+                            >
+                              ×
+                            </Button>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground">
+                            Drop home team
+                          </span>
+                        )}
+                      </div>
+
+                      <span className="font-medium">vs</span>
+
+                      {/* Away Team Drop Zone */}
+                      <div
+                        className={`flex-1 rounded border-2 border-dashed p-2 text-center transition-colors hover:border-primary/50 hover:bg-muted/30 ${
+                          dragOverTarget?.matchIndex === index &&
+                          dragOverTarget?.position === 'away'
+                            ? 'border-green-500 bg-green-50'
+                            : ''
+                        }`}
+                        onDragOver={(e) => handleDragOver(e, index, 'away')}
+                        onDragLeave={handleDragLeave}
+                        onDrop={(e) => handleDrop(e, index, 'away')}
+                        style={{
+                          backgroundColor:
+                            dragOverTarget?.matchIndex === index &&
+                            dragOverTarget?.position === 'away'
+                              ? undefined
+                              : placeholder.awayTeamId
+                                ? 'transparent'
+                                : 'rgba(0, 0, 0, 0.02)',
+                          minHeight: '2.5rem',
+                        }}
+                      >
+                        {awayTeam ? (
+                          <div className="flex items-center justify-between">
+                            <div className="pointer-events-none flex items-center gap-2">
+                              {(awayTeam.logo || awayTeam.clubRef?.logo) && (
+                                <img
+                                  src={awayTeam.logo || awayTeam.clubRef?.logo}
+                                  alt={`${awayTeam.name} logo`}
+                                  className="h-5 w-5 rounded object-cover"
+                                />
+                              )}
+                              <span className="font-medium">
+                                {awayTeam.shortName || awayTeam.name}
+                              </span>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRemoveTeam(index, 'away');
+                              }}
+                              onMouseDown={(e) => e.stopPropagation()}
+                              className="cursor-pointer"
+                            >
+                              ×
+                            </Button>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground">
+                            Drop away team
+                          </span>
+                        )}
                       </div>
                     </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Bracket Visualization */}
-              {placementConfig && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Placement Bracket</CardTitle>
-                    <CardDescription>
-                      Visual representation of placement matches
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {(() => {
-                      const groupStandings = calculateGroupStandings();
-                      if (groupStandings.length === 0) {
-                        return (
-                          <div className="py-8 text-center text-muted-foreground">
-                            No groups found or no finished matches yet. Complete
-                            group stage matches to see placement bracket.
-                          </div>
-                        );
-                      }
-
-                      const placementMatches = generatePlacementMatches(
-                        groupStandings.map((gs) => ({
-                          groupId: gs.groupId,
-                          groupName: gs.groupName,
-                          teams: gs.teams.map((t) => ({
-                            id: t.id,
-                            name: t.name,
-                            position: (t as typeof t & { position: number })
-                              .position,
-                            points: t.points,
-                            goalDifference: t.goalDifference,
-                          })),
-                        })),
-                        placementConfig
-                      );
-
-                      if (placementMatches.length === 0) {
-                        return (
-                          <div className="py-8 text-center text-muted-foreground">
-                            No placement matches generated. Check your placement
-                            configuration.
-                          </div>
-                        );
-                      }
-
-                      const allGroupsFinished = groupStandings.every(
-                        (gs) => gs.isFinished
-                      );
-
-                      return (
-                        <div className="space-y-8">
-                          {!allGroupsFinished && (
-                            <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
-                              <div className="flex items-center space-x-2">
-                                <Info className="h-5 w-5 text-blue-600" />
-                                <p className="text-sm text-blue-800">
-                                  Group matches are not finished yet. The
-                                  bracket shows placeholders (e.g., &quot;1st
-                                  Group A&quot;) until all group matches are
-                                  completed.
-                                </p>
-                              </div>
-                            </div>
-                          )}
-                          {placementMatches.map((bracketData) => (
-                            <div
-                              key={bracketData.bracketId}
-                              className="space-y-6"
-                            >
-                              <h3 className="text-lg font-semibold">
-                                {bracketData.bracketName}
-                              </h3>
-                              <div className="space-y-4">
-                                {(() => {
-                                  // Group matches by round
-                                  const matchesByRound =
-                                    bracketData.matches.reduce(
-                                      (acc, match) => {
-                                        const round = match.round;
-                                        if (!acc[round]) {
-                                          acc[round] = [];
-                                        }
-                                        acc[round].push(match);
-                                        return acc;
-                                      },
-                                      {} as Record<number, PlacementMatch[]>
-                                    );
-
-                                  const rounds = Object.keys(matchesByRound)
-                                    .map(Number)
-                                    .sort((a, b) => a - b);
-
-                                  const getTeamDisplay = (
-                                    team: PlacementMatch['homeTeam'],
-                                    showActualTeam: boolean
-                                  ) => {
-                                    if (team.source.type === 'group-position') {
-                                      const source = team.source;
-                                      const groupStanding = groupStandings.find(
-                                        (gs) => gs.groupId === source.groupId
-                                      );
-
-                                      // Only show actual team name if group matches are finished
-                                      if (
-                                        showActualTeam &&
-                                        groupStanding?.isFinished
-                                      ) {
-                                        const teamData =
-                                          groupStanding?.teams.find(
-                                            (t) =>
-                                              (t as { position?: number })
-                                                .position === source.position
-                                          );
-                                        if (teamData) {
-                                          return (
-                                            teamData.shortName || teamData.name
-                                          );
-                                        }
-                                      }
-
-                                      // Show placeholder
-                                      const position = source.position;
-                                      const suffix =
-                                        position === 1
-                                          ? 'st'
-                                          : position === 2
-                                            ? 'nd'
-                                            : position === 3
-                                              ? 'rd'
-                                              : 'th';
-                                      return `${position}${suffix} ${source.groupName}`;
-                                    }
-
-                                    // For match winners/losers, show placeholder until match is finished
-                                    if (
-                                      team.source.type === 'match-winner' ||
-                                      team.source.type === 'match-loser'
-                                    ) {
-                                      return team.name; // This will be "Winner of Game X" or "Loser of Game X"
-                                    }
-
-                                    return team.name;
-                                  };
-
-                                  const getTeamPositionLabel = (
-                                    team:
-                                      | PlacementMatch['homeTeam']
-                                      | PlacementMatch['awayTeam']
-                                  ) => {
-                                    if (team.source.type === 'group-position') {
-                                      const source = team.source;
-                                      const groupStanding = groupStandings.find(
-                                        (gs) => gs.groupId === source.groupId
-                                      );
-
-                                      if (groupStanding?.isFinished) {
-                                        const teamData =
-                                          groupStanding?.teams.find(
-                                            (t) =>
-                                              (t as { position?: number })
-                                                .position === source.position
-                                          );
-                                        if (teamData) {
-                                          const pos = (
-                                            teamData as typeof teamData & {
-                                              position: number;
-                                            }
-                                          ).position;
-                                          const suffix =
-                                            pos === 1
-                                              ? 'st'
-                                              : pos === 2
-                                                ? 'nd'
-                                                : pos === 3
-                                                  ? 'rd'
-                                                  : 'th';
-                                          return `${source.groupName} (${pos}${suffix})`;
-                                        }
-                                      }
-
-                                      const position = source.position;
-                                      const suffix =
-                                        position === 1
-                                          ? 'st'
-                                          : position === 2
-                                            ? 'nd'
-                                            : position === 3
-                                              ? 'rd'
-                                              : 'th';
-                                      return `${position}${suffix} ${source.groupName}`;
-                                    }
-                                    return '';
-                                  };
-
-                                  // Check if we should show actual teams (all groups finished)
-                                  const showActualTeams = groupStandings.every(
-                                    (gs) => gs.isFinished
-                                  );
-
-                                  // Render bracket tree structure (horizontal layout - compact)
-                                  return (
-                                    <div className="space-y-6">
-                                      <div className="relative overflow-x-auto py-4">
-                                        <div className="flex min-w-max gap-6">
-                                          {rounds.map((round, roundIndex) => {
-                                            const roundMatches =
-                                              matchesByRound[round] || [];
-                                            const isLastRound =
-                                              roundIndex === rounds.length - 1;
-
-                                            // Find where winners/losers advance to
-                                            const getAdvancementTarget = (
-                                              matchId: string,
-                                              isWinner: boolean
-                                            ): PlacementMatch | null => {
-                                              const nextRound = roundIndex + 1;
-                                              if (nextRound >= rounds.length)
-                                                return null;
-                                              const nextRoundNumber =
-                                                rounds[nextRound];
-                                              if (nextRoundNumber === undefined)
-                                                return null;
-                                              const nextRoundMatches =
-                                                matchesByRound[
-                                                  nextRoundNumber
-                                                ] || [];
-                                              // Find match that references this match's winner/loser
-                                              const targetMatch =
-                                                nextRoundMatches.find(
-                                                  (m: PlacementMatch) => {
-                                                    if (isWinner) {
-                                                      return (
-                                                        (m.homeTeam.source
-                                                          .type ===
-                                                          'match-winner' &&
-                                                          m.homeTeam.source
-                                                            .matchId ===
-                                                            matchId) ||
-                                                        (m.awayTeam.source
-                                                          .type ===
-                                                          'match-winner' &&
-                                                          m.awayTeam.source
-                                                            .matchId ===
-                                                            matchId)
-                                                      );
-                                                    } else {
-                                                      return (
-                                                        (m.homeTeam.source
-                                                          .type ===
-                                                          'match-loser' &&
-                                                          m.homeTeam.source
-                                                            .matchId ===
-                                                            matchId) ||
-                                                        (m.awayTeam.source
-                                                          .type ===
-                                                          'match-loser' &&
-                                                          m.awayTeam.source
-                                                            .matchId ===
-                                                            matchId)
-                                                      );
-                                                    }
-                                                  }
-                                                );
-                                              return targetMatch || null;
-                                            };
-
-                                            return (
-                                              <div
-                                                key={round}
-                                                className="relative flex flex-col gap-3"
-                                              >
-                                                {/* Round label */}
-                                                <div className="mb-2 text-center">
-                                                  <div className="inline-block rounded-md bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
-                                                    {roundMatches[0]
-                                                      ?.roundLabel ||
-                                                      `Round ${round}`}
-                                                  </div>
-                                                </div>
-
-                                                {/* Matches in this round */}
-                                                <div className="flex flex-col gap-3">
-                                                  {roundMatches.map(
-                                                    (match, matchIndex) => {
-                                                      const homeDisplay =
-                                                        getTeamDisplay(
-                                                          match.homeTeam,
-                                                          showActualTeams
-                                                        );
-                                                      const awayDisplay =
-                                                        getTeamDisplay(
-                                                          match.awayTeam,
-                                                          showActualTeams
-                                                        );
-
-                                                      // Calculate positions for connection lines
-                                                      const matchHeight = 70;
-                                                      const gap = 12;
-                                                      const matchTop =
-                                                        matchIndex *
-                                                        (matchHeight + gap);
-                                                      const matchCenter =
-                                                        matchTop +
-                                                        matchHeight / 2;
-
-                                                      // Find where winner/loser advances
-                                                      const winnerTarget =
-                                                        !isLastRound
-                                                          ? getAdvancementTarget(
-                                                              match.id,
-                                                              true
-                                                            )
-                                                          : null;
-                                                      const loserTarget =
-                                                        !isLastRound
-                                                          ? getAdvancementTarget(
-                                                              match.id,
-                                                              false
-                                                            )
-                                                          : null;
-
-                                                      return (
-                                                        <div
-                                                          key={match.id}
-                                                          className="relative"
-                                                        >
-                                                          {/* Connection lines to next round */}
-                                                          {!isLastRound && (
-                                                            <>
-                                                              {/* Horizontal line from match box */}
-                                                              <div
-                                                                className="absolute left-full top-1/2 z-0 h-[1.5px] w-6 bg-border"
-                                                                style={{
-                                                                  transform:
-                                                                    'translateY(-50%)',
-                                                                }}
-                                                              />
-                                                              {/* Vertical connector line connecting pairs */}
-                                                              {roundMatches.length >
-                                                                1 &&
-                                                                matchIndex %
-                                                                  2 ===
-                                                                  0 &&
-                                                                matchIndex + 1 <
-                                                                  roundMatches.length && (
-                                                                  <>
-                                                                    {/* Vertical line */}
-                                                                    <div
-                                                                      className="absolute left-full z-0 w-[1.5px] bg-border"
-                                                                      style={{
-                                                                        left: 'calc(100% + 1.5rem)',
-                                                                        top: `${matchCenter}px`,
-                                                                        height: `${matchHeight + gap}px`,
-                                                                        transform:
-                                                                          'translateX(-50%)',
-                                                                      }}
-                                                                    />
-                                                                    {/* Horizontal lines to next round matches */}
-                                                                    <div
-                                                                      className="absolute left-full z-0 h-[1.5px] w-6 bg-border"
-                                                                      style={{
-                                                                        left: 'calc(100% + 1.5rem)',
-                                                                        top: `${matchCenter}px`,
-                                                                        transform:
-                                                                          'translateX(-50%) translateY(-50%)',
-                                                                      }}
-                                                                    />
-                                                                    <div
-                                                                      className="absolute left-full z-0 h-[1.5px] w-6 bg-border"
-                                                                      style={{
-                                                                        left: 'calc(100% + 1.5rem)',
-                                                                        top: `${matchCenter + matchHeight + gap}px`,
-                                                                        transform:
-                                                                          'translateX(-50%) translateY(-50%)',
-                                                                      }}
-                                                                    />
-                                                                  </>
-                                                                )}
-                                                            </>
-                                                          )}
-
-                                                          {/* Match box */}
-                                                          <div className="relative z-10 w-44 rounded-md border border-border bg-card p-2 shadow-sm transition-all hover:border-primary/50 hover:shadow-md">
-                                                            {/* Match label badge */}
-                                                            <div className="mb-1.5 flex items-center justify-between">
-                                                              <span className="rounded bg-muted px-1.5 py-0.5 text-[9px] font-semibold text-muted-foreground">
-                                                                {
-                                                                  match.matchLabel
-                                                                }
-                                                              </span>
-                                                              {/* Edge labels showing where winner/loser goes */}
-                                                              {winnerTarget && (
-                                                                <span className="text-[9px] text-muted-foreground">
-                                                                  W→
-                                                                  {
-                                                                    winnerTarget.matchLabel
-                                                                  }
-                                                                </span>
-                                                              )}
-                                                              {loserTarget && (
-                                                                <span className="text-[9px] text-muted-foreground">
-                                                                  L→
-                                                                  {
-                                                                    loserTarget.matchLabel
-                                                                  }
-                                                                </span>
-                                                              )}
-                                                            </div>
-
-                                                            <div className="space-y-1">
-                                                              {/* Home team */}
-                                                              <div className="rounded border border-border/50 bg-muted/30 px-2 py-1 text-xs">
-                                                                <div className="truncate font-medium text-foreground">
-                                                                  {homeDisplay}
-                                                                </div>
-                                                                {getTeamPositionLabel(
-                                                                  match.homeTeam
-                                                                ) && (
-                                                                  <div className="mt-0.5 truncate text-[10px] text-muted-foreground">
-                                                                    {getTeamPositionLabel(
-                                                                      match.homeTeam
-                                                                    )}
-                                                                  </div>
-                                                                )}
-                                                              </div>
-
-                                                              {/* VS separator */}
-                                                              <div className="text-center text-[10px] font-semibold text-muted-foreground">
-                                                                vs
-                                                              </div>
-
-                                                              {/* Away team */}
-                                                              <div className="rounded border border-border/50 bg-muted/30 px-2 py-1 text-xs">
-                                                                <div className="truncate font-medium text-foreground">
-                                                                  {awayDisplay}
-                                                                </div>
-                                                                {getTeamPositionLabel(
-                                                                  match.awayTeam
-                                                                ) && (
-                                                                  <div className="mt-0.5 truncate text-[10px] text-muted-foreground">
-                                                                    {getTeamPositionLabel(
-                                                                      match.awayTeam
-                                                                    )}
-                                                                  </div>
-                                                                )}
-                                                              </div>
-                                                            </div>
-                                                          </div>
-                                                        </div>
-                                                      );
-                                                    }
-                                                  )}
-                                                </div>
-                                              </div>
-                                            );
-                                          })}
-                                        </div>
-                                      </div>
-
-                                      {/* Standings List - Show for all brackets */}
-                                      {(() => {
-                                        // Calculate standings from bracket structure
-                                        // Get teams in this bracket
-                                        const bracketConfig =
-                                          placementConfig.brackets.find(
-                                            (b) =>
-                                              b.id === bracketData.bracketId
-                                          );
-                                        if (!bracketConfig) return null;
-
-                                        const bracketTeams =
-                                          groupStandings.reduce((acc, gs) => {
-                                            const teams = gs.teams.filter((t) =>
-                                              bracketConfig.positions.includes(
-                                                (
-                                                  t as typeof t & {
-                                                    position: number;
-                                                  }
-                                                ).position
-                                              )
-                                            );
-                                            return acc + teams.length;
-                                          }, 0);
-
-                                        const positions: Array<{
-                                          position: number;
-                                          label: string;
-                                        }> = [];
-
-                                        // Find final match
-                                        const finalMatch =
-                                          bracketData.matches.find(
-                                            (m) => m.roundLabel === 'Final'
-                                          );
-                                        const thirdPlaceMatch =
-                                          bracketData.matches.find(
-                                            (m) =>
-                                              m.roundLabel === 'Third Place'
-                                          );
-
-                                        // Add positions based on bracket structure
-                                        if (finalMatch) {
-                                          positions.push({
-                                            position: 1,
-                                            label: 'Winner of Final',
-                                          });
-                                          positions.push({
-                                            position: 2,
-                                            label: 'Runner-up of Final',
-                                          });
-                                        }
-                                        if (thirdPlaceMatch) {
-                                          positions.push({
-                                            position: 3,
-                                            label: 'Winner of Third Place',
-                                          });
-                                          positions.push({
-                                            position: 4,
-                                            label: 'Loser of Third Place',
-                                          });
-                                        }
-
-                                        // Add remaining positions
-                                        for (
-                                          let i = positions.length + 1;
-                                          i <= bracketTeams;
-                                          i++
-                                        ) {
-                                          positions.push({
-                                            position: i,
-                                            label: `Position ${i}`,
-                                          });
-                                        }
-
-                                        if (positions.length === 0) return null;
-
-                                        return (
-                                          <Card className="mt-6">
-                                            <CardHeader>
-                                              <CardTitle className="text-base">
-                                                {bracketData.bracketName}{' '}
-                                                Standings
-                                              </CardTitle>
-                                            </CardHeader>
-                                            <CardContent>
-                                              <div className="space-y-1.5">
-                                                {positions.map((pos) => (
-                                                  <div
-                                                    key={pos.position}
-                                                    className="flex items-center gap-3 rounded-md border border-border/50 bg-muted/20 px-3 py-2"
-                                                  >
-                                                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
-                                                      {pos.position}.
-                                                    </div>
-                                                    <div className="flex-1 text-sm font-medium">
-                                                      {pos.label}
-                                                    </div>
-                                                  </div>
-                                                ))}
-                                              </div>
-                                            </CardContent>
-                                          </Card>
-                                        );
-                                      })()}
-                                    </div>
-                                  );
-                                })()}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      );
-                    })()}
-                  </CardContent>
-                </Card>
+                  );
+                })
               )}
             </div>
-          )}
-          {selectedDivision === 'all' && (
-            <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-4">
-              <div className="flex items-center space-x-2">
-                <Info className="h-5 w-5 text-blue-600" />
-                <p className="text-sm text-blue-800">
-                  Please select a specific division to generate matches and
-                  configure matches.
-                </p>
+          </div>
+        </div>
+      )}
+      {/* All Groups View: Render each group stacked vertically with separators */}
+      {selectedGroup === 'all' &&
+        selectedDivision !== 'all' &&
+        (() => {
+          const divisionGroups = propGroups.filter(
+            (group) => group.division?.id === selectedDivision
+          );
+
+          if (divisionGroups.length === 0) {
+            return null;
+          }
+
+          const handleGroupDragOver = (
+            e: React.DragEvent,
+            matchIndex: number,
+            position: 'home' | 'away'
+          ) => {
+            e.preventDefault();
+            if (!draggedTeam) return;
+
+            // The component manages its own placeholders, so we just set the drag target
+            // The actual validation happens in the component's handleDrop
+            e.dataTransfer.dropEffect = 'move';
+            setDragOverTarget({ matchIndex, position });
+          };
+
+          const handleGroupDrop = (
+            e: React.DragEvent,
+            matchIndex: number,
+            position: 'home' | 'away',
+            groupId: string
+          ) => {
+            e.preventDefault();
+            if (!draggedTeam) return;
+
+            const groupPlaceholders = getGroupMatchPlaceholders(groupId);
+            const placeholder = groupPlaceholders[matchIndex];
+
+            if (!placeholder) return;
+
+            // Don't allow dropping on the same team
+            if (
+              (position === 'home' &&
+                placeholder.homeTeamId === draggedTeam.id) ||
+              (position === 'away' && placeholder.awayTeamId === draggedTeam.id)
+            ) {
+              return;
+            }
+
+            // Don't allow same team in both positions
+            if (
+              (position === 'home' &&
+                placeholder.awayTeamId === draggedTeam.id) ||
+              (position === 'away' && placeholder.homeTeamId === draggedTeam.id)
+            ) {
+              return;
+            }
+
+            const updatedPlaceholder = {
+              id: placeholder.id,
+              homeTeamId:
+                position === 'home' ? draggedTeam.id : placeholder.homeTeamId,
+              awayTeamId:
+                position === 'away' ? draggedTeam.id : placeholder.awayTeamId,
+            };
+
+            setDraggedTeam(null);
+            setDragOverTarget(null);
+
+            // Save match to database
+            saveMatchPlaceholder(updatedPlaceholder, matchIndex, groupId);
+          };
+
+          const handleGroupRemoveTeam = (
+            matchIndex: number,
+            position: 'home' | 'away',
+            groupId: string
+          ) => {
+            const groupPlaceholders = getGroupMatchPlaceholders(groupId);
+            const placeholder = groupPlaceholders[matchIndex];
+            if (!placeholder) return;
+
+            const updatedPlaceholder = {
+              id: placeholder.id,
+              homeTeamId: position === 'home' ? null : placeholder.homeTeamId,
+              awayTeamId: position === 'away' ? null : placeholder.awayTeamId,
+            };
+
+            saveMatchPlaceholder(updatedPlaceholder, matchIndex, groupId);
+          };
+
+          return (
+            <div className="mb-6 space-y-8">
+              {divisionGroups.map((group, groupIndex) => {
+                const groupTeams = getGroupTeams(group.id);
+                const groupPlaceholders = getGroupMatchPlaceholders(group.id);
+
+                return (
+                  <div key={group.id}>
+                    {groupIndex > 0 && (
+                      <div className="my-8 border-t border-gray-300"></div>
+                    )}
+                    <GroupMatchesView
+                      group={group}
+                      groupTeams={groupTeams}
+                      groupPlaceholders={groupPlaceholders}
+                      draggedTeam={draggedTeam}
+                      dragOverTarget={dragOverTarget}
+                      onDragStart={handleDragStart}
+                      onDragEnd={handleDragEnd}
+                      onDragOver={(e, index, position) =>
+                        handleGroupDragOver(e, index, position)
+                      }
+                      onDragLeave={handleDragLeave}
+                      onDrop={(e, index, position) =>
+                        handleGroupDrop(e, index, position, group.id)
+                      }
+                      onRemoveTeam={(index, position) =>
+                        handleGroupRemoveTeam(index, position, group.id)
+                      }
+                      getTeamMatchCount={(teamId) =>
+                        getTeamMatchCountForGroup(teamId, group.id)
+                      }
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })()}
+      {/* Placements View: Bracket visualization */}
+      {selectedGroup === 'placements' && selectedDivision !== 'all' && (
+        <div className="mb-6 space-y-6">
+          {/* Placement Configuration */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Placement Strategy</CardTitle>
+              <CardDescription>
+                Configure how teams advance from groups to placement matches
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="placement-strategy">Strategy</Label>
+                <Select
+                  value={placementConfig?.id || ''}
+                  onValueChange={(value) => {
+                    const config = PLACEMENT_SYSTEM_TEMPLATES.find(
+                      (t) => t.id === value
+                    );
+                    if (config) {
+                      setPlacementConfig(config);
+                    }
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select placement strategy" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PLACEMENT_SYSTEM_TEMPLATES.map((template) => (
+                      <SelectItem key={template.id} value={template.id}>
+                        {template.name} - {template.description}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-            </div>
-          )}
-          {selectedDivision !== 'all' && (
-            <div className="mb-4 flex flex-wrap gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleGenerateMatches()}
-                disabled={isSubmitting}
-              >
-                Generate All Matches
-              </Button>
-              {matches.length > 0 && (
-                <>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleBulkOperation('regenerate_all')}
-                    disabled={isSubmitting}
-                  >
-                    Regenerate All
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleBulkOperation('clear_all')}
-                    disabled={isSubmitting}
-                    className="text-destructive hover:text-destructive"
-                  >
-                    Clear All
-                  </Button>
-                </>
+              {placementConfig && (
+                <div className="rounded-lg border p-4">
+                  <h4 className="mb-2 font-medium">{placementConfig.name}</h4>
+                  <p className="mb-4 text-sm text-muted-foreground">
+                    {placementConfig.description}
+                  </p>
+                  <div className="space-y-2">
+                    <h5 className="text-sm font-medium">Brackets:</h5>
+                    {placementConfig.brackets.map((bracket) => (
+                      <div
+                        key={bracket.id}
+                        className="text-sm text-muted-foreground"
+                      >
+                        • {bracket.name}: Positions{' '}
+                        {bracket.positions.join(', ')}
+                      </div>
+                    ))}
+                  </div>
+                </div>
               )}
-            </div>
-          )}
-          {/* Summary Component */}
-          {showSummary && (
-            <Card className="mb-6">
+            </CardContent>
+          </Card>
+
+          {/* Bracket Visualization */}
+          {placementConfig && (
+            <Card>
               <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <BarChart3 className="h-5 w-5" />
-                  <span>Match Distribution Summary</span>
-                </CardTitle>
+                <CardTitle>Placement Bracket</CardTitle>
                 <CardDescription>
-                  Track team match counts to ensure fair distribution
+                  Visual representation of placement matches
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {/* Overall Stats */}
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-                    <div className="text-center">
-                      <div className="text-2xl font-bold">
-                        {filteredMatches.length}
+                {(() => {
+                  const groupStandings = calculateGroupStandings();
+                  if (groupStandings.length === 0) {
+                    return (
+                      <div className="py-8 text-center text-muted-foreground">
+                        No groups found or no finished matches yet. Complete
+                        group stage matches to see placement bracket.
                       </div>
-                      <div className="text-sm text-muted-foreground">
-                        Total Matches
-                      </div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold">
-                        {teamStats.length}
-                      </div>
-                      <div className="text-sm text-muted-foreground">Teams</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold">{maxMatches}</div>
-                      <div className="text-sm text-muted-foreground">
-                        Max Matches
-                      </div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold">{minMatches}</div>
-                      <div className="text-sm text-muted-foreground">
-                        Min Matches
-                      </div>
-                    </div>
-                  </div>
+                    );
+                  }
 
-                  {/* Team Match Counts */}
-                  <div>
-                    <h4 className="mb-3 font-medium">Team Match Counts</h4>
-                    <div className="space-y-2">
-                      {teamStats
-                        .sort((a, b) => b.totalMatches - a.totalMatches)
-                        .map((stat) => {
-                          const isBalanced = stat.totalMatches === maxMatches;
-                          const isUnderplayed = stat.totalMatches < maxMatches;
+                  const placementMatches = generatePlacementMatches(
+                    groupStandings.map((gs) => ({
+                      groupId: gs.groupId,
+                      groupName: gs.groupName,
+                      teams: gs.teams.map((t) => ({
+                        id: t.id,
+                        name: t.name,
+                        position: (t as typeof t & { position: number })
+                          .position,
+                        points: t.points,
+                        goalDifference: t.goalDifference,
+                      })),
+                    })),
+                    placementConfig
+                  );
 
-                          return (
-                            <div
-                              key={stat.team.id}
-                              className="flex items-center justify-between rounded-lg border p-3"
-                            >
-                              <div className="flex items-center space-x-3">
-                                {isBalanced ? (
-                                  <CheckCircle className="h-4 w-4 text-green-500" />
-                                ) : isUnderplayed ? (
-                                  <AlertCircle className="h-4 w-4 text-yellow-500" />
-                                ) : (
-                                  <AlertCircle className="h-4 w-4 text-red-500" />
-                                )}
-                                <div>
-                                  <div className="font-medium">
-                                    {stat.team.shortName || stat.team.name}
+                  if (placementMatches.length === 0) {
+                    return (
+                      <div className="py-8 text-center text-muted-foreground">
+                        No placement matches generated. Check your placement
+                        configuration.
+                      </div>
+                    );
+                  }
+
+                  const allGroupsFinished = groupStandings.every(
+                    (gs) => gs.isFinished
+                  );
+
+                  return (
+                    <div className="space-y-8">
+                      {!allGroupsFinished && (
+                        <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+                          <div className="flex items-center space-x-2">
+                            <Info className="h-5 w-5 text-blue-600" />
+                            <p className="text-sm text-blue-800">
+                              Group matches are not finished yet. The bracket
+                              shows placeholders (e.g., &quot;1st Group A&quot;)
+                              until all group matches are completed.
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                      {placementMatches.map((bracketData) => (
+                        <div key={bracketData.bracketId} className="space-y-6">
+                          <h3 className="text-lg font-semibold">
+                            {bracketData.bracketName}
+                          </h3>
+                          <div className="space-y-4">
+                            {(() => {
+                              // Group matches by round
+                              const matchesByRound = bracketData.matches.reduce(
+                                (acc, match) => {
+                                  const round = match.round;
+                                  if (!acc[round]) {
+                                    acc[round] = [];
+                                  }
+                                  acc[round].push(match);
+                                  return acc;
+                                },
+                                {} as Record<number, PlacementMatch[]>
+                              );
+
+                              const rounds = Object.keys(matchesByRound)
+                                .map(Number)
+                                .sort((a, b) => a - b);
+
+                              const getTeamDisplay = (
+                                team: PlacementMatch['homeTeam'],
+                                showActualTeam: boolean
+                              ) => {
+                                if (team.source.type === 'group-position') {
+                                  const source = team.source;
+                                  const groupStanding = groupStandings.find(
+                                    (gs) => gs.groupId === source.groupId
+                                  );
+
+                                  // Only show actual team name if group matches are finished
+                                  if (
+                                    showActualTeam &&
+                                    groupStanding?.isFinished
+                                  ) {
+                                    const teamData = groupStanding?.teams.find(
+                                      (t) =>
+                                        (t as { position?: number })
+                                          .position === source.position
+                                    );
+                                    if (teamData) {
+                                      return (
+                                        teamData.shortName || teamData.name
+                                      );
+                                    }
+                                  }
+
+                                  // Show placeholder
+                                  const position = source.position;
+                                  const suffix =
+                                    position === 1
+                                      ? 'st'
+                                      : position === 2
+                                        ? 'nd'
+                                        : position === 3
+                                          ? 'rd'
+                                          : 'th';
+                                  return `${position}${suffix} ${source.groupName}`;
+                                }
+
+                                // For match winners/losers, show placeholder until match is finished
+                                if (
+                                  team.source.type === 'match-winner' ||
+                                  team.source.type === 'match-loser'
+                                ) {
+                                  return team.name; // This will be "Winner of Game X" or "Loser of Game X"
+                                }
+
+                                return team.name;
+                              };
+
+                              const getTeamPositionLabel = (
+                                team:
+                                  | PlacementMatch['homeTeam']
+                                  | PlacementMatch['awayTeam']
+                              ) => {
+                                if (team.source.type === 'group-position') {
+                                  const source = team.source;
+                                  const groupStanding = groupStandings.find(
+                                    (gs) => gs.groupId === source.groupId
+                                  );
+
+                                  if (groupStanding?.isFinished) {
+                                    const teamData = groupStanding?.teams.find(
+                                      (t) =>
+                                        (t as { position?: number })
+                                          .position === source.position
+                                    );
+                                    if (teamData) {
+                                      const pos = (
+                                        teamData as typeof teamData & {
+                                          position: number;
+                                        }
+                                      ).position;
+                                      const suffix =
+                                        pos === 1
+                                          ? 'st'
+                                          : pos === 2
+                                            ? 'nd'
+                                            : pos === 3
+                                              ? 'rd'
+                                              : 'th';
+                                      return `${source.groupName} (${pos}${suffix})`;
+                                    }
+                                  }
+
+                                  const position = source.position;
+                                  const suffix =
+                                    position === 1
+                                      ? 'st'
+                                      : position === 2
+                                        ? 'nd'
+                                        : position === 3
+                                          ? 'rd'
+                                          : 'th';
+                                  return `${position}${suffix} ${source.groupName}`;
+                                }
+                                return '';
+                              };
+
+                              // Check if we should show actual teams (all groups finished)
+                              const showActualTeams = groupStandings.every(
+                                (gs) => gs.isFinished
+                              );
+
+                              // Render bracket tree structure (horizontal layout - compact)
+                              return (
+                                <div className="space-y-6">
+                                  <div className="relative overflow-x-auto py-4">
+                                    <div className="flex min-w-max gap-6">
+                                      {rounds.map((round, roundIndex) => {
+                                        const roundMatches =
+                                          matchesByRound[round] || [];
+                                        const isLastRound =
+                                          roundIndex === rounds.length - 1;
+
+                                        // Find where winners/losers advance to
+                                        const getAdvancementTarget = (
+                                          matchId: string,
+                                          isWinner: boolean
+                                        ): PlacementMatch | null => {
+                                          const nextRound = roundIndex + 1;
+                                          if (nextRound >= rounds.length)
+                                            return null;
+                                          const nextRoundNumber =
+                                            rounds[nextRound];
+                                          if (nextRoundNumber === undefined)
+                                            return null;
+                                          const nextRoundMatches =
+                                            matchesByRound[nextRoundNumber] ||
+                                            [];
+                                          // Find match that references this match's winner/loser
+                                          const targetMatch =
+                                            nextRoundMatches.find(
+                                              (m: PlacementMatch) => {
+                                                if (isWinner) {
+                                                  return (
+                                                    (m.homeTeam.source.type ===
+                                                      'match-winner' &&
+                                                      m.homeTeam.source
+                                                        .matchId === matchId) ||
+                                                    (m.awayTeam.source.type ===
+                                                      'match-winner' &&
+                                                      m.awayTeam.source
+                                                        .matchId === matchId)
+                                                  );
+                                                } else {
+                                                  return (
+                                                    (m.homeTeam.source.type ===
+                                                      'match-loser' &&
+                                                      m.homeTeam.source
+                                                        .matchId === matchId) ||
+                                                    (m.awayTeam.source.type ===
+                                                      'match-loser' &&
+                                                      m.awayTeam.source
+                                                        .matchId === matchId)
+                                                  );
+                                                }
+                                              }
+                                            );
+                                          return targetMatch || null;
+                                        };
+
+                                        return (
+                                          <div
+                                            key={round}
+                                            className="relative flex flex-col gap-3"
+                                          >
+                                            {/* Round label */}
+                                            <div className="mb-2 text-center">
+                                              <div className="inline-block rounded-md bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
+                                                {roundMatches[0]?.roundLabel ||
+                                                  `Round ${round}`}
+                                              </div>
+                                            </div>
+
+                                            {/* Matches in this round */}
+                                            <div className="flex flex-col gap-3">
+                                              {roundMatches.map(
+                                                (match, matchIndex) => {
+                                                  const homeDisplay =
+                                                    getTeamDisplay(
+                                                      match.homeTeam,
+                                                      showActualTeams
+                                                    );
+                                                  const awayDisplay =
+                                                    getTeamDisplay(
+                                                      match.awayTeam,
+                                                      showActualTeams
+                                                    );
+
+                                                  // Calculate positions for connection lines
+                                                  const matchHeight = 70;
+                                                  const gap = 12;
+                                                  const matchTop =
+                                                    matchIndex *
+                                                    (matchHeight + gap);
+                                                  const matchCenter =
+                                                    matchTop + matchHeight / 2;
+
+                                                  // Find where winner/loser advances
+                                                  const winnerTarget =
+                                                    !isLastRound
+                                                      ? getAdvancementTarget(
+                                                          match.id,
+                                                          true
+                                                        )
+                                                      : null;
+                                                  const loserTarget =
+                                                    !isLastRound
+                                                      ? getAdvancementTarget(
+                                                          match.id,
+                                                          false
+                                                        )
+                                                      : null;
+
+                                                  return (
+                                                    <div
+                                                      key={match.id}
+                                                      className="relative"
+                                                    >
+                                                      {/* Connection lines to next round */}
+                                                      {!isLastRound && (
+                                                        <>
+                                                          {/* Horizontal line from match box */}
+                                                          <div
+                                                            className="absolute left-full top-1/2 z-0 h-[1.5px] w-6 bg-border"
+                                                            style={{
+                                                              transform:
+                                                                'translateY(-50%)',
+                                                            }}
+                                                          />
+                                                          {/* Vertical connector line connecting pairs */}
+                                                          {roundMatches.length >
+                                                            1 &&
+                                                            matchIndex % 2 ===
+                                                              0 &&
+                                                            matchIndex + 1 <
+                                                              roundMatches.length && (
+                                                              <>
+                                                                {/* Vertical line */}
+                                                                <div
+                                                                  className="absolute left-full z-0 w-[1.5px] bg-border"
+                                                                  style={{
+                                                                    left: 'calc(100% + 1.5rem)',
+                                                                    top: `${matchCenter}px`,
+                                                                    height: `${matchHeight + gap}px`,
+                                                                    transform:
+                                                                      'translateX(-50%)',
+                                                                  }}
+                                                                />
+                                                                {/* Horizontal lines to next round matches */}
+                                                                <div
+                                                                  className="absolute left-full z-0 h-[1.5px] w-6 bg-border"
+                                                                  style={{
+                                                                    left: 'calc(100% + 1.5rem)',
+                                                                    top: `${matchCenter}px`,
+                                                                    transform:
+                                                                      'translateX(-50%) translateY(-50%)',
+                                                                  }}
+                                                                />
+                                                                <div
+                                                                  className="absolute left-full z-0 h-[1.5px] w-6 bg-border"
+                                                                  style={{
+                                                                    left: 'calc(100% + 1.5rem)',
+                                                                    top: `${matchCenter + matchHeight + gap}px`,
+                                                                    transform:
+                                                                      'translateX(-50%) translateY(-50%)',
+                                                                  }}
+                                                                />
+                                                              </>
+                                                            )}
+                                                        </>
+                                                      )}
+
+                                                      {/* Match box */}
+                                                      <div className="relative z-10 w-44 rounded-md border border-border bg-card p-2 shadow-sm transition-all hover:border-primary/50 hover:shadow-md">
+                                                        {/* Match label badge */}
+                                                        <div className="mb-1.5 flex items-center justify-between">
+                                                          <span className="rounded bg-muted px-1.5 py-0.5 text-[9px] font-semibold text-muted-foreground">
+                                                            {match.matchLabel}
+                                                          </span>
+                                                          {/* Edge labels showing where winner/loser goes */}
+                                                          {winnerTarget && (
+                                                            <span className="text-[9px] text-muted-foreground">
+                                                              W→
+                                                              {
+                                                                winnerTarget.matchLabel
+                                                              }
+                                                            </span>
+                                                          )}
+                                                          {loserTarget && (
+                                                            <span className="text-[9px] text-muted-foreground">
+                                                              L→
+                                                              {
+                                                                loserTarget.matchLabel
+                                                              }
+                                                            </span>
+                                                          )}
+                                                        </div>
+
+                                                        <div className="space-y-1">
+                                                          {/* Home team */}
+                                                          <div className="rounded border border-border/50 bg-muted/30 px-2 py-1 text-xs">
+                                                            <div className="truncate font-medium text-foreground">
+                                                              {homeDisplay}
+                                                            </div>
+                                                            {getTeamPositionLabel(
+                                                              match.homeTeam
+                                                            ) && (
+                                                              <div className="mt-0.5 truncate text-[10px] text-muted-foreground">
+                                                                {getTeamPositionLabel(
+                                                                  match.homeTeam
+                                                                )}
+                                                              </div>
+                                                            )}
+                                                          </div>
+
+                                                          {/* VS separator */}
+                                                          <div className="text-center text-[10px] font-semibold text-muted-foreground">
+                                                            vs
+                                                          </div>
+
+                                                          {/* Away team */}
+                                                          <div className="rounded border border-border/50 bg-muted/30 px-2 py-1 text-xs">
+                                                            <div className="truncate font-medium text-foreground">
+                                                              {awayDisplay}
+                                                            </div>
+                                                            {getTeamPositionLabel(
+                                                              match.awayTeam
+                                                            ) && (
+                                                              <div className="mt-0.5 truncate text-[10px] text-muted-foreground">
+                                                                {getTeamPositionLabel(
+                                                                  match.awayTeam
+                                                                )}
+                                                              </div>
+                                                            )}
+                                                          </div>
+                                                        </div>
+                                                      </div>
+                                                    </div>
+                                                  );
+                                                }
+                                              )}
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
                                   </div>
-                                  <div className="text-sm text-muted-foreground">
-                                    {stat.homeMatches} home, {stat.awayMatches}{' '}
-                                    away
-                                  </div>
-                                </div>
-                              </div>
-                              <div className="text-right">
-                                <div className="text-lg font-bold">
-                                  {stat.totalMatches}
-                                </div>
-                                <div className="text-xs text-muted-foreground">
-                                  matches
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                    </div>
-                  </div>
 
-                  {/* Balance Status */}
-                  <div className="rounded-lg border p-4">
-                    <h4 className="mb-2 font-medium">Balance Status</h4>
-                    {maxMatches === minMatches ? (
-                      <div className="flex items-center space-x-2 text-green-600">
-                        <CheckCircle className="h-4 w-4" />
-                        <span>All teams have equal matches ({maxMatches})</span>
-                      </div>
-                    ) : (
-                      <div className="flex items-center space-x-2 text-yellow-600">
-                        <AlertCircle className="h-4 w-4" />
-                        <span>
-                          Match distribution varies: {minMatches}-{maxMatches}{' '}
-                          matches per team
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
+                                  {/* Standings List - Show for all brackets */}
+                                  {(() => {
+                                    // Calculate standings from bracket structure
+                                    // Get teams in this bracket
+                                    const bracketConfig =
+                                      placementConfig.brackets.find(
+                                        (b) => b.id === bracketData.bracketId
+                                      );
+                                    if (!bracketConfig) return null;
+
+                                    const bracketTeams = groupStandings.reduce(
+                                      (acc, gs) => {
+                                        const teams = gs.teams.filter((t) =>
+                                          bracketConfig.positions.includes(
+                                            (
+                                              t as typeof t & {
+                                                position: number;
+                                              }
+                                            ).position
+                                          )
+                                        );
+                                        return acc + teams.length;
+                                      },
+                                      0
+                                    );
+
+                                    const positions: Array<{
+                                      position: number;
+                                      label: string;
+                                    }> = [];
+
+                                    // Find final match
+                                    const finalMatch = bracketData.matches.find(
+                                      (m) => m.roundLabel === 'Final'
+                                    );
+                                    const thirdPlaceMatch =
+                                      bracketData.matches.find(
+                                        (m) => m.roundLabel === 'Third Place'
+                                      );
+
+                                    // Add positions based on bracket structure
+                                    if (finalMatch) {
+                                      positions.push({
+                                        position: 1,
+                                        label: 'Winner of Final',
+                                      });
+                                      positions.push({
+                                        position: 2,
+                                        label: 'Runner-up of Final',
+                                      });
+                                    }
+                                    if (thirdPlaceMatch) {
+                                      positions.push({
+                                        position: 3,
+                                        label: 'Winner of Third Place',
+                                      });
+                                      positions.push({
+                                        position: 4,
+                                        label: 'Loser of Third Place',
+                                      });
+                                    }
+
+                                    // Add remaining positions
+                                    for (
+                                      let i = positions.length + 1;
+                                      i <= bracketTeams;
+                                      i++
+                                    ) {
+                                      positions.push({
+                                        position: i,
+                                        label: `Position ${i}`,
+                                      });
+                                    }
+
+                                    if (positions.length === 0) return null;
+
+                                    return (
+                                      <Card className="mt-6">
+                                        <CardHeader>
+                                          <CardTitle className="text-base">
+                                            {bracketData.bracketName} Standings
+                                          </CardTitle>
+                                        </CardHeader>
+                                        <CardContent>
+                                          <div className="space-y-1.5">
+                                            {positions.map((pos) => (
+                                              <div
+                                                key={pos.position}
+                                                className="flex items-center gap-3 rounded-md border border-border/50 bg-muted/20 px-3 py-2"
+                                              >
+                                                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
+                                                  {pos.position}.
+                                                </div>
+                                                <div className="flex-1 text-sm font-medium">
+                                                  {pos.label}
+                                                </div>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        </CardContent>
+                                      </Card>
+                                    );
+                                  })()}
+                                </div>
+                              );
+                            })()}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
               </CardContent>
             </Card>
           )}
-          {teams.length < 2 ? (
-            <div className="py-12 text-center">
-              <Trophy className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
-              <h3 className="mb-2 text-lg font-semibold">
-                Need at least 2 teams
-              </h3>
-              <p className="mb-4 text-muted-foreground">
-                Add at least 2 teams to the tournament before creating matches.
-              </p>
-            </div>
-          ) : filteredMatches.length === 0 ? (
-            <div className="py-12 text-center">
-              <Trophy className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
-              <h3 className="mb-2 text-lg font-semibold">No matches yet</h3>
-              <p className="mb-4 text-muted-foreground">
-                {divisionId
-                  ? 'Generate matches for this division or add individual matches manually.'
-                  : 'Get started by adding the first match to this tournament.'}
-              </p>
-              <div className="flex justify-center gap-2">
-                {divisionId && (
-                  <Button onClick={() => handleGenerateMatches()}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Generate Matches
-                  </Button>
-                )}
-                <Button onClick={() => setIsDialogOpen(true)}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add First Match
-                </Button>
+        </div>
+      )}
+      {selectedDivision === 'all' && (
+        <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-4">
+          <div className="flex items-center space-x-2">
+            <Info className="h-5 w-5 text-blue-600" />
+            <p className="text-sm text-blue-800">
+              Please select a specific division to generate matches and
+              configure matches.
+            </p>
+          </div>
+        </div>
+      )}
+      {selectedDivision !== 'all' && (
+        <div className="mb-4 flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handleGenerateMatches()}
+            disabled={isSubmitting}
+          >
+            Generate All Matches
+          </Button>
+          {matches.length > 0 && (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleBulkOperation('regenerate_all')}
+                disabled={isSubmitting}
+              >
+                Regenerate All
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleBulkOperation('clear_all')}
+                disabled={isSubmitting}
+                className="text-destructive hover:text-destructive"
+              >
+                Clear All
+              </Button>
+            </>
+          )}
+        </div>
+      )}
+      {/* Summary Component */}
+      {showSummary && (
+        <div className="mb-6">
+          <div className="space-y-4">
+            {/* Overall Stats */}
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+              <div className="text-center">
+                <div className="text-2xl font-bold">
+                  {filteredMatches.length}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  Total Matches
+                </div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold">{teamStats.length}</div>
+                <div className="text-sm text-muted-foreground">Teams</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold">{maxMatches}</div>
+                <div className="text-sm text-muted-foreground">Max Matches</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold">{minMatches}</div>
+                <div className="text-sm text-muted-foreground">Min Matches</div>
               </div>
             </div>
-          ) : (
-            <div className="space-y-6">
-              {filteredMatches.length === 0 ? (
-                <div className="py-12 text-center">
-                  <Trophy className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
-                  <h3 className="mb-2 text-lg font-semibold">
-                    No matches found
-                  </h3>
-                  <p className="text-muted-foreground">
-                    {matches.length === 0
-                      ? 'No matches have been created yet.'
-                      : 'No matches match the current filters.'}
-                  </p>
-                </div>
-              ) : Object.keys(groupedMatches).length === 0 &&
-                filteredMatches.length > 0 ? (
-                // Fallback: Show ungrouped matches if grouping failed
-                ((() => {
-                  console.log(
-                    'MatchesManagementSimple - Showing fallback table for ungrouped matches'
-                  );
-                  return null;
-                })(),
-                (
-                  <div className="space-y-4">
-                    <div className="border-b pb-2">
-                      <h3 className="text-lg font-semibold">All Matches</h3>
-                    </div>
-                    <div className="rounded-md border">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Teams</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead>Score</TableHead>
-                            <TableHead>Referee</TableHead>
-                            <TableHead>Actions</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {filteredMatches.map((match) => (
-                            <TableRow key={match.id}>
-                              <TableCell>
-                                <div className="font-medium">
-                                  {match.homeTeam && match.awayTeam ? (
-                                    <div className="flex items-center gap-2">
-                                      <div className="flex items-center gap-1">
-                                        {(match.homeTeam.logo ||
-                                          match.homeTeam.clubRef?.logo) && (
-                                          <img
-                                            src={
-                                              match.homeTeam.logo ||
-                                              match.homeTeam.clubRef?.logo
-                                            }
-                                            alt={`${match.homeTeam.name} logo`}
-                                            className="h-6 w-6 rounded object-cover"
-                                          />
-                                        )}
-                                        <span>
-                                          {match.homeTeam.shortName ||
-                                            match.homeTeam.name}
-                                        </span>
-                                      </div>
-                                      <span className="text-muted-foreground">
-                                        vs
-                                      </span>
-                                      <div className="flex items-center gap-1">
-                                        {(match.awayTeam.logo ||
-                                          match.awayTeam.clubRef?.logo) && (
-                                          <img
-                                            src={
-                                              match.awayTeam.logo ||
-                                              match.awayTeam.clubRef?.logo
-                                            }
-                                            alt={`${match.awayTeam.name} logo`}
-                                            className="h-6 w-6 rounded object-cover"
-                                          />
-                                        )}
-                                        <span>
-                                          {match.awayTeam.shortName ||
-                                            match.awayTeam.name}
-                                        </span>
-                                      </div>
-                                    </div>
-                                  ) : (
-                                    <span className="text-muted-foreground">
-                                      TBD
-                                    </span>
-                                  )}
-                                </div>
-                                {match.venue && match.pitch && (
-                                  <div className="text-sm text-muted-foreground">
-                                    {match.venue.name} - {match.pitch.name}
-                                  </div>
-                                )}
-                                {match.startTime && (
-                                  <div className="text-sm text-muted-foreground">
-                                    {new Date(match.startTime).toLocaleString()}
-                                  </div>
-                                )}
-                              </TableCell>
-                              <TableCell>
-                                {getStatusBadge(match.status)}
-                              </TableCell>
-                              <TableCell>
-                                {match.status === 'COMPLETED' ? (
-                                  <div className="font-mono">
-                                    {match.homeScore} - {match.awayScore}
-                                  </div>
-                                ) : (
-                                  <span className="text-muted-foreground">
-                                    -
-                                  </span>
-                                )}
-                              </TableCell>
-                              <TableCell>
-                                {match.referee || (
-                                  <span className="text-muted-foreground">
-                                    -
-                                  </span>
-                                )}
-                              </TableCell>
-                              <TableCell>
-                                <div className="flex space-x-2">
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => {
-                                      setEditingMatch(match);
-                                      setFormData({
-                                        homeTeamId: match.homeTeam?.id || '',
-                                        awayTeamId: match.awayTeam?.id || '',
-                                        groupId: match.group?.id || '',
-                                        referee: match.referee || '',
-                                        notes: match.notes || '',
-                                      });
-                                      setIsDialogOpen(true);
-                                    }}
-                                  >
-                                    <Edit className="h-4 w-4" />
-                                  </Button>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => handleDelete(match.id)}
-                                    className="text-destructive hover:text-destructive"
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                Object.values(groupedMatches).map(({ division, groups }) => (
-                  <div key={division.id} className="space-y-4">
-                    <div className="border-b pb-2">
-                      <h3 className="text-lg font-semibold">{division.name}</h3>
-                    </div>
-                    {Object.values(groups).map(
-                      ({ group, matches: groupMatches }) => (
-                        <div key={group.id} className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <h4 className="font-medium text-muted-foreground">
-                              {group.name} ({groupMatches.length} matches)
-                            </h4>
-                          </div>
-                          <div className="rounded-md border">
-                            <Table>
-                              <TableHeader>
-                                <TableRow>
-                                  <TableHead>Teams</TableHead>
-                                  <TableHead>Status</TableHead>
-                                  <TableHead>Score</TableHead>
-                                  <TableHead>Referee</TableHead>
-                                  <TableHead>Actions</TableHead>
-                                </TableRow>
-                              </TableHeader>
-                              <TableBody>
-                                {groupMatches.map((match) => (
-                                  <TableRow key={match.id}>
-                                    <TableCell>
-                                      <div className="font-medium">
-                                        {match.homeTeam && match.awayTeam ? (
-                                          <>
-                                            {match.homeTeam.shortName ||
-                                              match.homeTeam.name}{' '}
-                                            vs{' '}
-                                            {match.awayTeam.shortName ||
-                                              match.awayTeam.name}
-                                          </>
-                                        ) : (
-                                          <span className="text-muted-foreground">
-                                            {match.homeTeam
-                                              ? `${match.homeTeam.shortName || match.homeTeam.name} vs TBD`
-                                              : match.awayTeam
-                                                ? `TBD vs ${match.awayTeam.shortName || match.awayTeam.name}`
-                                                : 'TBD vs TBD'}
-                                          </span>
-                                        )}
-                                      </div>
-                                      {match.venue && match.pitch && (
-                                        <div className="text-sm text-muted-foreground">
-                                          {match.venue.name} -{' '}
-                                          {match.pitch.name}
-                                        </div>
-                                      )}
-                                      {match.startTime && (
-                                        <div className="text-sm text-muted-foreground">
-                                          {new Date(
-                                            match.startTime
-                                          ).toLocaleString()}
-                                        </div>
-                                      )}
-                                    </TableCell>
-                                    <TableCell>
-                                      {getStatusBadge(match.status)}
-                                    </TableCell>
-                                    <TableCell>
-                                      {match.homeScore} - {match.awayScore}
-                                    </TableCell>
-                                    <TableCell>
-                                      {match.referee || '-'}
-                                    </TableCell>
-                                    <TableCell>
-                                      <div className="flex space-x-2">
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
-                                          onClick={() => {
-                                            setEditingMatch(match);
-                                            setFormData({
-                                              homeTeamId: match.homeTeam.id,
-                                              awayTeamId: match.awayTeam.id,
-                                              groupId: match.group?.id || '',
-                                              referee: match.referee || '',
-                                              notes: match.notes || '',
-                                            });
-                                            setIsDialogOpen(true);
-                                          }}
-                                        >
-                                          <Edit className="h-4 w-4" />
-                                        </Button>
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
-                                          onClick={() => handleDelete(match.id)}
-                                          className="text-destructive hover:text-destructive"
-                                        >
-                                          <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                      </div>
-                                    </TableCell>
-                                  </TableRow>
-                                ))}
-                              </TableBody>
-                            </Table>
+
+            {/* Team Match Counts */}
+            <div>
+              <h4 className="mb-3 font-medium">Team Match Counts</h4>
+              <div className="space-y-2">
+                {teamStats
+                  .sort((a, b) => b.totalMatches - a.totalMatches)
+                  .map((stat) => {
+                    const isBalanced = stat.totalMatches === maxMatches;
+                    const isUnderplayed = stat.totalMatches < maxMatches;
+
+                    return (
+                      <div
+                        key={stat.team.id}
+                        className="flex items-center justify-between rounded-lg border p-3"
+                      >
+                        <div className="flex items-center space-x-3">
+                          {isBalanced ? (
+                            <CheckCircle className="h-4 w-4 text-green-500" />
+                          ) : isUnderplayed ? (
+                            <AlertCircle className="h-4 w-4 text-yellow-500" />
+                          ) : (
+                            <AlertCircle className="h-4 w-4 text-red-500" />
+                          )}
+                          <div>
+                            <div className="font-medium">
+                              {stat.team.shortName || stat.team.name}
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              {stat.homeMatches} home, {stat.awayMatches} away
+                            </div>
                           </div>
                         </div>
-                      )
-                    )}
-                  </div>
-                ))
+                        <div className="text-right">
+                          <div className="text-lg font-bold">
+                            {stat.totalMatches}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            matches
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            </div>
+
+            {/* Balance Status */}
+            <div className="rounded-lg border p-4">
+              <h4 className="mb-2 font-medium">Balance Status</h4>
+              {maxMatches === minMatches ? (
+                <div className="flex items-center space-x-2 text-green-600">
+                  <CheckCircle className="h-4 w-4" />
+                  <span>All teams have equal matches ({maxMatches})</span>
+                </div>
+              ) : (
+                <div className="flex items-center space-x-2 text-yellow-600">
+                  <AlertCircle className="h-4 w-4" />
+                  <span>
+                    Match distribution varies: {minMatches}-{maxMatches} matches
+                    per team
+                  </span>
+                </div>
               )}
             </div>
+          </div>
+        </div>
+      )}
+      {teams.length < 2 ? (
+        <div className="py-12 text-center">
+          <Trophy className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+          <h3 className="mb-2 text-lg font-semibold">Need at least 2 teams</h3>
+          <p className="mb-4 text-muted-foreground">
+            Add at least 2 teams to the tournament before creating matches.
+          </p>
+        </div>
+      ) : filteredMatches.length === 0 ? (
+        <div className="py-12 text-center">
+          <Trophy className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+          <h3 className="mb-2 text-lg font-semibold">No matches yet</h3>
+          <p className="mb-4 text-muted-foreground">
+            {divisionId
+              ? 'Generate matches for this division or add individual matches manually.'
+              : 'Get started by adding the first match to this tournament.'}
+          </p>
+          <div className="flex justify-center gap-2">
+            {divisionId && (
+              <Button onClick={() => handleGenerateMatches()}>
+                <Plus className="mr-2 h-4 w-4" />
+                Generate Matches
+              </Button>
+            )}
+            <Button onClick={() => setIsDialogOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Add First Match
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {filteredMatches.length === 0 ? (
+            <div className="py-12 text-center">
+              <Trophy className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+              <h3 className="mb-2 text-lg font-semibold">No matches found</h3>
+              <p className="text-muted-foreground">
+                {matches.length === 0
+                  ? 'No matches have been created yet.'
+                  : 'No matches match the current filters.'}
+              </p>
+            </div>
+          ) : Object.keys(groupedMatches).length === 0 &&
+            filteredMatches.length > 0 ? (
+            // Fallback: Show ungrouped matches if grouping failed
+            ((() => {
+              console.log(
+                'MatchesManagementSimple - Showing fallback table for ungrouped matches'
+              );
+              return null;
+            })(),
+            (
+              <div className="space-y-4">
+                <div className="border-b pb-2">
+                  <h3 className="text-lg font-semibold">All Matches</h3>
+                </div>
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Teams</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Score</TableHead>
+                        <TableHead>Referee</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredMatches.map((match) => (
+                        <TableRow key={match.id}>
+                          <TableCell>
+                            <div className="font-medium">
+                              {match.homeTeam && match.awayTeam ? (
+                                <div className="flex items-center gap-2">
+                                  <div className="flex items-center gap-1">
+                                    {(match.homeTeam.logo ||
+                                      match.homeTeam.clubRef?.logo) && (
+                                      <img
+                                        src={
+                                          match.homeTeam.logo ||
+                                          match.homeTeam.clubRef?.logo
+                                        }
+                                        alt={`${match.homeTeam.name} logo`}
+                                        className="h-6 w-6 rounded object-cover"
+                                      />
+                                    )}
+                                    <span>
+                                      {match.homeTeam.shortName ||
+                                        match.homeTeam.name}
+                                    </span>
+                                  </div>
+                                  <span className="text-muted-foreground">
+                                    vs
+                                  </span>
+                                  <div className="flex items-center gap-1">
+                                    {(match.awayTeam.logo ||
+                                      match.awayTeam.clubRef?.logo) && (
+                                      <img
+                                        src={
+                                          match.awayTeam.logo ||
+                                          match.awayTeam.clubRef?.logo
+                                        }
+                                        alt={`${match.awayTeam.name} logo`}
+                                        className="h-6 w-6 rounded object-cover"
+                                      />
+                                    )}
+                                    <span>
+                                      {match.awayTeam.shortName ||
+                                        match.awayTeam.name}
+                                    </span>
+                                  </div>
+                                </div>
+                              ) : (
+                                <span className="text-muted-foreground">
+                                  TBD
+                                </span>
+                              )}
+                            </div>
+                            {match.venue && match.pitch && (
+                              <div className="text-sm text-muted-foreground">
+                                {match.venue.name} - {match.pitch.name}
+                              </div>
+                            )}
+                            {match.startTime && (
+                              <div className="text-sm text-muted-foreground">
+                                {new Date(match.startTime).toLocaleString()}
+                              </div>
+                            )}
+                          </TableCell>
+                          <TableCell>{getStatusBadge(match.status)}</TableCell>
+                          <TableCell>
+                            {match.status === 'COMPLETED' ? (
+                              <div className="font-mono">
+                                {match.homeScore} - {match.awayScore}
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {match.referee || (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex space-x-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setEditingMatch(match);
+                                  setFormData({
+                                    homeTeamId: match.homeTeam?.id || '',
+                                    awayTeamId: match.awayTeam?.id || '',
+                                    groupId: match.group?.id || '',
+                                    referee: match.referee || '',
+                                    notes: match.notes || '',
+                                  });
+                                  setIsDialogOpen(true);
+                                }}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleDelete(match.id)}
+                                className="text-destructive hover:text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            ))
+          ) : (
+            Object.values(groupedMatches).map(({ division, groups }) => (
+              <div key={division.id} className="space-y-4">
+                <div className="border-b pb-2">
+                  <h3 className="text-lg font-semibold">{division.name}</h3>
+                </div>
+                {Object.values(groups).map(
+                  ({ group, matches: groupMatches }) => (
+                    <div key={group.id} className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-medium text-muted-foreground">
+                          {group.name} ({groupMatches.length} matches)
+                        </h4>
+                      </div>
+                      <div className="rounded-md border">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Teams</TableHead>
+                              <TableHead>Status</TableHead>
+                              <TableHead>Score</TableHead>
+                              <TableHead>Referee</TableHead>
+                              <TableHead>Actions</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {groupMatches.map((match) => (
+                              <TableRow key={match.id}>
+                                <TableCell>
+                                  <div className="font-medium">
+                                    {match.homeTeam && match.awayTeam ? (
+                                      <>
+                                        {match.homeTeam.shortName ||
+                                          match.homeTeam.name}{' '}
+                                        vs{' '}
+                                        {match.awayTeam.shortName ||
+                                          match.awayTeam.name}
+                                      </>
+                                    ) : (
+                                      <span className="text-muted-foreground">
+                                        {match.homeTeam
+                                          ? `${match.homeTeam.shortName || match.homeTeam.name} vs TBD`
+                                          : match.awayTeam
+                                            ? `TBD vs ${match.awayTeam.shortName || match.awayTeam.name}`
+                                            : 'TBD vs TBD'}
+                                      </span>
+                                    )}
+                                  </div>
+                                  {match.venue && match.pitch && (
+                                    <div className="text-sm text-muted-foreground">
+                                      {match.venue.name} - {match.pitch.name}
+                                    </div>
+                                  )}
+                                  {match.startTime && (
+                                    <div className="text-sm text-muted-foreground">
+                                      {new Date(
+                                        match.startTime
+                                      ).toLocaleString()}
+                                    </div>
+                                  )}
+                                </TableCell>
+                                <TableCell>
+                                  {getStatusBadge(match.status)}
+                                </TableCell>
+                                <TableCell>
+                                  {match.homeScore} - {match.awayScore}
+                                </TableCell>
+                                <TableCell>{match.referee || '-'}</TableCell>
+                                <TableCell>
+                                  <div className="flex space-x-2">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => {
+                                        setEditingMatch(match);
+                                        setFormData({
+                                          homeTeamId: match.homeTeam.id,
+                                          awayTeamId: match.awayTeam.id,
+                                          groupId: match.group?.id || '',
+                                          referee: match.referee || '',
+                                          notes: match.notes || '',
+                                        });
+                                        setIsDialogOpen(true);
+                                      }}
+                                    >
+                                      <Edit className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => handleDelete(match.id)}
+                                      className="text-destructive hover:text-destructive"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </div>
+                  )
+                )}
+              </div>
+            ))
           )}
-        </CardContent>
-      </Card>
+        </div>
+      )}
 
       {/* Division Settings */}
       {showSettings && division && (
