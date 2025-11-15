@@ -20,6 +20,7 @@ import {
 import { TournamentBracket } from "@/components/tournament/tournament-bracket";
 import { BracketVisualization } from "@/components/tournament/bracket-visualization";
 import { FinalStandings } from "@/components/tournament/final-standings";
+import { MatchesTable } from "@/components/tournament/matches-table";
 import {
   usePublicTournament,
   useTournamentDivisions,
@@ -322,9 +323,12 @@ export default function TournamentDetailPage() {
                         <tr key={division.id} className="hover:bg-gray-50">
                           <td className="px-6 py-4">
                             <div>
-                              <div className="text-sm font-medium text-gray-900">
+                              <I18nLink
+                                href={`/tournaments/${tournamentId}/divisions/${division.id}`}
+                                className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline"
+                              >
                                 {division.name || "Division Name TBD"}
-                              </div>
+                              </I18nLink>
                               {division.description && (
                                 <div className="text-sm text-gray-500 mt-1">
                                   {division.description}
@@ -472,105 +476,11 @@ export default function TournamentDetailPage() {
           </TabsContent>
 
           <TabsContent value="matches" className="mt-6">
-            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900">
-                  {t("tournament.tabs.matches")}
-                </h3>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Home Team
-                      </th>
-                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Score
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Away Team
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Date & Time
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Venue
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Status
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {matchesLoading ? (
-                      <tr>
-                        <td colSpan={6} className="px-6 py-8 text-center">
-                          <div className="flex items-center justify-center">
-                            <Loader2 className="w-6 h-6 animate-spin" />
-                          </div>
-                        </td>
-                      </tr>
-                    ) : matches && matches.length > 0 ? (
-                      matches.map((match) => (
-                        <tr key={match.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4">
-                            <div className="text-sm font-medium text-gray-900">
-                              {match.homeTeam?.name || "TBD"}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 text-center">
-                            <div className="text-lg font-bold text-gray-900">
-                              {match.homeScore} - {match.awayScore}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="text-sm font-medium text-gray-900">
-                              {match.awayTeam?.name || "TBD"}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="text-sm text-gray-900">
-                              {format(new Date(match.startTime), "MMM d, yyyy")}
-                            </div>
-                            <div className="text-sm text-gray-500">
-                              {format(new Date(match.startTime), "HH:mm")}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="text-sm text-gray-900">
-                              {match.venue?.name || "-"}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <Badge
-                              className={
-                                match.status === "LIVE"
-                                  ? "bg-red-100 text-red-800"
-                                  : match.status === "FINISHED"
-                                  ? "bg-green-100 text-green-800"
-                                  : "bg-gray-100 text-gray-800"
-                              }
-                            >
-                              {match.status}
-                            </Badge>
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td
-                          colSpan={6}
-                          className="px-6 py-8 text-center text-gray-500"
-                        >
-                          {t("tournament.details.noMatchesScheduled")}
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+            <MatchesTable
+              matches={matches || []}
+              isLoading={matchesLoading}
+              tournamentId={tournamentId}
+            />
           </TabsContent>
 
           <TabsContent value="bracket" className="mt-6">
@@ -632,7 +542,7 @@ export default function TournamentDetailPage() {
 
                     // Group bracket matches by bracket group
                     const bracketGroups = new Map<string, typeof matches>();
-                    
+
                     matches.forEach((match) => {
                       // Include matches with placeholder teams
                       if (
@@ -676,7 +586,7 @@ export default function TournamentDetailPage() {
                       // Determine round label from group name or match notes
                       let roundLabel = match.group?.name || "Bracket";
                       const groupName = match.group?.name?.toLowerCase() || "";
-                      
+
                       // Try to parse round from match notes
                       if (match.notes) {
                         try {
@@ -697,7 +607,8 @@ export default function TournamentDetailPage() {
                                   }
                                 })
                             );
-                            if (notes.round === totalRounds) roundLabel = "Final";
+                            if (notes.round === totalRounds)
+                              roundLabel = "Final";
                             else if (notes.round === totalRounds - 1)
                               roundLabel = "Semi-Final";
                             else if (notes.round === totalRounds - 2)
@@ -710,7 +621,11 @@ export default function TournamentDetailPage() {
                       }
 
                       // Infer round from group name if not in notes
-                      if (groupName.includes("final") && !groupName.includes("semi") && !groupName.includes("quarter")) {
+                      if (
+                        groupName.includes("final") &&
+                        !groupName.includes("semi") &&
+                        !groupName.includes("quarter")
+                      ) {
                         roundLabel = "Final";
                       } else if (groupName.includes("semi")) {
                         roundLabel = "Semi-Final";
@@ -747,7 +662,9 @@ export default function TournamentDetailPage() {
                           ? (() => {
                               try {
                                 const notes = JSON.parse(match.notes);
-                                return notes.matchLabel || `Game ${matchNumber}`;
+                                return (
+                                  notes.matchLabel || `Game ${matchNumber}`
+                                );
                               } catch {
                                 return `Game ${matchNumber}`;
                               }
@@ -755,7 +672,8 @@ export default function TournamentDetailPage() {
                           : `Game ${matchNumber}`,
                         status: status as "upcoming" | "live" | "finished",
                         matchDate: match.startTime,
-                        field: match.pitch?.name || match.venue?.name || undefined,
+                        field:
+                          match.pitch?.name || match.venue?.name || undefined,
                       };
                     };
 
@@ -784,7 +702,7 @@ export default function TournamentDetailPage() {
                                   number,
                                   typeof bracketMatches
                                 >();
-                                
+
                                 bracketMatches.forEach((match, index) => {
                                   let round = 1;
                                   if (match.notes) {
@@ -796,7 +714,7 @@ export default function TournamentDetailPage() {
                                       round = Math.floor(index / 2) + 1;
                                     }
                                   }
-                                  
+
                                   if (!matchesByRound.has(round)) {
                                     matchesByRound.set(round, []);
                                   }

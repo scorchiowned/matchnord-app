@@ -8,17 +8,16 @@ import { MatchesTable } from "@/components/tournament/matches-table";
 import {
   usePublicTournament,
   useTournamentMatches,
-  useTournamentDivisions,
-  useTournamentGroups,
+  useTournamentTeams,
 } from "@/hooks/use-tournaments";
 import { Link as I18nLink } from "@/i18n/routing";
 import { useTranslations } from "next-intl";
 
-export default function DivisionMatchesPage() {
+export default function TeamMatchesPage() {
   const params = useParams();
   const router = useRouter();
   const tournamentId = params.id as string;
-  const divisionId = params.divisionId as string;
+  const teamId = params.teamId as string;
   const t = useTranslations();
 
   const {
@@ -27,42 +26,30 @@ export default function DivisionMatchesPage() {
     error: tournamentError,
   } = usePublicTournament(tournamentId);
 
-  const { data: divisions, isLoading: divisionsLoading } =
-    useTournamentDivisions(tournamentId);
-
-  const { data: groups, isLoading: groupsLoading } =
-    useTournamentGroups(tournamentId);
+  const { data: teams, isLoading: teamsLoading } =
+    useTournamentTeams(tournamentId);
 
   const { data: allMatches, isLoading: matchesLoading } =
     useTournamentMatches(tournamentId);
 
-  // Find the specific division
-  const division = useMemo(() => {
-    return divisions?.find((d) => d.id === divisionId);
-  }, [divisions, divisionId]);
+  // Find the specific team
+  const team = useMemo(() => {
+    return teams?.find((t) => t.id === teamId);
+  }, [teams, teamId]);
 
-  // Get all groups for this division
-  const divisionGroups = useMemo(() => {
-    if (!groups) return [];
-    return groups.filter((g) => g.divisionId === divisionId);
-  }, [groups, divisionId]);
-
-  // Filter matches for this division (all matches in groups belonging to this division)
+  // Filter matches for this team (where team is either home or away)
   const matches = useMemo(() => {
     if (!allMatches) return [];
-    const divisionGroupIds = divisionGroups.map((g) => g.id);
     return allMatches.filter(
       (match) =>
-        (match.groupId && divisionGroupIds.includes(match.groupId)) ||
-        (match.group?.id && divisionGroupIds.includes(match.group.id)) ||
-        (match.group?.divisionId === divisionId)
+        match.homeTeam?.id === teamId || match.awayTeam?.id === teamId
     );
-  }, [allMatches, divisionGroups, divisionId]);
+  }, [allMatches, teamId]);
 
   // Check if we came from another page
   const hasReferrer = typeof window !== "undefined" && document.referrer !== "";
 
-  if (tournamentLoading || divisionsLoading || groupsLoading) {
+  if (tournamentLoading || teamsLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -88,12 +75,12 @@ export default function DivisionMatchesPage() {
     );
   }
 
-  if (!division) {
+  if (!team) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">
-            Division Not Found
+            Team Not Found
           </h2>
           <I18nLink href={`/tournaments/${tournamentId}`}>
             <Button>{t("common.back")} {t("tournament.tabs.matches")}</Button>
@@ -130,7 +117,7 @@ export default function DivisionMatchesPage() {
         {/* Page Title */}
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            {division.name} - {t("tournament.tabs.matches")}
+            {team.name} - {t("tournament.tabs.matches")}
           </h1>
           <p className="text-gray-600">
             {tournament.name} • {tournament.season}
@@ -147,3 +134,4 @@ export default function DivisionMatchesPage() {
     </div>
   );
 }
+
