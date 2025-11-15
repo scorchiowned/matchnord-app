@@ -1,7 +1,7 @@
 "use client";
 
-import { useParams } from "next/navigation";
-import { useState } from "react";
+import { useParams, useSearchParams, useRouter } from "next/navigation";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -37,10 +37,59 @@ import { Link as I18nLink } from "@/i18n/routing";
 
 export default function TournamentDetailPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const tournamentId = params.id as string;
-  const [activeTab, setActiveTab] = useState("overview");
   const t = useTranslations();
   const locale = useLocale();
+
+  // Valid tabs list (memoized to avoid recreating on every render)
+  const validTabs = useMemo(
+    () => [
+      "overview",
+      "divisions",
+      "teams",
+      "matches",
+      "bracket",
+      "venues",
+      "register",
+    ],
+    []
+  );
+
+  // Get initial tab from URL or default to "overview"
+  const tabFromUrl = searchParams.get("tab");
+  const initialTab =
+    tabFromUrl && validTabs.includes(tabFromUrl) ? tabFromUrl : "overview";
+  const [activeTab, setActiveTab] = useState(initialTab);
+
+  // Sync tab state with URL
+  useEffect(() => {
+    const currentTab = searchParams.get("tab");
+    if (
+      currentTab &&
+      validTabs.includes(currentTab) &&
+      currentTab !== activeTab
+    ) {
+      setActiveTab(currentTab);
+    }
+  }, [searchParams, activeTab, validTabs]);
+
+  // Update URL when tab changes
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    const params = new URLSearchParams(searchParams.toString());
+    if (value === "overview") {
+      params.delete("tab");
+    } else {
+      params.set("tab", value);
+    }
+    const queryString = params.toString();
+    const newUrl = queryString
+      ? `${window.location.pathname}?${queryString}`
+      : window.location.pathname;
+    router.replace(newUrl, { scroll: false });
+  };
 
   const {
     data: tournament,
@@ -166,7 +215,7 @@ export default function TournamentDetailPage() {
         {/* Tournament Tabs */}
         <Tabs
           value={activeTab}
-          onValueChange={setActiveTab}
+          onValueChange={handleTabChange}
           className="w-full mb-8"
         >
           <TabsList className="grid w-full grid-cols-7">
