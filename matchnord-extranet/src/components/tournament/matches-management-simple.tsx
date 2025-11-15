@@ -47,6 +47,7 @@ import {
   AlertCircle,
   Info,
   GripVertical,
+  RefreshCw,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { DivisionMatchSettings } from './division-match-settings';
@@ -491,6 +492,10 @@ export function MatchesManagementSimple({
     useState<PlacementSystemConfiguration | null>(
       PLACEMENT_SYSTEM_TEMPLATES[0] || null
     );
+  const [hasSavedPlacementMatches, setHasSavedPlacementMatches] =
+    useState(false);
+  const [placementMatchesGroup, setPlacementMatchesGroup] =
+    useState<Group | null>(null);
   const [draggedTeam, setDraggedTeam] = useState<Team | null>(null);
   const [dragOverTarget, setDragOverTarget] = useState<{
     matchIndex: number;
@@ -518,6 +523,54 @@ export function MatchesManagementSimple({
     referee: '',
     notes: '',
   });
+
+  // Check for existing placement matches
+  useEffect(() => {
+    if (selectedDivision === 'all') {
+      setHasSavedPlacementMatches(false);
+      setPlacementMatchesGroup(null);
+      return;
+    }
+
+    // Find placement bracket groups (non-group-stage groups)
+    const bracketGroupNames = [
+      'final',
+      'semi-final',
+      'quarter-final',
+      'round of 16',
+      'round of 8',
+      'third place',
+      'playoff',
+      'knockout',
+      'championship',
+      'consolation',
+      'placement',
+    ];
+
+    const groupStagePattern = /^group\s+[a-z]$/i;
+
+    const placementGroups = propGroups.filter(
+      (group) =>
+        group.division?.id === selectedDivision &&
+        !groupStagePattern.test(group.name) &&
+        bracketGroupNames.some((name) =>
+          group.name.toLowerCase().includes(name)
+        )
+    );
+
+    // Check if any of these groups have matches
+    const hasMatches = placementGroups.some((group) => {
+      return matches.some((match) => match.group?.id === group.id);
+    });
+
+    if (hasMatches && placementGroups.length > 0) {
+      setHasSavedPlacementMatches(true);
+      setPlacementMatchesGroup(placementGroups[0] || null);
+    } else {
+      setHasSavedPlacementMatches(false);
+      setPlacementMatchesGroup(null);
+    }
+  }, [selectedDivision, propGroups, matches]);
 
   // Sync props with state when they change - use stable comparison to prevent infinite loops
   useEffect(() => {
@@ -719,6 +772,174 @@ export function MatchesManagementSimple({
     } catch (error) {
       console.error('Error creating match:', error);
       toast.error('Failed to create match');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Delete placement matches
+  const handleDeletePlacementMatches = async () => {
+    if (
+      !confirm(
+        'Are you sure you want to delete all placement matches? This cannot be undone.'
+      )
+    ) {
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      const response = await fetch(
+        `/api/v1/tournaments/${tournamentId}/brackets`,
+        {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            divisionId:
+              selectedDivision !== 'all' ? selectedDivision : undefined,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to delete placement matches');
+      }
+
+      toast.success('Placement matches deleted successfully');
+      setHasSavedPlacementMatches(false);
+      setPlacementMatchesGroup(null);
+
+      // Refresh matches
+      if (onMatchesChange) {
+        const matchesResponse = await fetch(
+          `/api/v1/tournaments/${tournamentId}/matches`,
+          {
+            credentials: 'include',
+          }
+        );
+        if (matchesResponse.ok) {
+          const matchesData = await matchesResponse.json();
+          setMatches(matchesData);
+          onMatchesChange(matchesData);
+        }
+      }
+    } catch (error: any) {
+      console.error('Error deleting placement matches:', error);
+      toast.error(error.message || 'Failed to delete placement matches');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Save placement matches to database
+  const handleSavePlacementMatches = async () => {
+    if (!placementConfig || selectedDivision === 'all') {
+      toast.error('Please select a division and placement strategy');
+      return;
+    }
+
+    // Warn if placement matches already exist
+    if (hasSavedPlacementMatches) {
+      const shouldContinue = confirm(
+        'Placement matches already exist. Saving again will update existing matches. Continue?'
+      );
+      if (!shouldContinue) {
+        return;
+      }
+    }
+
+    try {
+      setIsSubmitting(true);
+
+      // Calculate group standings
+      const groupStandings = calculateGroupStandings();
+      if (groupStandings.length === 0) {
+        toast.error('No groups found. Add groups first.');
+        return;
+      }
+
+      // Generate placement matches
+      const placementMatchesData = generatePlacementMatches(
+        groupStandings.map((gs) => ({
+          groupId: gs.groupId,
+          groupName: gs.groupName,
+          teams: gs.teams.map((t) => ({
+            id: t.id,
+            name: t.name,
+            position: (t as typeof t & { position: number }).position,
+            points: t.points,
+            goalDifference: t.goalDifference,
+          })),
+        })),
+        placementConfig
+      );
+
+      if (placementMatchesData.length === 0) {
+        toast.error(
+          'No placement matches generated. Check your configuration.'
+        );
+        return;
+      }
+
+      // Flatten all matches from all brackets
+      const allPlacementMatches: PlacementMatch[] = [];
+      const bracketNames: string[] = [];
+
+      for (const bracketData of placementMatchesData) {
+        bracketNames.push(bracketData.bracketName);
+        allPlacementMatches.push(...bracketData.matches);
+      }
+
+      // Call API to save matches
+      const response = await fetch(
+        `/api/v1/tournaments/${tournamentId}/placement-matches`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            divisionId: selectedDivision,
+            placementMatches: allPlacementMatches,
+            bracketName: bracketNames.join(', '),
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to save placement matches');
+      }
+
+      const result = await response.json();
+      toast.success(
+        `Successfully saved ${result.matchesCreated} placement matches!`
+      );
+
+      setHasSavedPlacementMatches(true);
+
+      // Refresh matches
+      if (onMatchesChange) {
+        const matchesResponse = await fetch(
+          `/api/v1/tournaments/${tournamentId}/matches`,
+          {
+            credentials: 'include',
+          }
+        );
+        if (matchesResponse.ok) {
+          const matchesData = await matchesResponse.json();
+          setMatches(matchesData);
+          onMatchesChange(matchesData);
+        }
+      }
+    } catch (error: any) {
+      console.error('Error saving placement matches:', error);
+      toast.error(error.message || 'Failed to save placement matches');
     } finally {
       setIsSubmitting(false);
     }
@@ -1770,10 +1991,61 @@ export function MatchesManagementSimple({
           {/* Placement Configuration */}
           <Card>
             <CardHeader>
-              <CardTitle>Placement Strategy</CardTitle>
-              <CardDescription>
-                Configure how teams advance from groups to placement matches
-              </CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    Placement Strategy
+                    {hasSavedPlacementMatches && (
+                      <Badge className="bg-green-100 text-green-800">
+                        <CheckCircle className="mr-1 h-3 w-3" />
+                        Saved
+                      </Badge>
+                    )}
+                  </CardTitle>
+                  <CardDescription>
+                    {hasSavedPlacementMatches
+                      ? `Placement matches have been saved. ${placementMatchesGroup ? `Group: ${placementMatchesGroup.name}` : ''}`
+                      : 'Configure how teams advance from groups to placement matches'}
+                  </CardDescription>
+                </div>
+                <div className="flex gap-2">
+                  {hasSavedPlacementMatches && (
+                    <Button
+                      variant="destructive"
+                      onClick={handleDeletePlacementMatches}
+                      disabled={isSubmitting}
+                      size="sm"
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Delete
+                    </Button>
+                  )}
+                  {placementConfig && (
+                    <Button
+                      onClick={handleSavePlacementMatches}
+                      disabled={isSubmitting || !placementConfig}
+                      variant={hasSavedPlacementMatches ? 'outline' : 'default'}
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                          Saving...
+                        </>
+                      ) : hasSavedPlacementMatches ? (
+                        <>
+                          <RefreshCw className="mr-2 h-4 w-4" />
+                          Update Matches
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle className="mr-2 h-4 w-4" />
+                          Save Matches
+                        </>
+                      )}
+                    </Button>
+                  )}
+                </div>
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">

@@ -17,11 +17,15 @@ import {
   AlertCircle,
   UserPlus,
 } from "lucide-react";
+import { TournamentBracket } from "@/components/tournament/tournament-bracket";
+import { BracketVisualization } from "@/components/tournament/bracket-visualization";
+import { FinalStandings } from "@/components/tournament/final-standings";
 import {
   usePublicTournament,
   useTournamentDivisions,
   useTournamentMatches,
   useTournamentTeams,
+  useTournamentGroups,
 } from "@/hooks/use-tournaments";
 import Link from "next/link";
 import Image from "next/image";
@@ -51,6 +55,9 @@ export default function TournamentDetailPage() {
 
   const { data: teams, isLoading: teamsLoading } =
     useTournamentTeams(tournamentId);
+
+  const { data: groups, isLoading: groupsLoading } =
+    useTournamentGroups(tournamentId);
 
   if (tournamentError) {
     return (
@@ -161,7 +168,7 @@ export default function TournamentDetailPage() {
           onValueChange={setActiveTab}
           className="w-full mb-8"
         >
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="overview">
               {t("tournament.tabs.overview")}
             </TabsTrigger>
@@ -173,6 +180,9 @@ export default function TournamentDetailPage() {
             </TabsTrigger>
             <TabsTrigger value="matches">
               {t("tournament.tabs.matches")}
+            </TabsTrigger>
+            <TabsTrigger value="bracket">
+              {t("tournament.tabs.bracket") || "Bracket"}
             </TabsTrigger>
             <TabsTrigger value="venues">
               {t("tournament.tabs.venues")}
@@ -559,6 +569,299 @@ export default function TournamentDetailPage() {
                     )}
                   </tbody>
                 </table>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="bracket" className="mt-6">
+            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  {t("tournament.tabs.bracket") || "Knockout Bracket"}
+                </h3>
+              </div>
+              <div className="p-6">
+                {matchesLoading || groupsLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="w-6 h-6 animate-spin" />
+                  </div>
+                ) : matches && matches.length > 0 ? (
+                  (() => {
+                    // Filter bracket matches - matches in groups with bracket-related names
+                    // or matches without a groupId (indicating knockout stage)
+                    // Also include matches with placeholder teams (pos-, winner-, loser-)
+                    const bracketRoundNames = [
+                      "final",
+                      "semi-final",
+                      "quarter-final",
+                      "round of 16",
+                      "round of 8",
+                      "third place",
+                      "playoff",
+                      "knockout",
+                      "championship",
+                      "consolation",
+                      "placement",
+                    ];
+
+                    // Exclude group stage matches (groups named "Group A", "Group B", etc.)
+                    const groupStagePattern = /^group\s+[a-z]$/i;
+
+                    // Check if a team is a placeholder (has placeholder ID or notes)
+                    const isPlaceholderTeam = (team: any) => {
+                      if (!team?.id) return false;
+                      // Check by ID pattern
+                      if (
+                        team.id.startsWith("pos-") ||
+                        team.id.startsWith("winner-") ||
+                        team.id.startsWith("loser-")
+                      ) {
+                        return true;
+                      }
+                      // Check by notes (for saved placeholder teams)
+                      if (team.notes) {
+                        try {
+                          const notes = JSON.parse(team.notes);
+                          return notes.type === "placeholder";
+                        } catch {
+                          // Not JSON, ignore
+                        }
+                      }
+                      return false;
+                    };
+
+                    // Group bracket matches by bracket group
+                    const bracketGroups = new Map<string, typeof matches>();
+                    
+                    matches.forEach((match) => {
+                      // Include matches with placeholder teams
+                      if (
+                        isPlaceholderTeam(match.homeTeam) ||
+                        isPlaceholderTeam(match.awayTeam)
+                      ) {
+                        const groupName = match.group?.name || "Bracket";
+                        if (!bracketGroups.has(groupName)) {
+                          bracketGroups.set(groupName, []);
+                        }
+                        bracketGroups.get(groupName)?.push(match);
+                        return;
+                      }
+
+                      // Exclude group stage matches
+                      const groupName = match.group?.name?.toLowerCase() || "";
+                      if (groupStagePattern.test(groupName)) {
+                        return;
+                      }
+
+                      // Check if match is in a bracket group
+                      const isBracketGroup = bracketRoundNames.some((name) =>
+                        groupName.includes(name)
+                      );
+
+                      if (isBracketGroup || !match.groupId) {
+                        const bracketName = match.group?.name || "Bracket";
+                        if (!bracketGroups.has(bracketName)) {
+                          bracketGroups.set(bracketName, []);
+                        }
+                        bracketGroups.get(bracketName)?.push(match);
+                      }
+                    });
+
+                    // Transform matches for BracketVisualization
+                    const transformMatchForVisualization = (
+                      match: any,
+                      matchNumber: number,
+                      roundNumber: number
+                    ) => {
+                      // Determine round label from group name or match notes
+                      let roundLabel = match.group?.name || "Bracket";
+                      const groupName = match.group?.name?.toLowerCase() || "";
+                      
+                      // Try to parse round from match notes
+                      if (match.notes) {
+                        try {
+                          const notes = JSON.parse(match.notes);
+                          if (notes.roundLabel) {
+                            roundLabel = notes.roundLabel;
+                          } else if (notes.round) {
+                            // Map round number to label
+                            const totalRounds = Math.max(
+                              ...Array.from(bracketGroups.values())
+                                .flat()
+                                .map((m: any) => {
+                                  try {
+                                    const n = JSON.parse(m.notes || "{}");
+                                    return n.round || 1;
+                                  } catch {
+                                    return 1;
+                                  }
+                                })
+                            );
+                            if (notes.round === totalRounds) roundLabel = "Final";
+                            else if (notes.round === totalRounds - 1)
+                              roundLabel = "Semi-Final";
+                            else if (notes.round === totalRounds - 2)
+                              roundLabel = "Quarter-Final";
+                            else roundLabel = `Round ${notes.round}`;
+                          }
+                        } catch {
+                          // Not JSON, use group name
+                        }
+                      }
+
+                      // Infer round from group name if not in notes
+                      if (groupName.includes("final") && !groupName.includes("semi") && !groupName.includes("quarter")) {
+                        roundLabel = "Final";
+                      } else if (groupName.includes("semi")) {
+                        roundLabel = "Semi-Final";
+                      } else if (groupName.includes("quarter")) {
+                        roundLabel = "Quarter-Final";
+                      }
+
+                      const status =
+                        match.status === "LIVE"
+                          ? "live"
+                          : match.status === "FINISHED"
+                          ? "finished"
+                          : "upcoming";
+
+                      const getTeamDisplay = (team: any) => {
+                        if (!team) return null;
+                        return {
+                          id: team.id,
+                          name: team.name || "TBD",
+                          shortName: team.shortName,
+                        };
+                      };
+
+                      return {
+                        id: match.id,
+                        homeTeam: getTeamDisplay(match.homeTeam),
+                        awayTeam: getTeamDisplay(match.awayTeam),
+                        homeScore: match.homeScore,
+                        awayScore: match.awayScore,
+                        round: roundNumber,
+                        roundLabel: roundLabel,
+                        matchNumber: matchNumber,
+                        matchLabel: match.notes
+                          ? (() => {
+                              try {
+                                const notes = JSON.parse(match.notes);
+                                return notes.matchLabel || `Game ${matchNumber}`;
+                              } catch {
+                                return `Game ${matchNumber}`;
+                              }
+                            })()
+                          : `Game ${matchNumber}`,
+                        status: status as "upcoming" | "live" | "finished",
+                        matchDate: match.startTime,
+                        field: match.pitch?.name || match.venue?.name || undefined,
+                      };
+                    };
+
+                    // Get group stage groups for standings
+                    const groupStageGroups =
+                      groups?.filter((g) => groupStagePattern.test(g.name)) ||
+                      [];
+
+                    return (
+                      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                        {/* Left Column: Bracket Visualization */}
+                        <div className="lg:col-span-3 space-y-6">
+                          {bracketGroups.size === 0 ? (
+                            <div className="text-center py-8">
+                              <Trophy className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                              <p className="text-gray-500">
+                                {t("tournament.details.noBracketMatches") ||
+                                  "No bracket matches available yet."}
+                              </p>
+                            </div>
+                          ) : (
+                            Array.from(bracketGroups.entries()).map(
+                              ([bracketName, bracketMatches]) => {
+                                // Group matches by round (from notes or infer from position)
+                                const matchesByRound = new Map<
+                                  number,
+                                  typeof bracketMatches
+                                >();
+                                
+                                bracketMatches.forEach((match, index) => {
+                                  let round = 1;
+                                  if (match.notes) {
+                                    try {
+                                      const notes = JSON.parse(match.notes);
+                                      round = notes.round || 1;
+                                    } catch {
+                                      // Infer round from position
+                                      round = Math.floor(index / 2) + 1;
+                                    }
+                                  }
+                                  
+                                  if (!matchesByRound.has(round)) {
+                                    matchesByRound.set(round, []);
+                                  }
+                                  matchesByRound.get(round)?.push(match);
+                                });
+
+                                const rounds = Array.from(
+                                  matchesByRound.keys()
+                                ).sort((a, b) => a - b);
+
+                                // Transform all matches
+                                const transformedMatches = rounds.flatMap(
+                                  (round) => {
+                                    const roundMatches =
+                                      matchesByRound.get(round) || [];
+                                    return roundMatches.map((match, index) =>
+                                      transformMatchForVisualization(
+                                        match,
+                                        index + 1,
+                                        round
+                                      )
+                                    );
+                                  }
+                                );
+
+                                return (
+                                  <BracketVisualization
+                                    key={bracketName}
+                                    matches={transformedMatches}
+                                    bracketName={bracketName}
+                                  />
+                                );
+                              }
+                            )
+                          )}
+                        </div>
+
+                        {/* Right Column: Final Standings */}
+                        <div className="lg:col-span-2 space-y-6">
+                          <div>
+                            <h4 className="text-lg font-semibold text-gray-900 mb-4">
+                              Final Standings
+                            </h4>
+                            {teams && teams.length > 0 ? (
+                              <FinalStandings teams={teams} matches={matches} />
+                            ) : (
+                              <div className="text-center py-8 text-muted-foreground">
+                                <Trophy className="mx-auto mb-4 h-12 w-12 opacity-50" />
+                                <p>No teams found.</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()
+                ) : (
+                  <div className="text-center py-8">
+                    <Trophy className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-500">
+                      {t("tournament.details.noBracketMatches") ||
+                        "No bracket matches available yet."}
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </TabsContent>
