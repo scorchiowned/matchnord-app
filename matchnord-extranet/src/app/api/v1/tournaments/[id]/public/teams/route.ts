@@ -113,6 +113,27 @@ export async function GET(
           }
         }
 
+        // Check if team is a placeholder
+        let isPlaceholder = false;
+        if (team.notes) {
+          try {
+            const notes = JSON.parse(team.notes);
+            if (notes.type === "placeholder") {
+              isPlaceholder = true;
+            }
+          } catch {
+            // Not JSON, ignore
+          }
+        }
+        // Also check by ID pattern
+        if (
+          team.id.startsWith("pos-") ||
+          team.id.startsWith("winner-") ||
+          team.id.startsWith("loser-")
+        ) {
+          isPlaceholder = true;
+        }
+
         return {
           id: team.id,
           name: team.name,
@@ -125,6 +146,7 @@ export async function GET(
           status: team.status,
           division: team.division,
           playerCount: team._count.players,
+          isPlaceholder,
           // Only include players if teams are published
           players: visibility.canViewTeams
             ? team.players.map((player) => ({

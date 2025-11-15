@@ -85,6 +85,7 @@ export interface Team {
   status?: string;
   division?: { id: string; name: string; description?: string };
   playerCount?: number;
+  isPlaceholder?: boolean;
   createdAt: string;
   updatedAt: string;
   // Relations

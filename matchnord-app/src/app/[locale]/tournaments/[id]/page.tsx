@@ -461,86 +461,91 @@ export default function TournamentDetailPage() {
                         </td>
                       </tr>
                     ) : teams && teams.length > 0 ? (
-                      teams.map((team) => {
-                        // Find groups that contain this team
-                        const teamGroups =
-                          groups?.filter((group) =>
-                            group.teams?.some(
-                              (t: { id: string }) => t.id === team.id
-                            )
-                          ) || [];
+                      teams
+                        .filter((team) => {
+                          // Filter out placeholder teams using the isPlaceholder flag from API
+                          return !team.isPlaceholder;
+                        })
+                        .map((team) => {
+                          // Find groups that contain this team
+                          const teamGroups =
+                            groups?.filter((group) =>
+                              group.teams?.some(
+                                (t: { id: string }) => t.id === team.id
+                              )
+                            ) || [];
 
-                        return (
-                          <tr key={team.id} className="hover:bg-gray-50">
-                            <td className="px-6 py-4">
-                              <I18nLink
-                                href={`/tournaments/${tournamentId}/teams/${team.id}/matches`}
-                                className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline"
-                              >
-                                {team.name || "Team Name TBD"}
-                              </I18nLink>
-                              {team.shortName && (
-                                <div className="text-sm text-gray-500">
-                                  ({team.shortName})
-                                </div>
-                              )}
-                            </td>
-                            <td className="px-6 py-4 text-sm text-gray-900">
-                              <div className="flex items-center gap-2">
-                                {typeof team.club === "object" &&
-                                team.club?.logo ? (
-                                  <img
-                                    src={team.club.logo}
-                                    alt={`${team.club.name} logo`}
-                                    className="w-6 h-6 rounded-full object-cover"
-                                  />
-                                ) : null}
-                                <span>
-                                  {typeof team.club === "string"
-                                    ? team.club
-                                    : team.club?.name || "-"}
-                                </span>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 text-sm text-gray-900">
-                              {team.division?.id ? (
+                          return (
+                            <tr key={team.id} className="hover:bg-gray-50">
+                              <td className="px-6 py-4">
                                 <I18nLink
-                                  href={`/tournaments/${tournamentId}/divisions/${team.division.id}`}
-                                  className="text-blue-600 hover:text-blue-800 hover:underline"
+                                  href={`/tournaments/${tournamentId}/teams/${team.id}/matches`}
+                                  className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline"
                                 >
-                                  {team.division.name}
+                                  {team.name || "Team Name TBD"}
                                 </I18nLink>
-                              ) : (
-                                <span className="text-gray-500">-</span>
-                              )}
-                            </td>
-                            <td className="px-6 py-4 text-sm text-gray-900">
-                              {teamGroups.length > 0 ? (
-                                <div className="flex flex-wrap gap-2">
-                                  {teamGroups.map((group) => (
-                                    <I18nLink
-                                      key={group.id}
-                                      href={`/tournaments/${tournamentId}/groups/${group.id}`}
-                                      className="text-blue-600 hover:text-blue-800 hover:underline"
-                                    >
-                                      {group.name}
-                                    </I18nLink>
-                                  ))}
+                                {team.shortName && (
+                                  <div className="text-sm text-gray-500">
+                                    ({team.shortName})
+                                  </div>
+                                )}
+                              </td>
+                              <td className="px-6 py-4 text-sm text-gray-900">
+                                <div className="flex items-center gap-2">
+                                  {typeof team.club === "object" &&
+                                  team.club?.logo ? (
+                                    <img
+                                      src={team.club.logo}
+                                      alt={`${team.club.name} logo`}
+                                      className="w-6 h-6 rounded-full object-cover"
+                                    />
+                                  ) : null}
+                                  <span>
+                                    {typeof team.club === "string"
+                                      ? team.club
+                                      : team.club?.name || "-"}
+                                  </span>
                                 </div>
-                              ) : (
-                                <span className="text-gray-500">-</span>
-                              )}
-                            </td>
-                            <td className="px-6 py-4 text-right">
-                              <I18nLink
-                                href={`/tournaments/${tournamentId}/teams/${team.id}/matches`}
-                              >
-                                <Button size="sm">{t("common.view")}</Button>
-                              </I18nLink>
-                            </td>
-                          </tr>
-                        );
-                      })
+                              </td>
+                              <td className="px-6 py-4 text-sm text-gray-900">
+                                {team.division?.id ? (
+                                  <I18nLink
+                                    href={`/tournaments/${tournamentId}/divisions/${team.division.id}`}
+                                    className="text-blue-600 hover:text-blue-800 hover:underline"
+                                  >
+                                    {team.division.name}
+                                  </I18nLink>
+                                ) : (
+                                  <span className="text-gray-500">-</span>
+                                )}
+                              </td>
+                              <td className="px-6 py-4 text-sm text-gray-900">
+                                {teamGroups.length > 0 ? (
+                                  <div className="flex flex-wrap gap-2">
+                                    {teamGroups.map((group) => (
+                                      <I18nLink
+                                        key={group.id}
+                                        href={`/tournaments/${tournamentId}/groups/${group.id}`}
+                                        className="text-blue-600 hover:text-blue-800 hover:underline"
+                                      >
+                                        {group.name}
+                                      </I18nLink>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <span className="text-gray-500">-</span>
+                                )}
+                              </td>
+                              <td className="px-6 py-4 text-right">
+                                <I18nLink
+                                  href={`/tournaments/${tournamentId}/teams/${team.id}/matches`}
+                                >
+                                  <Button size="sm">{t("common.view")}</Button>
+                                </I18nLink>
+                              </td>
+                            </tr>
+                          );
+                        })
                     ) : (
                       <tr>
                         <td
