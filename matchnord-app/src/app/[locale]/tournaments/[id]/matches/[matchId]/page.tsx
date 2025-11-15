@@ -1,6 +1,7 @@
 "use client";
 
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams, useRouter } from "next/navigation";
+import { useState, useEffect, useMemo } from "react";
 import {
   usePublicTournament,
   useTournamentMatches,
@@ -8,6 +9,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Calendar,
   Clock,
@@ -23,9 +25,44 @@ import { useTranslations } from "next-intl";
 
 export default function TournamentMatchDetailsPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const tournamentId = params.id as string;
   const matchId = params.matchId as string;
   const t = useTranslations();
+
+  // Tab state management
+  const tabFromUrl = searchParams.get("tab");
+  const validTabs = useMemo(
+    () => ["overview", "teams", "venue"],
+    []
+  );
+  const initialTab = tabFromUrl && validTabs.includes(tabFromUrl) ? tabFromUrl : "overview";
+  const [activeTab, setActiveTab] = useState(initialTab);
+
+  // Sync tab state with URL
+  useEffect(() => {
+    const currentTab = searchParams.get("tab");
+    if (currentTab && validTabs.includes(currentTab) && currentTab !== activeTab) {
+      setActiveTab(currentTab);
+    }
+  }, [searchParams, activeTab, validTabs]);
+
+  // Update URL when tab changes
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    const params = new URLSearchParams(searchParams.toString());
+    if (value === "overview") {
+      params.delete("tab");
+    } else {
+      params.set("tab", value);
+    }
+    const queryString = params.toString();
+    const newUrl = queryString
+      ? `${window.location.pathname}?${queryString}`
+      : window.location.pathname;
+    router.replace(newUrl, { scroll: false });
+  };
 
   const {
     data: tournament,
@@ -178,6 +215,22 @@ export default function TournamentMatchDetailsPage() {
       </div>
 
       {/* Match Details */}
+      <Tabs
+        value={activeTab}
+        onValueChange={handleTabChange}
+        className="w-full"
+      >
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="overview">
+            {t("tournament.tabs.overview")}
+          </TabsTrigger>
+          <TabsTrigger value="teams">
+            {t("tournament.tabs.teams")}
+          </TabsTrigger>
+          <TabsTrigger value="venue">
+            {t("tournament.tabs.venues")}
+          </TabsTrigger>
+        </TabsList>
 
         <TabsContent value="overview" className="mt-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
