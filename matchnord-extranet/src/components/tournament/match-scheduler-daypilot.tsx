@@ -247,11 +247,12 @@ export function MatchSchedulerDayPilot({
           backColor: '#3b82f6', // Blue color
           borderColor: '#2563eb',
           html: `
-            <div style="padding: 4px; font-size: 11px;">
-              <div style="font-weight: bold; margin-bottom: 2px;">${matchTitle}</div>
-              <div style="font-size: 10px; color: #666;">
+            <div style="padding: 6px; font-size: 13px; line-height: 1.4;">
+              <div style="font-weight: bold; margin-bottom: 4px;">${matchTitle}</div>
+              <div style="font-size: 12px; color: #1e40af; margin-bottom: 2px;">
                 ${startTimeStr} - ${endTimeStr}
               </div>
+              ${match.group ? `<div style="font-size: 11px; color: #666;">${match.group.division.name} - ${match.group.name}</div>` : ''}
             </div>
           `,
           toolTip: `
@@ -552,6 +553,14 @@ export function MatchSchedulerDayPilot({
       viewType: 'Resources' as const,
       resources: resources,
       events: events,
+      // Time range configuration - show only 7:00 to 23:00
+      businessBeginsHour: 7,
+      businessEndsHour: 23,
+      // Cell configuration - bigger cells for more info
+      cellHeight: 40,
+      cellDuration: 15, // 15-minute intervals
+      // Height configuration - show only business hours without internal scroll
+      heightSpec: 'BusinessHoursNoScroll' as const,
       // Configure columns (pitches) and rows (time)
       columns: resources.map((resource) => ({
         name: resource.name,
