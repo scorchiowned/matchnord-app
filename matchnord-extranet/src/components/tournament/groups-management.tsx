@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { DivisionFilter } from './division-filter';
 import {
   Dialog,
   DialogContent,
@@ -780,18 +780,12 @@ export function GroupsManagement({
           {/* Division Tabs */}
           {divisions.length > 1 && (
             <div className="mt-4">
-              <Tabs
-                value={selectedDivision}
-                onValueChange={setSelectedDivision}
-              >
-                <TabsList className="grid w-full grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-                  {divisions.map((division) => (
-                    <TabsTrigger key={division.id} value={division.id}>
-                      {division.name} | {division.level}
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
-              </Tabs>
+              <DivisionFilter
+                divisions={divisions}
+                selectedDivision={selectedDivision}
+                onDivisionChange={setSelectedDivision}
+                showAllOption={false}
+              />
             </div>
           )}
           {/* {currentDivision && (

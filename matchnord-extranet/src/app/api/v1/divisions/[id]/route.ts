@@ -3,6 +3,37 @@ import { db } from '@/lib/db';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
+async function updateDivisionMatchesEndTime(
+  divisionId: string,
+  matchDuration: number
+) {
+  const matches = await db.match.findMany({
+    where: {
+      divisionId,
+      startTime: {
+        not: null,
+      },
+    },
+    select: {
+      id: true,
+      startTime: true,
+    },
+  });
+
+  await Promise.all(
+    matches.map((match) => {
+      if (!match.startTime) return Promise.resolve();
+      const newEndTime = new Date(
+        match.startTime.getTime() + matchDuration * 60 * 1000
+      );
+      return db.match.update({
+        where: { id: match.id },
+        data: { endTime: newEndTime },
+      });
+    })
+  );
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -129,11 +160,6 @@ export async function PUT(
     const user = session.user as any;
     const body = await request.json();
 
-    // Validate required fields
-    if (!body.name) {
-      return NextResponse.json({ error: 'Name is required' }, { status: 400 });
-    }
-
     // Get the division and check permissions
     const division = await db.division.findUnique({
       where: { id: divisionId },
@@ -175,18 +201,45 @@ export async function PUT(
       );
     }
 
+    // Build update data object - only include fields that are provided
+    const updateData: any = {};
+
+    if (body.name !== undefined) {
+      updateData.name = body.name;
+    }
+    if (body.description !== undefined) {
+      updateData.description = body.description || '';
+    }
+    if (body.birthYear !== undefined) {
+      updateData.birthYear = body.birthYear ? parseInt(body.birthYear) : null;
+    }
+    if (body.format !== undefined) {
+      updateData.format = body.format || '';
+    }
+    if (body.level !== undefined) {
+      updateData.level = body.level || 'COMPETITIVE';
+    }
+    if (body.minTeams !== undefined) {
+      updateData.minTeams = body.minTeams ? parseInt(body.minTeams) : 4;
+    }
+    if (body.maxTeams !== undefined) {
+      updateData.maxTeams = body.maxTeams ? parseInt(body.maxTeams) : 16;
+    }
+    // Match settings
+    if (body.matchDuration !== undefined) {
+      updateData.matchDuration = parseInt(body.matchDuration) || 90;
+    }
+    if (body.breakDuration !== undefined) {
+      updateData.breakDuration = parseInt(body.breakDuration) || 15;
+    }
+    if (body.assignmentType !== undefined) {
+      updateData.assignmentType = body.assignmentType;
+    }
+
     // Update the division
     const updatedDivision = await db.division.update({
       where: { id: divisionId },
-      data: {
-        name: body.name,
-        description: body.description || '',
-        birthYear: body.birthYear ? parseInt(body.birthYear) : null,
-        format: body.format || '',
-        level: body.level || 'COMPETITIVE',
-        minTeams: body.minTeams ? parseInt(body.minTeams) : 4,
-        maxTeams: body.maxTeams ? parseInt(body.maxTeams) : 16,
-      },
+      data: updateData,
       include: {
         _count: {
           select: {
@@ -197,6 +250,10 @@ export async function PUT(
         },
       },
     });
+
+    if (updateData.matchDuration !== undefined) {
+      await updateDivisionMatchesEndTime(divisionId, updateData.matchDuration);
+    }
 
     return NextResponse.json(updatedDivision);
   } catch (error) {

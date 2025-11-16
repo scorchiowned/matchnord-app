@@ -36,6 +36,7 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { DivisionFilter } from './division-filter';
 import {
   Plus,
   Edit,
@@ -1592,28 +1593,16 @@ export function MatchesManagementSimple({
 
       {/* Division Selector */}
       {divisions.length > 0 && (
-        <div>
-          <Tabs
-            value={selectedDivision}
-            onValueChange={(value) => {
-              setSelectedDivision(value);
-              // Reset group filter when division changes
-              setSelectedGroup('all');
-            }}
-          >
-            <TabsList className="grid w-full grid-cols-1 gap-2 border-0 bg-transparent p-0 md:grid-cols-2 lg:grid-cols-3">
-              {divisions.map((division) => (
-                <TabsTrigger
-                  key={division.id}
-                  value={division.id}
-                  className="border"
-                >
-                  {division.name} {division.level ? `| ${division.level}` : ''}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
-        </div>
+        <DivisionFilter
+          divisions={divisions}
+          selectedDivision={selectedDivision}
+          onDivisionChange={(value) => {
+            setSelectedDivision(value);
+            // Reset group filter when division changes
+            setSelectedGroup('all');
+          }}
+          showAllOption={false}
+        />
       )}
       {/* Group Selector */}
       {propGroups.filter(

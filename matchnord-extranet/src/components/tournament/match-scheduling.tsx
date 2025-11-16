@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Card,
   CardContent,
@@ -9,11 +9,8 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Calendar, Clock, MapPin, Trophy, Save } from 'lucide-react';
-import { MatchScheduler } from './match-scheduler';
-import { DivisionMatchSettings } from './division-match-settings';
-import { toast } from 'sonner';
+import { Calendar, Clock, Trophy } from 'lucide-react';
+import { MatchSchedulerDayPilot as MatchScheduler } from './match-scheduler-daypilot';
 
 interface Match {
   id: string;
@@ -71,6 +68,10 @@ interface Division {
   matchDuration: number;
   breakDuration: number;
   assignmentType: 'AUTO' | 'MANUAL';
+  groups?: Array<{
+    id: string;
+    name: string;
+  }>;
 }
 
 interface MatchSchedulingProps {
@@ -80,21 +81,29 @@ interface MatchSchedulingProps {
   matches?: Match[];
   venues?: Venue[];
   division?: Division;
+  divisions?: Division[];
 }
 
 export function MatchScheduling({
   tournamentId,
-  divisionId,
-  groupId,
+  divisionId: initialDivisionId,
+  groupId: initialGroupId,
   matches: propMatches = [],
   venues: propVenues = [],
-  division: propDivision = null,
+  division: propDivision = undefined,
+  divisions: propDivisions = [],
 }: MatchSchedulingProps) {
   const [matches, setMatches] = useState<Match[]>(propMatches);
   const [venues, setVenues] = useState<Venue[]>(propVenues);
-  const [division, setDivision] = useState<Division | null>(propDivision);
-  const [showSettings, setShowSettings] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const selectedDivisionId = initialDivisionId || propDivisions[0]?.id || '';
+  const selectedGroupId =
+    initialGroupId || propDivisions[0]?.groups?.[0]?.id || '';
+  const [division, setDivision] = useState<Division | undefined>(
+    propDivision ||
+      propDivisions.find((d) => d.id === selectedDivisionId) ||
+      propDivisions[0] ||
+      undefined
+  );
 
   // Sync props with state when they change
   useEffect(() => {
@@ -106,51 +115,41 @@ export function MatchScheduling({
   }, [propVenues]);
 
   useEffect(() => {
-    setDivision(propDivision);
-  }, [propDivision]);
-
-  const handleScheduleChange = (updatedMatches: Match[]) => {
-    setMatches(updatedMatches);
-  };
-
-  const handleGenerateMatches = async () => {
-    if (!divisionId || !groupId) {
-      toast.error('Division and group must be selected for match generation');
-      return;
+    if (propDivision) {
+      setDivision(propDivision);
+    } else if (propDivisions.length > 0) {
+      // When propDivisions changes, update to match the selected division or first one
+      const updatedDivision =
+        propDivisions.find((d) => d.id === division?.id) || propDivisions[0];
+      setDivision(updatedDivision);
     }
+  }, [propDivision, propDivisions, division?.id]);
 
+  const fetchMatches = useCallback(async () => {
     try {
-      setIsSubmitting(true);
       const response = await fetch(
-        `/api/v1/divisions/${divisionId}/matches/generate`,
+        `/api/v1/tournaments/${tournamentId}/matches`,
         {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
           credentials: 'include',
-          body: JSON.stringify({
-            groupId,
-            format: 'round-robin',
-            autoAssign: false,
-          }),
         }
       );
 
       if (response.ok) {
-        const result = await response.json();
-        setMatches(result.matches);
-        toast.success(`Generated ${result.matches.length} matches`);
-      } else {
-        const error = await response.json();
-        toast.error(error.error || 'Failed to generate matches');
+        const matchesData = await response.json();
+        setMatches(matchesData);
       }
     } catch (error) {
-      console.error('Error generating matches:', error);
-      toast.error('Failed to generate matches');
-    } finally {
-      setIsSubmitting(false);
+      console.error('Error fetching matches:', error);
     }
+  }, [tournamentId]);
+
+  // Fetch matches when division/group changes
+  useEffect(() => {
+    fetchMatches();
+  }, [fetchMatches]);
+
+  const handleScheduleChange = (updatedMatches: Match[]) => {
+    setMatches(updatedMatches);
   };
 
   const getScheduledMatches = () => {
@@ -177,40 +176,14 @@ export function MatchScheduling({
                 <span>Match Scheduling</span>
               </CardTitle>
               <CardDescription>
-                Schedule matches on specific pitches and times. Drag and drop
-                matches to assign them to venues and time slots.
+                Schedule matches on specific pitches and times. Use the division
+                filter to view matches by division. Match duration and break
+                settings are configured in the Divisions tab.
               </CardDescription>
-            </div>
-            <div className="flex space-x-2">
-              <Button
-                variant="outline"
-                onClick={() => setShowSettings(!showSettings)}
-              >
-                <Clock className="mr-2 h-4 w-4" />
-                {showSettings ? 'Hide' : 'Show'} Settings
-              </Button>
             </div>
           </div>
         </CardHeader>
       </Card>
-
-      {/* Division Settings */}
-      {showSettings && division && (
-        <DivisionMatchSettings
-          divisionId={division.id}
-          initialSettings={{
-            matchDuration: division.matchDuration,
-            breakDuration: division.breakDuration,
-            assignmentType: division.assignmentType,
-          }}
-          onSettingsChange={(settings) => {
-            setDivision({
-              ...division,
-              ...settings,
-            });
-          }}
-        />
-      )}
 
       {/* Schedule Summary */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -256,19 +229,17 @@ export function MatchScheduling({
       </div>
 
       {/* Scheduler */}
-      {divisionId && groupId && (
+      {matches.length > 0 ? (
         <MatchScheduler
           tournamentId={tournamentId}
-          divisionId={divisionId}
-          groupId={groupId}
+          divisionId={selectedDivisionId}
+          groupId={selectedGroupId}
           matches={matches}
           venues={venues}
+          divisions={propDivisions}
           onScheduleChange={handleScheduleChange}
         />
-      )}
-
-      {/* No Matches Message */}
-      {matches.length === 0 && (
+      ) : (
         <Card>
           <CardContent className="py-12 text-center">
             <Trophy className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
@@ -276,17 +247,10 @@ export function MatchScheduling({
               No matches to schedule
             </h3>
             <p className="mb-4 text-muted-foreground">
-              Generate matches first before scheduling them.
+              Go to the Matches tab to generate matches first.
             </p>
-            <div className="flex justify-center space-x-2">
-              <Button
-                onClick={handleGenerateMatches}
-                disabled={!divisionId || !groupId || isSubmitting}
-              >
-                <Trophy className="mr-2 h-4 w-4" />
-                {isSubmitting ? 'Generating...' : 'Generate Matches'}
-              </Button>
-              <Button asChild variant="outline">
+            <div className="flex justify-center">
+              <Button asChild>
                 <a href="#matches">Go to Matches Tab</a>
               </Button>
             </div>

@@ -133,3 +133,4 @@
 - Dynamic routes use `[id]` notation (e.g., `/api/v1/tournaments/[id]` becomes `/api/v1/tournaments/abc123`)
 
 
+

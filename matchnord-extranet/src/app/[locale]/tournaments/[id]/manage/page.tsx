@@ -5,13 +5,7 @@ import { useParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useTranslations } from 'next-intl';
 import { MainNavigation } from '@/components/navigation/main-navigation';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
@@ -34,7 +28,6 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { Link } from '@/i18n/routing';
-import { TeamsManagement } from '@/components/tournament/teams-management';
 import { TeamManagement } from '@/components/tournament/team-management';
 import { VenuesManagement } from '@/components/tournament/venues-management';
 import { DivisionsManagement } from '@/components/tournament/divisions-management';
@@ -84,6 +77,9 @@ interface Tournament {
     id: string;
     name: string;
     level?: string;
+    matchDuration: number;
+    breakDuration: number;
+    assignmentType: 'AUTO' | 'MANUAL';
     isLocked: boolean;
     lockedAt?: string;
     lockedBy?: string;
@@ -119,6 +115,9 @@ export default function TournamentManagePage() {
   const [venues, setVenues] = useState<any[]>([]);
   const [teams, setTeams] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  const user = session?.user;
+  const tournamentId = params.id as string;
 
   // Function to update tournament publication status
   const updatePublicationStatus = async (
@@ -209,29 +208,41 @@ export default function TournamentManagePage() {
   };
 
   // Callback functions for management components
-  const onTeamsChange = (newTeams: any[]) => {
-    setTeams(newTeams);
-  };
-
   const onVenuesChange = (newVenues: any[]) => {
     setVenues(newVenues);
   };
 
-  const onDivisionsChange = (newDivisions: any[]) => {
-    // No state update needed
-  };
+  const onDivisionsChange = useCallback(async () => {
+    // Refetch tournament data to get updated division settings
+    try {
+      const tournamentResponse = await fetch(
+        `/api/v1/tournaments/${tournamentId}`,
+        {
+          credentials: 'include',
+        }
+      );
 
-  const onGroupsChange = (newGroups: any[]) => {
-    // No state update needed
+      if (tournamentResponse.ok) {
+        const tournamentData = await tournamentResponse.json();
+        setTournament(tournamentData);
+      }
+    } catch (error) {
+      console.error(
+        'Error refetching tournament after division change:',
+        error
+      );
+    }
+  }, [tournamentId]);
+
+  const onGroupsChange = () => {
+    // Trigger tournament data refetch when groups change
+    onDivisionsChange();
   };
 
   const onMatchesChange = useCallback((newMatches: any[]) => {
     console.log('onMatchesChange called with:', newMatches.length, 'matches');
     setMatches(newMatches);
   }, []);
-
-  const user = session?.user;
-  const tournamentId = params.id as string;
 
   // Function to refresh all counts
   const refreshCounts = useCallback(async () => {
@@ -550,8 +561,10 @@ export default function TournamentManagePage() {
                 <div className="lg:col-span-3">
                   {tournament && (
                     <TournamentInfoEditor
-                      tournament={tournament}
-                      onUpdate={handleTournamentUpdate}
+                      tournament={tournament as any}
+                      onUpdate={(updated) =>
+                        handleTournamentUpdate(updated as any)
+                      }
                       tournamentId={tournamentId}
                     />
                   )}
@@ -822,11 +835,20 @@ export default function TournamentManagePage() {
               ) : (
                 <MatchScheduling
                   tournamentId={tournamentId}
-                  divisionId={tournament.divisions[0]?.id}
-                  groupId={tournament.divisions[0]?.groups?.[0]?.id}
                   matches={matches}
                   venues={venues}
-                  division={tournament.divisions[0] || undefined}
+                  divisions={tournament.divisions.map((d) => ({
+                    id: d.id,
+                    name: d.name,
+                    level: d.level,
+                    matchDuration: d.matchDuration,
+                    breakDuration: d.breakDuration,
+                    assignmentType: d.assignmentType,
+                    groups: d.groups?.map((g) => ({
+                      id: g.id,
+                      name: g.name,
+                    })),
+                  }))}
                 />
               )}
             </TabsContent>

@@ -58,6 +58,8 @@ interface Division {
   minTeams: number;
   maxTeams: number;
   currentTeams: number;
+  matchDuration?: number;
+  breakDuration?: number;
   _count: {
     registrations: number;
     stages: number;
@@ -89,6 +91,8 @@ export function DivisionsManagement({
     level: 'COMPETITIVE',
     minTeams: '4',
     maxTeams: '16',
+    matchDuration: '90',
+    breakDuration: '15',
   });
 
   // Fetch divisions
@@ -151,7 +155,11 @@ export function DivisionsManagement({
           'Content-Type': 'application/json',
         },
         credentials: 'include',
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          matchDuration: parseInt(formData.matchDuration) || 90,
+          breakDuration: parseInt(formData.breakDuration) || 15,
+        }),
       });
 
       if (response.ok) {
@@ -195,6 +203,8 @@ export function DivisionsManagement({
       level: division.level,
       minTeams: division.minTeams.toString(),
       maxTeams: division.maxTeams.toString(),
+      matchDuration: (division.matchDuration || 90).toString(),
+      breakDuration: (division.breakDuration || 15).toString(),
     });
     setIsDialogOpen(true);
   };
@@ -236,6 +246,8 @@ export function DivisionsManagement({
       level: 'COMPETITIVE',
       minTeams: '4',
       maxTeams: '16',
+      matchDuration: '90',
+      breakDuration: '15',
     });
     setEditingDivision(null);
   };
@@ -408,6 +420,54 @@ export function DivisionsManagement({
                       min="2"
                       max="64"
                     />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="matchDuration">
+                      Match Duration (minutes)
+                    </Label>
+                    <Input
+                      id="matchDuration"
+                      type="number"
+                      value={formData.matchDuration}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          matchDuration: e.target.value,
+                        })
+                      }
+                      placeholder="90"
+                      min="15"
+                      max="180"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Recommended: 30-45 min for youth, 60-90 min for adults
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="breakDuration">
+                      Break Duration (minutes)
+                    </Label>
+                    <Input
+                      id="breakDuration"
+                      type="number"
+                      value={formData.breakDuration}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          breakDuration: e.target.value,
+                        })
+                      }
+                      placeholder="15"
+                      min="5"
+                      max="30"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Time between matches on the same pitch
+                    </p>
                   </div>
                 </div>
 
