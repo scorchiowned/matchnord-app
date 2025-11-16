@@ -247,20 +247,41 @@ export function MatchSchedulerDayPilot({
           backColor: '#3b82f6', // Blue color
           borderColor: '#2563eb',
           html: `
-            <div style="padding: 6px; font-size: 13px; line-height: 1.4;">
-              <div style="font-weight: bold; margin-bottom: 4px;">${matchTitle}</div>
-              <div style="font-size: 12px; color: #1e40af; margin-bottom: 2px;">
+            <div style="padding: 4px; font-size: 10px; line-height: 1.3; display: flex; flex-direction: column; height: 100%; color: #fff;">
+              ${match.group ? `<div style="font-size: 8px; font-weight: 700; margin-bottom: 2px; padding-bottom: 2px; border-bottom: 1px solid rgba(255,255,255,0.3); text-transform: uppercase; letter-spacing: 0.3px;">${matchDivision?.level ? matchDivision.level + ' | ' : ''}${match.group.division.name} - ${match.group.name}</div>` : ''}
+              <div style="display: flex; align-items: center; gap: 3px; margin-bottom: 1px;">
+                ${match.homeTeam.logo ? `<img src="${match.homeTeam.logo}" alt="" style="width: 14px; height: 14px; object-fit: contain; flex-shrink: 0; background: white; border-radius: 2px; padding: 1px;" />` : ''}
+                <span style="font-weight: 700; font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${match.homeTeam.shortName || match.homeTeam.name}</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 3px; margin-bottom: 2px;">
+                ${match.awayTeam.logo ? `<img src="${match.awayTeam.logo}" alt="" style="width: 14px; height: 14px; object-fit: contain; flex-shrink: 0; background: white; border-radius: 2px; padding: 1px;" />` : ''}
+                <span style="font-weight: 700; font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${match.awayTeam.shortName || match.awayTeam.name}</span>
+              </div>
+              <div style="font-size: 9px; color: rgba(255,255,255,0.95); font-weight: 600; margin-top: auto; padding-top: 2px; border-top: 1px solid rgba(255,255,255,0.2);">
                 ${startTimeStr} - ${endTimeStr}
               </div>
-              ${match.group ? `<div style="font-size: 11px; color: #666;">${match.group.division.name} - ${match.group.name}</div>` : ''}
             </div>
           `,
           toolTip: `
-            <div style="padding: 8px;">
-              <div style="font-weight: bold; margin-bottom: 4px;">${matchTitle}</div>
-              <div>${match.venue?.name || ''} - ${match.pitch?.name || ''}</div>
-              <div>${datePart} ${startTimeStr}</div>
-              ${match.group ? `<div>${match.group.division.name} - ${match.group.name}</div>` : ''}
+            <div style="padding: 12px; min-width: 200px;">
+              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                ${match.homeTeam.logo ? `<img src="${match.homeTeam.logo}" alt="" style="width: 24px; height: 24px; object-fit: contain;" />` : ''}
+                <span style="font-weight: bold;">${match.homeTeam.name}</span>
+              </div>
+              <div style="text-align: center; margin: 4px 0; font-weight: bold; color: #666;">vs</div>
+              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                ${match.awayTeam.logo ? `<img src="${match.awayTeam.logo}" alt="" style="width: 24px; height: 24px; object-fit: contain;" />` : ''}
+                <span style="font-weight: bold;">${match.awayTeam.name}</span>
+              </div>
+              <div style="border-top: 1px solid #e5e7eb; padding-top: 8px; font-size: 13px;">
+                <div style="margin-bottom: 4px;"><strong>Time:</strong> ${startTimeStr} - ${endTimeStr}</div>
+                <div style="margin-bottom: 4px;"><strong>Date:</strong> ${datePart}</div>
+                <div style="margin-bottom: 4px;"><strong>Venue:</strong> ${match.venue?.name || 'TBD'}</div>
+                <div style="margin-bottom: 4px;"><strong>Pitch:</strong> ${match.pitch?.name || 'TBD'}</div>
+                ${matchDivision?.level ? `<div style="margin-bottom: 4px;"><strong>Level:</strong> ${matchDivision.level}</div>` : ''}
+                ${match.group ? `<div style="margin-bottom: 4px;"><strong>Division:</strong> ${match.group.division.name}</div>` : ''}
+                ${match.group ? `<div><strong>Group:</strong> ${match.group.name}</div>` : ''}
+              </div>
             </div>
           `,
         };
