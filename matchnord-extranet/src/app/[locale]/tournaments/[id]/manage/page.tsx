@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { useParams } from 'next/navigation';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useTranslations } from 'next-intl';
 import { MainNavigation } from '@/components/navigation/main-navigation';
@@ -108,6 +108,8 @@ interface Tournament {
 
 export default function TournamentManagePage() {
   const params = useParams();
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const { data: session } = useSession();
   const t = useTranslations();
   const [tournament, setTournament] = useState<Tournament | null>(null);
@@ -118,6 +120,54 @@ export default function TournamentManagePage() {
 
   const user = session?.user;
   const tournamentId = params.id as string;
+
+  // Valid tabs list (memoized to avoid recreating on every render)
+  const validTabs = useMemo(
+    () => [
+      'overview',
+      'teams',
+      'venues',
+      'divisions',
+      'groups',
+      'matches',
+      'schedule',
+    ],
+    []
+  );
+
+  // Get initial tab from URL or default to "overview"
+  const tabFromUrl = searchParams.get('tab');
+  const initialTab =
+    tabFromUrl && validTabs.includes(tabFromUrl) ? tabFromUrl : 'overview';
+  const [activeTab, setActiveTab] = useState(initialTab);
+
+  // Sync tab state with URL
+  useEffect(() => {
+    const currentTab = searchParams.get('tab');
+    if (
+      currentTab &&
+      validTabs.includes(currentTab) &&
+      currentTab !== activeTab
+    ) {
+      setActiveTab(currentTab);
+    }
+  }, [searchParams, activeTab, validTabs]);
+
+  // Update URL when tab changes
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    const urlParams = new URLSearchParams(searchParams.toString());
+    if (value === 'overview') {
+      urlParams.delete('tab');
+    } else {
+      urlParams.set('tab', value);
+    }
+    const queryString = urlParams.toString();
+    const newUrl = queryString
+      ? `${window.location.pathname}?${queryString}`
+      : window.location.pathname;
+    router.replace(newUrl, { scroll: false });
+  };
 
   // Function to update tournament publication status
   const updatePublicationStatus = async (
@@ -536,7 +586,7 @@ export default function TournamentManagePage() {
           </div>
 
           {/* Management Tabs */}
-          <Tabs defaultValue="overview" className="space-y-6">
+          <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
             <TabsList>
               <TabsTrigger value="overview">
                 {t('tournament.tabs.overview')}
