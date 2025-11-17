@@ -219,18 +219,9 @@ export function MatchSchedulerDayPilot({
         );
         const matchDuration = matchDivision?.matchDuration || 90;
 
-        let end: DayPilot.Date;
-        if (match.endTime) {
-          const [endDatePart = '', endTimePart = ''] = match.endTime.split('T');
-          const endTimeParts = endTimePart.split(':');
-          const endHours = Number(endTimeParts[0]) || 0;
-          const endMinutes = Number(endTimeParts[1]) || 0;
-          const endSeconds = Number(endTimeParts[2]) || 0;
-          const endStr = `${endDatePart} ${String(endHours).padStart(2, '0')}:${String(endMinutes).padStart(2, '0')}:${String(endSeconds).padStart(2, '0')}`;
-          end = new DayPilot.Date(endStr);
-        } else {
-          end = start.addMinutes(matchDuration);
-        }
+        // Always recalculate end time based on division duration to ensure correct display
+        // This fixes the issue where matches saved with 15min duration show incorrectly after page refresh
+        const end = start.addMinutes(matchDuration);
 
         const matchTitle = `${match.homeTeam.shortName || match.homeTeam.name} vs ${match.awayTeam.shortName || match.awayTeam.name}`;
 
@@ -301,28 +292,54 @@ export function MatchSchedulerDayPilot({
       }
 
       const newStart = args.newStart;
-      const newEnd = args.newEnd;
       const newResource = args.newResource;
 
-      // Convert DayPilot.Date to JavaScript Date for comparison
-      const newStartDate = new Date(newStart);
-      const newEndDate = new Date(newEnd);
+      // Calculate the actual end time based on the match's division duration (not the 15min cell)
+      const matchDivision = divisions.find(
+        (d) => d.id === match.group?.division.id
+      );
+      const matchDuration = matchDivision?.matchDuration || 90;
+      const calculatedEnd = newStart.addMinutes(matchDuration);
+
+      // Convert DayPilot.Date to string format for comparison (avoid timezone issues)
+      const newStartStr = newStart.toString('yyyy-MM-ddTHH:mm:ss');
+      const newEndStr = calculatedEnd.toString('yyyy-MM-ddTHH:mm:ss');
 
       // Check for conflicts on the same pitch
       const conflictingMatch = scheduledMatches.find((m) => {
         if (m.id === match.id || !m.pitch || !m.startTime) return false;
         if (m.pitch.id !== newResource) return false;
 
-        const mStart = new Date(m.startTime);
-        // Use the conflicting match's actual division duration
-        const mDivision = divisions.find((d) => d.id === m.group?.division.id);
-        const mDuration = mDivision?.matchDuration || 90;
-        const mEnd = m.endTime
-          ? new Date(m.endTime)
-          : new Date(mStart.getTime() + mDuration * 60000);
+        // Parse existing match time without timezone conversion
+        const [mDatePart = '', mTimePart = ''] = m.startTime.split('T');
+        const mTimeParts = mTimePart.split(':');
+        const mHours = Number(mTimeParts[0]) || 0;
+        const mMinutes = Number(mTimeParts[1]) || 0;
+        const mStartStr = `${mDatePart}T${String(mHours).padStart(2, '0')}:${String(mMinutes).padStart(2, '0')}:00`;
 
-        // Check if times overlap
-        return mStart < newEndDate && mEnd > newStartDate;
+        // Calculate end time for existing match
+        let mEndStr: string;
+        if (m.endTime) {
+          const [mEndDatePart = '', mEndTimePart = ''] = m.endTime.split('T');
+          const mEndTimeParts = mEndTimePart.split(':');
+          const mEndHours = Number(mEndTimeParts[0]) || 0;
+          const mEndMinutes = Number(mEndTimeParts[1]) || 0;
+          mEndStr = `${mEndDatePart}T${String(mEndHours).padStart(2, '0')}:${String(mEndMinutes).padStart(2, '0')}:00`;
+        } else {
+          // Use the conflicting match's actual division duration
+          const mDivision = divisions.find(
+            (d) => d.id === m.group?.division.id
+          );
+          const mDuration = mDivision?.matchDuration || 90;
+          // Calculate end time manually
+          const totalMinutes = mHours * 60 + mMinutes + mDuration;
+          const endHours = Math.floor(totalMinutes / 60) % 24;
+          const endMinutes = totalMinutes % 60;
+          mEndStr = `${mDatePart}T${String(endHours).padStart(2, '0')}:${String(endMinutes).padStart(2, '0')}:00`;
+        }
+
+        // Check if times overlap (string comparison works for ISO format)
+        return mStartStr < newEndStr && mEndStr > newStartStr;
       });
 
       if (conflictingMatch) {
@@ -341,16 +358,36 @@ export function MatchSchedulerDayPilot({
       const teamDoubleBooking = scheduledMatches.some((m) => {
         if (m.id === match.id || !m.startTime) return false;
 
-        const mStart = new Date(m.startTime);
-        // Use each match's actual division duration
-        const mDivision = divisions.find((d) => d.id === m.group?.division.id);
-        const mDuration = mDivision?.matchDuration || 90;
-        const mEnd = m.endTime
-          ? new Date(m.endTime)
-          : new Date(mStart.getTime() + mDuration * 60000);
+        // Parse existing match time without timezone conversion
+        const [mDatePart = '', mTimePart = ''] = m.startTime.split('T');
+        const mTimeParts = mTimePart.split(':');
+        const mHours = Number(mTimeParts[0]) || 0;
+        const mMinutes = Number(mTimeParts[1]) || 0;
+        const mStartStr = `${mDatePart}T${String(mHours).padStart(2, '0')}:${String(mMinutes).padStart(2, '0')}:00`;
 
-        // Check if times overlap
-        const timeOverlap = mStart < newEndDate && mEnd > newStartDate;
+        // Calculate end time for existing match
+        let mEndStr: string;
+        if (m.endTime) {
+          const [mEndDatePart = '', mEndTimePart = ''] = m.endTime.split('T');
+          const mEndTimeParts = mEndTimePart.split(':');
+          const mEndHours = Number(mEndTimeParts[0]) || 0;
+          const mEndMinutes = Number(mEndTimeParts[1]) || 0;
+          mEndStr = `${mEndDatePart}T${String(mEndHours).padStart(2, '0')}:${String(mEndMinutes).padStart(2, '0')}:00`;
+        } else {
+          // Use each match's actual division duration
+          const mDivision = divisions.find(
+            (d) => d.id === m.group?.division.id
+          );
+          const mDuration = mDivision?.matchDuration || 90;
+          // Calculate end time manually
+          const totalMinutes = mHours * 60 + mMinutes + mDuration;
+          const endHours = Math.floor(totalMinutes / 60) % 24;
+          const endMinutes = totalMinutes % 60;
+          mEndStr = `${mDatePart}T${String(endHours).padStart(2, '0')}:${String(endMinutes).padStart(2, '0')}:00`;
+        }
+
+        // Check if times overlap (string comparison works for ISO format)
+        const timeOverlap = mStartStr < newEndStr && mEndStr > newStartStr;
 
         // Check if teams overlap
         const teamOverlap =
@@ -382,12 +419,13 @@ export function MatchSchedulerDayPilot({
         return;
       }
 
+      // Use the calculated end time based on division duration, not the 15min cell duration
       const updatedMatch = {
         ...match,
         venue: { id: venue.id, name: venue.name },
         pitch: { id: pitch.id, name: pitch.name },
         startTime: newStart.toString('yyyy-MM-ddTHH:mm:ss'),
-        endTime: newEnd.toString('yyyy-MM-ddTHH:mm:ss'),
+        endTime: calculatedEnd.toString('yyyy-MM-ddTHH:mm:ss'),
       };
 
       const updatedMatches = scheduledMatches.map((m) =>
@@ -451,9 +489,16 @@ export function MatchSchedulerDayPilot({
         return;
       }
 
-      // Check for conflicts
-      const newStartDate = new Date(start.toString());
-      const newEndDate = new Date(end.toString());
+      // Calculate the actual end time based on the match's division duration (not the 15min cell)
+      const matchDivision = divisions.find(
+        (d) => d.id === match.group?.division.id
+      );
+      const matchDuration = matchDivision?.matchDuration || 90;
+      const calculatedEnd = start.addMinutes(matchDuration);
+
+      // Convert DayPilot.Date to string format for comparison (avoid timezone issues)
+      const newStartStr = start.toString('yyyy-MM-ddTHH:mm:ss');
+      const newEndStr = calculatedEnd.toString('yyyy-MM-ddTHH:mm:ss');
 
       const conflictingMatch = scheduledMatches.find((m) => {
         // Exclude the match being scheduled from conflict check
@@ -461,15 +506,36 @@ export function MatchSchedulerDayPilot({
         if (!m.pitch || !m.startTime) return false;
         if (m.pitch.id !== resourceId) return false;
 
-        const mStart = new Date(m.startTime);
-        // Use the conflicting match's actual division duration
-        const mDivision = divisions.find((d) => d.id === m.group?.division.id);
-        const mDuration = mDivision?.matchDuration || 90;
-        const mEnd = m.endTime
-          ? new Date(m.endTime)
-          : new Date(mStart.getTime() + mDuration * 60000);
+        // Parse existing match time without timezone conversion
+        const [mDatePart = '', mTimePart = ''] = m.startTime.split('T');
+        const mTimeParts = mTimePart.split(':');
+        const mHours = Number(mTimeParts[0]) || 0;
+        const mMinutes = Number(mTimeParts[1]) || 0;
+        const mStartStr = `${mDatePart}T${String(mHours).padStart(2, '0')}:${String(mMinutes).padStart(2, '0')}:00`;
 
-        return mStart < newEndDate && mEnd > newStartDate;
+        // Calculate end time for existing match
+        let mEndStr: string;
+        if (m.endTime) {
+          const [mEndDatePart = '', mEndTimePart = ''] = m.endTime.split('T');
+          const mEndTimeParts = mEndTimePart.split(':');
+          const mEndHours = Number(mEndTimeParts[0]) || 0;
+          const mEndMinutes = Number(mEndTimeParts[1]) || 0;
+          mEndStr = `${mEndDatePart}T${String(mEndHours).padStart(2, '0')}:${String(mEndMinutes).padStart(2, '0')}:00`;
+        } else {
+          // Use the conflicting match's actual division duration
+          const mDivision = divisions.find(
+            (d) => d.id === m.group?.division.id
+          );
+          const mDuration = mDivision?.matchDuration || 90;
+          // Calculate end time manually
+          const totalMinutes = mHours * 60 + mMinutes + mDuration;
+          const endHours = Math.floor(totalMinutes / 60) % 24;
+          const endMinutes = totalMinutes % 60;
+          mEndStr = `${mDatePart}T${String(endHours).padStart(2, '0')}:${String(endMinutes).padStart(2, '0')}:00`;
+        }
+
+        // Check if times overlap (string comparison works for ISO format)
+        return mStartStr < newEndStr && mEndStr > newStartStr;
       });
 
       if (conflictingMatch) {
@@ -490,15 +556,36 @@ export function MatchSchedulerDayPilot({
         if (m.id === match.id) return false;
         if (!m.startTime) return false;
 
-        const mStart = new Date(m.startTime);
-        // Use each match's actual division duration
-        const mDivision = divisions.find((d) => d.id === m.group?.division.id);
-        const mDuration = mDivision?.matchDuration || 90;
-        const mEnd = m.endTime
-          ? new Date(m.endTime)
-          : new Date(mStart.getTime() + mDuration * 60000);
+        // Parse existing match time without timezone conversion
+        const [mDatePart = '', mTimePart = ''] = m.startTime.split('T');
+        const mTimeParts = mTimePart.split(':');
+        const mHours = Number(mTimeParts[0]) || 0;
+        const mMinutes = Number(mTimeParts[1]) || 0;
+        const mStartStr = `${mDatePart}T${String(mHours).padStart(2, '0')}:${String(mMinutes).padStart(2, '0')}:00`;
 
-        const timeOverlap = mStart < newEndDate && mEnd > newStartDate;
+        // Calculate end time for existing match
+        let mEndStr: string;
+        if (m.endTime) {
+          const [mEndDatePart = '', mEndTimePart = ''] = m.endTime.split('T');
+          const mEndTimeParts = mEndTimePart.split(':');
+          const mEndHours = Number(mEndTimeParts[0]) || 0;
+          const mEndMinutes = Number(mEndTimeParts[1]) || 0;
+          mEndStr = `${mEndDatePart}T${String(mEndHours).padStart(2, '0')}:${String(mEndMinutes).padStart(2, '0')}:00`;
+        } else {
+          // Use each match's actual division duration
+          const mDivision = divisions.find(
+            (d) => d.id === m.group?.division.id
+          );
+          const mDuration = mDivision?.matchDuration || 90;
+          // Calculate end time manually
+          const totalMinutes = mHours * 60 + mMinutes + mDuration;
+          const endHours = Math.floor(totalMinutes / 60) % 24;
+          const endMinutes = totalMinutes % 60;
+          mEndStr = `${mDatePart}T${String(endHours).padStart(2, '0')}:${String(endMinutes).padStart(2, '0')}:00`;
+        }
+
+        // Check if times overlap (string comparison works for ISO format)
+        const timeOverlap = mStartStr < newEndStr && mEndStr > newStartStr;
         const teamOverlap =
           m.homeTeam.id === match.homeTeam.id ||
           m.homeTeam.id === match.awayTeam.id ||
@@ -514,13 +601,14 @@ export function MatchSchedulerDayPilot({
         return;
       }
 
+      // Use the calculated end time based on division duration, not the 15min cell duration
       // Update the match
       const updatedMatch = {
         ...match,
         venue: { id: venue.id, name: venue.name },
         pitch: { id: pitch.id, name: pitch.name },
         startTime: start.toString('yyyy-MM-ddTHH:mm:ss'),
-        endTime: end.toString('yyyy-MM-ddTHH:mm:ss'),
+        endTime: calculatedEnd.toString('yyyy-MM-ddTHH:mm:ss'),
       };
 
       const updatedMatches = scheduledMatches.map((m) =>
