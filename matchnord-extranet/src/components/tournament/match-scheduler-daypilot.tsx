@@ -138,7 +138,14 @@ export function MatchSchedulerDayPilot({
 }: MatchSchedulerProps) {
   const [scheduledMatches, setScheduledMatches] = useState<Match[]>(matches);
   const [isSaving, setIsSaving] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const today = new Date().toISOString().split('T')[0] || '';
+  const [selectedDateRange, setSelectedDateRange] = useState<{
+    start: string;
+    end: string;
+  }>({
+    start: today,
+    end: today,
+  });
   const calendarRef = useRef<any>(null);
   const [filters, setFilters] = useState<FilterState>({
     selectedDivision: 'all',
@@ -178,15 +185,25 @@ export function MatchSchedulerDayPilot({
     return allPitches;
   }, [venues]);
 
+  // Helper function to check if a date is within the selected range
+  const isDateInRange = useCallback(
+    (dateStr: string | undefined): boolean => {
+      if (!dateStr) return false;
+      return (
+        dateStr >= selectedDateRange.start && dateStr <= selectedDateRange.end
+      );
+    },
+    [selectedDateRange]
+  );
+
   // Prepare events (matches) for DayPilot
   const events = useMemo(() => {
-    const selectedDateStr = selectedDate.toISOString().split('T')[0];
     return scheduledMatches
       .filter((match) => {
-        // Apply date filter - only show matches on the selected date
+        // Apply date filter - show matches within the selected date range
         if (match.startTime) {
-          const [matchDatePart] = match.startTime.split('T');
-          if (matchDatePart !== selectedDateStr) {
+          const [matchDatePart = ''] = match.startTime.split('T');
+          if (!isDateInRange(matchDatePart)) {
             return false;
           }
         } else {
@@ -304,7 +321,7 @@ export function MatchSchedulerDayPilot({
           `,
         };
       });
-  }, [scheduledMatches, filters, divisions, selectedDate]);
+  }, [scheduledMatches, filters, divisions, isDateInRange]);
 
   const handleEventMove = useCallback(
     async (args: any) => {
@@ -683,9 +700,16 @@ export function MatchSchedulerDayPilot({
 
   // Calendar configuration - using Calendar component for resource columns
   const calendarConfig = useMemo(() => {
+    const startDate = new Date(selectedDateRange.start);
+    const endDate = new Date(selectedDateRange.end);
+    const daysDiff = Math.ceil(
+      (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
+    );
+    const days = Math.max(1, daysDiff + 1); // At least 1 day
+
     return {
-      startDate: new DayPilot.Date(selectedDate),
-      days: 1,
+      startDate: new DayPilot.Date(startDate),
+      days: days,
       viewType: 'Resources' as const,
       resources: resources,
       events: events,
@@ -745,7 +769,7 @@ export function MatchSchedulerDayPilot({
     handleEventResize,
     handleTimeRangeSelected,
     selectedMatch,
-    selectedDate,
+    selectedDateRange,
   ]);
 
   const handleSaveSchedule = async () => {
@@ -947,16 +971,55 @@ export function MatchSchedulerDayPilot({
             </div>
           )}
 
-          {/* Date Filter */}
+          {/* Date Range Filter */}
           <div className="mb-6">
-            <Label htmlFor="date-filter">Date</Label>
-            <input
-              id="date-filter"
-              type="date"
-              value={selectedDate.toISOString().split('T')[0]}
-              onChange={(e) => setSelectedDate(new Date(e.target.value))}
-              className="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-            />
+            <Label>Date Range</Label>
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <Label
+                  htmlFor="date-start"
+                  className="text-xs text-muted-foreground"
+                >
+                  Start Date
+                </Label>
+                <input
+                  id="date-start"
+                  type="date"
+                  value={selectedDateRange.start}
+                  onChange={(e) =>
+                    setSelectedDateRange({
+                      ...selectedDateRange,
+                      start: e.target.value,
+                    })
+                  }
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label
+                  htmlFor="date-end"
+                  className="text-xs text-muted-foreground"
+                >
+                  End Date
+                </Label>
+                <input
+                  id="date-end"
+                  type="date"
+                  value={selectedDateRange.end}
+                  onChange={(e) =>
+                    setSelectedDateRange({
+                      ...selectedDateRange,
+                      end: e.target.value,
+                    })
+                  }
+                  min={selectedDateRange.start}
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                />
+              </div>
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Select a date range to view matches across multiple days
+            </p>
           </div>
 
           {/* Other Filters */}
@@ -1398,13 +1461,10 @@ export function MatchSchedulerDayPilot({
                 <TableBody>
                   {scheduledMatches
                     .filter((match) => {
-                      // Apply date filter - only show matches on the selected date
+                      // Apply date filter - show matches within the selected date range
                       if (match.startTime) {
-                        const [matchDatePart] = match.startTime.split('T');
-                        const selectedDateStr = selectedDate
-                          .toISOString()
-                          .split('T')[0];
-                        if (matchDatePart !== selectedDateStr) {
+                        const [matchDatePart = ''] = match.startTime.split('T');
+                        if (!isDateInRange(matchDatePart)) {
                           return false;
                         }
                       } else {
@@ -1611,13 +1671,10 @@ export function MatchSchedulerDayPilot({
                       );
                     })}
                   {scheduledMatches.filter((match) => {
-                    // Apply date filter - only show matches on the selected date
+                    // Apply date filter - show matches within the selected date range
                     if (match.startTime) {
-                      const [matchDatePart] = match.startTime.split('T');
-                      const selectedDateStr = selectedDate
-                        .toISOString()
-                        .split('T')[0];
-                      if (matchDatePart !== selectedDateStr) {
+                      const [matchDatePart = ''] = match.startTime.split('T');
+                      if (!isDateInRange(matchDatePart)) {
                         return false;
                       }
                     }

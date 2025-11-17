@@ -86,22 +86,37 @@ export async function POST(
     // Update matches
     const updatedMatches = await Promise.all(
       matches.map(async (matchData) => {
+        // Build update data with proper relation syntax
+        const updateData: any = {
+          startTime: matchData.startTime
+            ? new Date(matchData.startTime)
+            : undefined,
+          endTime: matchData.endTime
+            ? new Date(matchData.endTime)
+            : undefined,
+          matchNumber: matchData.matchNumber || null,
+          scheduledAt: new Date(),
+          scheduledBy: session.user.id,
+          assignmentType: 'MANUAL',
+        };
+
+        // Use relation syntax for venue
+        if (matchData.venueId) {
+          updateData.venue = { connect: { id: matchData.venueId } };
+        } else {
+          updateData.venue = { disconnect: true };
+        }
+
+        // Use relation syntax for pitch
+        if (matchData.pitchId) {
+          updateData.pitch = { connect: { id: matchData.pitchId } };
+        } else {
+          updateData.pitch = { disconnect: true };
+        }
+
         const match = await db.match.update({
           where: { id: matchData.id },
-          data: {
-            venueId: matchData.venueId || null,
-            pitchId: matchData.pitchId || null,
-            startTime: matchData.startTime
-              ? new Date(matchData.startTime)
-              : undefined,
-            endTime: matchData.endTime
-              ? new Date(matchData.endTime)
-              : undefined,
-            matchNumber: matchData.matchNumber || null,
-            scheduledAt: new Date(),
-            scheduledBy: session.user.id,
-            assignmentType: 'MANUAL',
-          },
+          data: updateData,
           include: {
             homeTeam: {
               select: {
