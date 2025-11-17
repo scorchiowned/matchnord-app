@@ -167,7 +167,7 @@ export function MatchScheduling({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <Card>
+      {/* <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
@@ -183,7 +183,7 @@ export function MatchScheduling({
             </div>
           </div>
         </CardHeader>
-      </Card>
+      </Card> */}
 
       {/* Schedule Summary */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">

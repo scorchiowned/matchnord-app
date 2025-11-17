@@ -28,7 +28,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Calendar, Save, Filter, X, MapPin } from 'lucide-react';
+import { Save, Filter, X, MapPin } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Match {
@@ -117,7 +117,7 @@ interface FilterState {
   selectedDivision: string;
   selectedGroup: string;
   selectedVenue: string;
-  selectedTeam: string;
+  selectedTeam: string[]; // Array for multiple team selection
 }
 
 export function MatchSchedulerDayPilot({
@@ -135,7 +135,7 @@ export function MatchSchedulerDayPilot({
     selectedDivision: 'all',
     selectedGroup: 'all',
     selectedVenue: 'all',
-    selectedTeam: 'all',
+    selectedTeam: [], // Empty array means all teams selected
   });
   const [isConfirmingClear, setIsConfirmingClear] = useState(false);
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
@@ -191,10 +191,11 @@ export function MatchSchedulerDayPilot({
         ) {
           return false;
         }
+        // Apply team filter - show match if any selected team is involved
         if (
-          filters.selectedTeam !== 'all' &&
-          match.homeTeam.id !== filters.selectedTeam &&
-          match.awayTeam.id !== filters.selectedTeam
+          filters.selectedTeam.length > 0 &&
+          !filters.selectedTeam.includes(match.homeTeam.id) &&
+          !filters.selectedTeam.includes(match.awayTeam.id)
         ) {
           return false;
         }
@@ -809,54 +810,11 @@ export function MatchSchedulerDayPilot({
         return false;
       }
 
-      // Apply team filter
+      // Apply team filter - show match if any selected team is involved
       if (
-        filters.selectedTeam !== 'all' &&
-        match.homeTeam.id !== filters.selectedTeam &&
-        match.awayTeam.id !== filters.selectedTeam
-      ) {
-        return false;
-      }
-
-      return true;
-    });
-  };
-
-  const getScheduledMatches = () => {
-    return scheduledMatches.filter((match) => {
-      // Filter by scheduled status
-      const isScheduled = match.venue && match.pitch && match.startTime;
-      if (!isScheduled) return false;
-
-      // Apply division filter
-      if (
-        filters.selectedDivision !== 'all' &&
-        match.group?.division.id !== filters.selectedDivision
-      ) {
-        return false;
-      }
-
-      // Apply group filter
-      if (
-        filters.selectedGroup !== 'all' &&
-        match.group?.id !== filters.selectedGroup
-      ) {
-        return false;
-      }
-
-      // Apply venue filter (only for scheduled matches)
-      if (
-        filters.selectedVenue !== 'all' &&
-        match.venue?.id !== filters.selectedVenue
-      ) {
-        return false;
-      }
-
-      // Apply team filter
-      if (
-        filters.selectedTeam !== 'all' &&
-        match.homeTeam.id !== filters.selectedTeam &&
-        match.awayTeam.id !== filters.selectedTeam
+        filters.selectedTeam.length > 0 &&
+        !filters.selectedTeam.includes(match.homeTeam.id) &&
+        !filters.selectedTeam.includes(match.awayTeam.id)
       ) {
         return false;
       }
@@ -922,52 +880,12 @@ export function MatchSchedulerDayPilot({
       selectedDivision: 'all',
       selectedGroup: 'all',
       selectedVenue: 'all',
-      selectedTeam: 'all',
+      selectedTeam: [], // Empty array means all teams
     });
   };
 
   return (
     <div className="space-y-4">
-      {/* Header */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center space-x-2">
-                <Calendar className="h-5 w-5" />
-                <span>Match Scheduler</span>
-              </CardTitle>
-              <CardDescription>
-                Drag and drop matches to schedule them on specific pitches and
-                times.
-              </CardDescription>
-            </div>
-            <div className="flex space-x-2">
-              <Button
-                variant={isConfirmingClear ? 'destructive' : 'outline'}
-                onClick={handleClearSchedule}
-                className={`flex items-center space-x-2 transition-colors ${
-                  isConfirmingClear ? 'animate-pulse' : ''
-                }`}
-              >
-                <X className="h-4 w-4" />
-                <span>
-                  {isConfirmingClear ? 'Are you sure?' : 'Clear Schedule'}
-                </span>
-              </Button>
-              <Button
-                onClick={handleSaveSchedule}
-                disabled={isSaving}
-                className="flex items-center space-x-2"
-              >
-                <Save className="h-4 w-4" />
-                <span>{isSaving ? 'Saving...' : 'Save Schedule'}</span>
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
-      </Card>
-
       {/* Filters */}
       <Card>
         <CardHeader>
@@ -1007,8 +925,20 @@ export function MatchSchedulerDayPilot({
             </div>
           )}
 
+          {/* Date Filter */}
+          <div className="mb-6">
+            <Label htmlFor="date-filter">Date</Label>
+            <input
+              id="date-filter"
+              type="date"
+              value={selectedDate.toISOString().split('T')[0]}
+              onChange={(e) => setSelectedDate(new Date(e.target.value))}
+              className="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            />
+          </div>
+
           {/* Other Filters */}
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="group-filter">Group</Label>
               <Select
@@ -1052,27 +982,71 @@ export function MatchSchedulerDayPilot({
                 </SelectContent>
               </Select>
             </div>
+          </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="team-filter">Team</Label>
-              <Select
-                value={filters.selectedTeam}
-                onValueChange={(value) =>
-                  setFilters({ ...filters, selectedTeam: value })
-                }
+          {/* Team Filter with Logos */}
+          <div className="mt-4 space-y-2">
+            <Label>Team</Label>
+            <div className="flex flex-wrap gap-2 rounded-md border p-2">
+              <button
+                onClick={() => setFilters({ ...filters, selectedTeam: [] })}
+                className={`flex items-center gap-1.5 whitespace-nowrap rounded-md px-2 py-1.5 text-sm transition-colors ${
+                  filters.selectedTeam.length === 0
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted opacity-50 hover:bg-accent'
+                }`}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="All Teams" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Teams</SelectItem>
-                  {getUniqueTeams().map((team) => (
-                    <SelectItem key={team.id} value={team.id}>
-                      {team.shortName || team.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                All Teams
+              </button>
+              {getUniqueTeams().map((team) => {
+                // Find team logo from any match where this team appears
+                const matchWithTeam = scheduledMatches.find(
+                  (m) => m.homeTeam.id === team.id || m.awayTeam.id === team.id
+                );
+                const teamLogo =
+                  matchWithTeam?.homeTeam.id === team.id
+                    ? matchWithTeam.homeTeam.logo ||
+                      matchWithTeam.homeTeam.clubRef?.logo
+                    : matchWithTeam?.awayTeam.logo ||
+                      matchWithTeam?.awayTeam.clubRef?.logo;
+                const isSelected = filters.selectedTeam.includes(team.id);
+                return (
+                  <button
+                    key={team.id}
+                    onClick={() => {
+                      if (isSelected) {
+                        // Unselect team
+                        setFilters({
+                          ...filters,
+                          selectedTeam: filters.selectedTeam.filter(
+                            (id) => id !== team.id
+                          ),
+                        });
+                      } else {
+                        // Select team
+                        setFilters({
+                          ...filters,
+                          selectedTeam: [...filters.selectedTeam, team.id],
+                        });
+                      }
+                    }}
+                    className={`flex items-center gap-1.5 whitespace-nowrap rounded-md px-2 py-1.5 text-sm transition-colors ${
+                      isSelected
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted opacity-50 hover:bg-accent'
+                    }`}
+                  >
+                    {teamLogo && (
+                      <img
+                        src={teamLogo}
+                        alt=""
+                        className="h-4 w-4 flex-shrink-0 object-contain"
+                      />
+                    )}
+                    <span>{team.shortName || team.name}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
         </CardContent>
@@ -1087,108 +1061,121 @@ export function MatchSchedulerDayPilot({
               <CardTitle className="text-lg">Games</CardTitle>
               <CardDescription>Unscheduled matches</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Date Selector */}
-              <div className="space-y-2">
-                <Label htmlFor="date-selector">Date</Label>
-                <input
-                  id="date-selector"
-                  type="date"
-                  value={selectedDate.toISOString().split('T')[0]}
-                  onChange={(e) => setSelectedDate(new Date(e.target.value))}
-                  className="w-full rounded border px-2 py-1"
-                />
-              </div>
-
-              {/* Unscheduled Matches */}
-              <div className="space-y-2">
+            <CardContent className="p-3">
+              {/* Unscheduled Matches - Grouped by Group */}
+              <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <h4 className="text-sm font-medium">
                     Unscheduled ({getUnscheduledMatches().length})
                   </h4>
                 </div>
-                <div className="max-h-96 min-h-[100px] space-y-2 overflow-y-auto rounded border-2 border-dashed border-muted-foreground/25 p-2">
-                  {getUnscheduledMatches().map((match) => (
-                    <div
-                      key={match.id}
-                      onClick={() => {
-                        setSelectedMatch(match);
-                        toast.info(
-                          `Match selected: ${match.homeTeam.shortName || match.homeTeam.name} vs ${match.awayTeam.shortName || match.awayTeam.name}. Now click on a time slot to schedule it.`,
-                          {
-                            duration: 4000,
-                          }
-                        );
-                      }}
-                      className={`cursor-pointer rounded border p-2 text-xs shadow-sm transition-all hover:shadow-md ${
-                        selectedMatch?.id === match.id
-                          ? 'border-primary bg-primary/10 ring-2 ring-primary'
-                          : 'bg-card hover:border-primary/50 hover:bg-primary/5'
-                      }`}
-                    >
-                      <div className="flex items-center gap-1 font-medium">
-                        <span>
-                          {match.homeTeam.shortName || match.homeTeam.name}
-                        </span>
-                        <span className="text-muted-foreground">vs</span>
-                        <span>
-                          {match.awayTeam.shortName || match.awayTeam.name}
-                        </span>
-                      </div>
-                      {match.group && match.group.division && (
-                        <div className="text-muted-foreground">
-                          {match.group.division.name} - {match.group.name}
+                <div className="max-h-[calc(100vh-300px)] space-y-3 overflow-y-auto">
+                  {(() => {
+                    const unscheduledMatches = getUnscheduledMatches();
+                    const groupedByGroup = unscheduledMatches.reduce(
+                      (acc, match) => {
+                        const groupKey = match.group?.id || 'no-group';
+                        const groupName =
+                          match.group?.name || 'No Group Assigned';
+                        if (!acc[groupKey]) {
+                          acc[groupKey] = {
+                            name: groupName,
+                            division:
+                              match.group?.division?.name || 'Unknown Division',
+                            matches: [],
+                          };
+                        }
+                        acc[groupKey].matches.push(match);
+                        return acc;
+                      },
+                      {} as Record<
+                        string,
+                        {
+                          name: string;
+                          division: string;
+                          matches: Match[];
+                        }
+                      >
+                    );
+
+                    return Object.entries(groupedByGroup).map(
+                      ([groupKey, groupData]) => (
+                        <div key={groupKey} className="space-y-1.5">
+                          <div className="text-xs font-semibold text-muted-foreground">
+                            {groupData.division} - {groupData.name} (
+                            {groupData.matches.length})
+                          </div>
+                          <div className="space-y-1">
+                            {groupData.matches.map((match) => {
+                              const homeLogo =
+                                match.homeTeam.logo ||
+                                match.homeTeam.clubRef?.logo;
+                              const awayLogo =
+                                match.awayTeam.logo ||
+                                match.awayTeam.clubRef?.logo;
+                              return (
+                                <div
+                                  key={match.id}
+                                  onClick={() => {
+                                    setSelectedMatch(match);
+                                    toast.info(
+                                      `Match selected: ${match.homeTeam.shortName || match.homeTeam.name} vs ${match.awayTeam.shortName || match.awayTeam.name}. Now click on a time slot to schedule it.`,
+                                      {
+                                        duration: 4000,
+                                      }
+                                    );
+                                  }}
+                                  className={`cursor-pointer rounded border p-1.5 text-xs shadow-sm transition-all hover:shadow-md ${
+                                    selectedMatch?.id === match.id
+                                      ? 'border-primary bg-primary/10 ring-2 ring-primary'
+                                      : 'bg-card hover:border-primary/50 hover:bg-primary/5'
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-1.5 font-medium">
+                                    {homeLogo && (
+                                      <img
+                                        src={homeLogo}
+                                        alt=""
+                                        className="h-3 w-3 flex-shrink-0 object-contain"
+                                      />
+                                    )}
+                                    <span className="truncate">
+                                      {match.homeTeam.shortName ||
+                                        match.homeTeam.name}
+                                    </span>
+                                    <span className="text-muted-foreground">
+                                      vs
+                                    </span>
+                                    {awayLogo && (
+                                      <img
+                                        src={awayLogo}
+                                        alt=""
+                                        className="h-3 w-3 flex-shrink-0 object-contain"
+                                      />
+                                    )}
+                                    <span className="truncate">
+                                      {match.awayTeam.shortName ||
+                                        match.awayTeam.name}
+                                    </span>
+                                  </div>
+                                  {match.matchNumber && (
+                                    <div className="text-[10px] font-semibold text-muted-foreground">
+                                      {match.matchNumber}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
                         </div>
-                      )}
-                    </div>
-                  ))}
+                      )
+                    );
+                  })()}
                   {getUnscheduledMatches().length === 0 && (
                     <div className="py-4 text-center text-xs text-muted-foreground">
                       All matches are scheduled
                     </div>
                   )}
-                </div>
-              </div>
-
-              {/* Scheduled Matches Summary */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-sm font-medium">
-                    Scheduled ({getScheduledMatches().length})
-                  </h4>
-                </div>
-                <div className="max-h-96 space-y-2 overflow-y-auto">
-                  {getScheduledMatches()
-                    .slice(0, 5)
-                    .map((match) => (
-                      <div
-                        key={match.id}
-                        className="rounded border bg-green-50 p-2 text-xs shadow-sm"
-                      >
-                        <div className="flex items-center gap-1 font-medium">
-                          <span>
-                            {match.homeTeam.shortName || match.homeTeam.name}
-                          </span>
-                          <span className="text-muted-foreground">vs</span>
-                          <span>
-                            {match.awayTeam.shortName || match.awayTeam.name}
-                          </span>
-                        </div>
-                        {match.venue && match.pitch && (
-                          <div className="text-muted-foreground">
-                            {match.venue.name} - {match.pitch.name}
-                          </div>
-                        )}
-                        {match.startTime && (
-                          <div className="text-muted-foreground">
-                            {new Date(match.startTime).toLocaleTimeString([], {
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    ))}
                 </div>
               </div>
             </CardContent>
@@ -1199,11 +1186,37 @@ export function MatchSchedulerDayPilot({
         <div className="flex-1">
           <Card>
             <CardHeader>
-              <CardTitle>Schedule Grid</CardTitle>
-              <CardDescription>
-                Each column represents a different pitch. Drag matches to
-                schedule them.
-              </CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Schedule Grid</CardTitle>
+                  <CardDescription>
+                    Each column represents a different pitch. Drag matches to
+                    schedule them.
+                  </CardDescription>
+                </div>
+                <div className="flex space-x-2">
+                  <Button
+                    variant={isConfirmingClear ? 'destructive' : 'outline'}
+                    onClick={handleClearSchedule}
+                    className={`flex items-center space-x-2 transition-colors ${
+                      isConfirmingClear ? 'animate-pulse' : ''
+                    }`}
+                  >
+                    <X className="h-4 w-4" />
+                    <span>
+                      {isConfirmingClear ? 'Are you sure?' : 'Clear Schedule'}
+                    </span>
+                  </Button>
+                  <Button
+                    onClick={handleSaveSchedule}
+                    disabled={isSaving}
+                    className="flex items-center space-x-2"
+                  >
+                    <Save className="h-4 w-4" />
+                    <span>{isSaving ? 'Saving...' : 'Save Schedule'}</span>
+                  </Button>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               {venues.length === 0 ||
