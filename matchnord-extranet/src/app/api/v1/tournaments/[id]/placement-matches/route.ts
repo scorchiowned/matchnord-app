@@ -206,10 +206,13 @@ export async function POST(
             homeTeamId: homeTeam.id,
             awayTeamId: awayTeam.id,
             status: 'SCHEDULED',
+            // Use matchNumber from placement match, or generate one
+            matchNumber: placementMatch.matchNumber
+              ? String(placementMatch.matchNumber)
+              : `G${bracketGroup.name}-M${placementMatch.round || createdMatches.length + 1}`,
             notes: JSON.stringify({
               placementMatchId: placementMatch.id,
               round: placementMatch.round,
-              matchNumber: placementMatch.matchNumber,
               matchLabel: placementMatch.matchLabel,
               roundLabel: placementMatch.roundLabel,
             }),

@@ -262,6 +262,7 @@ export default async function TournamentResultsPage({
                   homeScore: match.homeScore,
                   awayScore: match.awayScore,
                   round: match.group?.name || '',
+                  matchNumber: match.matchNumber || null,
                 }))}
                 showField={true}
                 showRound={true}

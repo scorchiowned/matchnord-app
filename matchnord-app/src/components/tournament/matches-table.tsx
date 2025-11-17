@@ -41,6 +41,7 @@ interface Match {
   groupId?: string;
   group?: Group | null;
   division?: Division | null;
+  matchNumber?: string | null;
 }
 
 interface MatchesTableProps {
@@ -83,6 +84,11 @@ export function MatchesTable({
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
+              {matches.some((m) => m.matchNumber) && (
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Match #
+                </th>
+              )}
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Home Team
               </th>
@@ -119,6 +125,17 @@ export function MatchesTable({
           <tbody className="bg-white divide-y divide-gray-200">
             {matches.map((match) => (
               <tr key={match.id} className="hover:bg-gray-50">
+                {matches.some((m) => m.matchNumber) && (
+                  <td className="px-6 py-4">
+                    {match.matchNumber ? (
+                      <div className="text-sm font-semibold text-gray-700">
+                        {match.matchNumber}
+                      </div>
+                    ) : (
+                      <div className="text-sm text-gray-400">-</div>
+                    )}
+                  </td>
+                )}
                 <td className="px-6 py-4">
                   {match.homeTeam?.id ? (
                     <I18nLink

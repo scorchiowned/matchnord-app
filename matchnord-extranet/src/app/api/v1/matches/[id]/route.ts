@@ -110,6 +110,7 @@ export async function PUT(
         endTime: body.endTime ? new Date(body.endTime) : null,
         venueId: body.venueId || null,
         pitchId: body.pitchId || null,
+        matchNumber: body.matchNumber !== undefined ? body.matchNumber : undefined,
         referee: body.referee || '',
         notes: body.notes || '',
         status: body.status || 'SCHEDULED',

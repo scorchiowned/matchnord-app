@@ -38,6 +38,7 @@ interface Match {
   status: string;
   homeScore: number;
   awayScore: number;
+  matchNumber?: string | null;
   referee?: string;
   notes?: string;
   homeTeam: {
@@ -142,6 +143,7 @@ export function MatchSchedulerDayPilot({
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editStartTime, setEditStartTime] = useState('');
   const [editStartDate, setEditStartDate] = useState('');
+  const [editMatchNumber, setEditMatchNumber] = useState('');
 
   // Update scheduledMatches when matches prop changes
   useEffect(() => {
@@ -248,6 +250,7 @@ export function MatchSchedulerDayPilot({
           borderColor: '#2563eb',
           html: `
             <div style="padding: 4px; font-size: 10px; line-height: 1.3; display: flex; flex-direction: column; height: 100%; color: #fff;">
+              ${match.matchNumber ? `<div style="font-size: 7px; font-weight: 800; margin-bottom: 1px; padding-bottom: 1px; border-bottom: 1px solid rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.5px; color: rgba(255,255,255,0.9);">${match.matchNumber}</div>` : ''}
               ${match.group ? `<div style="font-size: 8px; font-weight: 700; margin-bottom: 2px; padding-bottom: 2px; border-bottom: 1px solid rgba(255,255,255,0.3); text-transform: uppercase; letter-spacing: 0.3px;">${matchDivision?.level ? matchDivision.level + ' | ' : ''}${match.group.division.name} - ${match.group.name}</div>` : ''}
               <div style="display: flex; align-items: center; gap: 3px; margin-bottom: 1px;">
                 ${match.homeTeam.logo ? `<img src="${match.homeTeam.logo}" alt="" style="width: 14px; height: 14px; object-fit: contain; flex-shrink: 0; background: white; border-radius: 2px; padding: 1px;" />` : ''}
@@ -264,6 +267,7 @@ export function MatchSchedulerDayPilot({
           `,
           toolTip: `
             <div style="padding: 12px; min-width: 200px;">
+              ${match.matchNumber ? `<div style="font-size: 14px; font-weight: bold; margin-bottom: 8px; color: #3b82f6;">Match ${match.matchNumber}</div>` : ''}
               <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
                 ${match.homeTeam.logo ? `<img src="${match.homeTeam.logo}" alt="" style="width: 24px; height: 24px; object-fit: contain;" />` : ''}
                 <span style="font-weight: bold;">${match.homeTeam.name}</span>
@@ -616,6 +620,7 @@ export function MatchSchedulerDayPilot({
             const timeOnly = timePart ? timePart.slice(0, 5) : '09:00';
             setEditStartDate(datePart || '');
             setEditStartTime(timeOnly);
+            setEditMatchNumber(match.matchNumber || '');
             setIsEditModalOpen(true);
           }
         }
@@ -651,6 +656,7 @@ export function MatchSchedulerDayPilot({
               pitchId: match.pitch?.id,
               startTime: match.startTime,
               endTime: match.endTime,
+              matchNumber: match.matchNumber || null,
             })),
           }),
         }
@@ -1247,6 +1253,19 @@ export function MatchSchedulerDayPilot({
                 </p>
               )}
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-match-number">Match Number (optional)</Label>
+              <Input
+                id="edit-match-number"
+                type="text"
+                placeholder="e.g., M1, Match 1, 1"
+                value={editMatchNumber}
+                onChange={(e) => setEditMatchNumber(e.target.value)}
+              />
+              <p className="text-sm text-muted-foreground">
+                Optional match number for easier scheduling and identification
+              </p>
+            </div>
           </div>
 
           <DialogFooter className="gap-2">
@@ -1396,6 +1415,7 @@ export function MatchSchedulerDayPilot({
                       ...editingMatch,
                       startTime: newStartTimeString,
                       endTime: newEndTimeString,
+                      matchNumber: editMatchNumber || undefined,
                     };
 
                     const updatedMatches = scheduledMatches.map((m) =>

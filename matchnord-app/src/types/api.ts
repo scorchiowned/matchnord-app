@@ -125,6 +125,7 @@ export interface Match {
   status: MatchStatus;
   homeScore: number;
   awayScore: number;
+  matchNumber?: string | null;
   referee?: string;
   notes?: string;
   assignmentType: AssignmentType;

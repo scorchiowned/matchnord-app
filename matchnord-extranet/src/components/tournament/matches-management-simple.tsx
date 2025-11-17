@@ -67,6 +67,7 @@ interface Match {
   status: string;
   homeScore: number;
   awayScore: number;
+  matchNumber?: string | null;
   referee?: string;
   notes?: string;
   homeTeam: {
@@ -2840,6 +2841,11 @@ export function MatchesManagementSimple({
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        {filteredMatches.some((m) => m.matchNumber) && (
+                          <TableHead className="bg-[#489a66] text-white">
+                            Match #
+                          </TableHead>
+                        )}
                         <TableHead className="bg-[#489a66] text-white">
                           Teams
                         </TableHead>
@@ -2860,6 +2866,17 @@ export function MatchesManagementSimple({
                     <TableBody>
                       {filteredMatches.map((match) => (
                         <TableRow key={match.id}>
+                          {filteredMatches.some((m) => m.matchNumber) && (
+                            <TableCell>
+                              {match.matchNumber ? (
+                                <div className="font-semibold text-muted-foreground">
+                                  {match.matchNumber}
+                                </div>
+                              ) : (
+                                <div className="text-muted-foreground">-</div>
+                              )}
+                            </TableCell>
+                          )}
                           <TableCell>
                             <div className="font-medium">
                               {match.homeTeam && match.awayTeam ? (
@@ -2988,6 +3005,9 @@ export function MatchesManagementSimple({
                         <Table>
                           <TableHeader>
                             <TableRow>
+                              {groupMatches.some((m) => m.matchNumber) && (
+                                <TableHead>Match #</TableHead>
+                              )}
                               <TableHead>Teams</TableHead>
                               <TableHead>Status</TableHead>
                               <TableHead>Score</TableHead>
@@ -2998,6 +3018,17 @@ export function MatchesManagementSimple({
                           <TableBody>
                             {groupMatches.map((match) => (
                               <TableRow key={match.id}>
+                                {groupMatches.some((m) => m.matchNumber) && (
+                                  <TableCell>
+                                    {match.matchNumber ? (
+                                      <div className="font-semibold text-muted-foreground">
+                                        {match.matchNumber}
+                                      </div>
+                                    ) : (
+                                      <div className="text-muted-foreground">-</div>
+                                    )}
+                                  </TableCell>
+                                )}
                                 <TableCell>
                                   <div className="font-medium">
                                     {match.homeTeam && match.awayTeam ? (

@@ -229,6 +229,20 @@ export async function POST(
       }
     }
 
+    // Generate match number if not provided
+    let matchNumber = body.matchNumber;
+    if (!matchNumber) {
+      const { generateMatchNumber } = await import(
+        '@/lib/tournament/match-numbering'
+      );
+      matchNumber = await generateMatchNumber(
+        tournamentId,
+        body.groupId,
+        body.divisionId,
+        'group' // Use group-based numbering
+      );
+    }
+
     // Create the match
     const match = await db.match.create({
       data: {
@@ -241,6 +255,7 @@ export async function POST(
         endTime: body.endTime ? new Date(body.endTime) : null,
         venueId: body.venueId || null,
         pitchId: body.pitchId || null,
+        matchNumber: matchNumber,
         referee: body.referee || '',
         notes: body.notes || '',
         status: body.status || 'SCHEDULED',

@@ -1,6 +1,7 @@
 // API Client for consuming matchnord-extranet APIs
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "";
+// Default to localhost:3001 if NEXT_PUBLIC_API_URL is not set
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
 class ApiError extends Error {
   constructor(

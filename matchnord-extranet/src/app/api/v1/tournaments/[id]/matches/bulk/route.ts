@@ -138,7 +138,7 @@ async function generateAllMatches(tournamentId: string, divisionId?: string) {
 
     // Create matches in database
     const createdMatches = await Promise.all(
-      matchResult.matches.map((match) =>
+      matchResult.matches.map((match, index) =>
         db.match.create({
           data: {
             tournamentId,
@@ -149,6 +149,10 @@ async function generateAllMatches(tournamentId: string, divisionId?: string) {
             startTime: null, // Will be scheduled later
             assignmentType: group.division.assignmentType,
             status: 'SCHEDULED',
+            // Auto-assign match number based on generation order
+            matchNumber: match.matchNumber
+              ? `G${group.name}-M${match.matchNumber}`
+              : `G${group.name}-M${index + 1}`,
           },
         })
       )

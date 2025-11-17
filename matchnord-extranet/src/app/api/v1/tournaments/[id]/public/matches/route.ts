@@ -34,9 +34,51 @@ export async function GET(
       return NextResponse.json([]);
     }
 
+    // Parse query parameters for filtering
+    const { searchParams } = new URL(request.url);
+    const divisionId = searchParams.get('divisionId');
+    const groupId = searchParams.get('groupId');
+    const status = searchParams.get('status');
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
+
+    // Build where clause for filtering
+    const where: any = { tournamentId };
+
+    // Filter by division (through group)
+    if (divisionId) {
+      where.group = {
+        divisionId: divisionId,
+      };
+    }
+
+    // Filter by group
+    if (groupId) {
+      where.groupId = groupId;
+    }
+
+    // Filter by status
+    if (status) {
+      where.status = status;
+    }
+
+    // Filter by date range
+    if (startDate) {
+      where.startTime = {
+        ...where.startTime,
+        gte: new Date(startDate),
+      };
+    }
+    if (endDate) {
+      where.startTime = {
+        ...where.startTime,
+        lte: new Date(endDate),
+      };
+    }
+
     // Fetch matches with related data
     const matches = await db.match.findMany({
-      where: { tournamentId },
+      where,
       include: {
         homeTeam: {
           include: {
@@ -78,6 +120,9 @@ export async function GET(
               select: {
                 id: true,
                 name: true,
+                level: true,
+                matchDuration: true,
+                breakDuration: true,
               },
             },
           },
@@ -89,6 +134,7 @@ export async function GET(
     // Transform matches for public consumption
     const publicMatches = matches.map((match) => ({
       id: match.id,
+      matchNumber: match.matchNumber || null,
       startTime: match.startTime,
       endTime: match.endTime,
       status: match.status,
@@ -97,6 +143,7 @@ export async function GET(
             id: match.homeTeam.id,
             name: match.homeTeam.name,
             shortName: match.homeTeam.shortName,
+            logo: match.homeTeam.logo || null,
             country: match.homeTeam.country,
           }
         : null,
@@ -105,6 +152,7 @@ export async function GET(
             id: match.awayTeam.id,
             name: match.awayTeam.name,
             shortName: match.awayTeam.shortName,
+            logo: match.awayTeam.logo || null,
             country: match.awayTeam.country,
           }
         : null,
@@ -131,7 +179,15 @@ export async function GET(
         ? {
             id: match.group.id,
             name: match.group.name,
-            division: match.group.division,
+            division: match.group.division
+              ? {
+                  id: match.group.division.id,
+                  name: match.group.division.name,
+                  level: match.group.division.level || null,
+                  matchDuration: match.group.division.matchDuration || null,
+                  breakDuration: match.group.division.breakDuration || null,
+                }
+              : null,
           }
         : null,
       notes: match.notes,

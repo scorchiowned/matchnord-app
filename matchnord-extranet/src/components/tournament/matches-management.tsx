@@ -57,6 +57,7 @@ interface Match {
   status: string;
   homeScore: number;
   awayScore: number;
+  matchNumber?: string | null;
   referee?: string;
   notes?: string;
   homeTeam: {
@@ -779,6 +780,9 @@ export function MatchesManagement({
               <Table>
                 <TableHeader>
                   <TableRow>
+                    {matches.some((m) => m.matchNumber) && (
+                      <TableHead>Match #</TableHead>
+                    )}
                     <TableHead>Match</TableHead>
                     <TableHead>Time</TableHead>
                     <TableHead>Venue</TableHead>
@@ -790,6 +794,17 @@ export function MatchesManagement({
                 <TableBody>
                   {matches.map((match) => (
                     <TableRow key={match.id}>
+                      {matches.some((m) => m.matchNumber) && (
+                        <TableCell>
+                          {match.matchNumber ? (
+                            <div className="font-semibold text-muted-foreground">
+                              {match.matchNumber}
+                            </div>
+                          ) : (
+                            <div className="text-muted-foreground">-</div>
+                          )}
+                        </TableCell>
+                      )}
                       <TableCell>
                         <div>
                           <div className="font-medium">

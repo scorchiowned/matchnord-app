@@ -436,6 +436,7 @@ model Match {
   homeScore    Int          @default(0)
   awayScore    Int          @default(0)
   // Match details
+  matchNumber  String?      // Match number for easier scheduling (e.g., "M1", "Match 1", "1")
   referee      String?
   notes        String?
   // Assignment and scheduling

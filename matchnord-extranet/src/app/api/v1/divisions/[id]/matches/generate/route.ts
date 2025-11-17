@@ -102,7 +102,7 @@ export async function POST(
 
     // Create matches in database
     const createdMatches = await Promise.all(
-      matches.map((match) =>
+      matches.map((match, index) =>
         db.match.create({
           data: {
             tournamentId: division.tournamentId,
@@ -113,6 +113,10 @@ export async function POST(
             startTime: null, // Will be scheduled later
             assignmentType: autoAssign ? 'AUTO' : 'MANUAL',
             status: 'SCHEDULED',
+            // Auto-assign match number based on generation order
+            matchNumber: match.matchNumber
+              ? `G${group.name}-M${match.matchNumber}`
+              : `G${group.name}-M${index + 1}`,
           },
           include: {
             homeTeam: {

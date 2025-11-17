@@ -10,6 +10,7 @@ import {
   useTournamentMatches,
   useTournamentDivisions,
   useTournamentGroups,
+  useTournamentVenues,
 } from "@/hooks/use-tournaments";
 import { Link as I18nLink } from "@/i18n/routing";
 import { useTranslations } from "next-intl";
@@ -33,8 +34,14 @@ export default function DivisionMatchesPage() {
   const { data: groups, isLoading: groupsLoading } =
     useTournamentGroups(tournamentId);
 
-  const { data: allMatches, isLoading: matchesLoading } =
-    useTournamentMatches(tournamentId);
+  // ✅ Use server-side filtering by divisionId
+  const { data: matches, isLoading: matchesLoading } = useTournamentMatches(
+    tournamentId,
+    { divisionId }
+  );
+
+  // ✅ Fetch venues for reference (though they should be included in match data)
+  const { data: venues } = useTournamentVenues(tournamentId);
 
   // Find the specific division
   const division = useMemo(() => {
@@ -46,18 +53,6 @@ export default function DivisionMatchesPage() {
     if (!groups) return [];
     return groups.filter((g) => g.divisionId === divisionId);
   }, [groups, divisionId]);
-
-  // Filter matches for this division (all matches in groups belonging to this division)
-  const matches = useMemo(() => {
-    if (!allMatches) return [];
-    const divisionGroupIds = divisionGroups.map((g) => g.id);
-    return allMatches.filter(
-      (match) =>
-        (match.groupId && divisionGroupIds.includes(match.groupId)) ||
-        (match.group?.id && divisionGroupIds.includes(match.group.id)) ||
-        (match.group?.divisionId === divisionId)
-    );
-  }, [allMatches, divisionGroups, divisionId]);
 
   // Check if we came from another page
   const hasReferrer = typeof window !== "undefined" && document.referrer !== "";

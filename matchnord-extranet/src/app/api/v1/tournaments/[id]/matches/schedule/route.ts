@@ -97,6 +97,7 @@ export async function POST(
             endTime: matchData.endTime
               ? new Date(matchData.endTime)
               : undefined,
+            matchNumber: matchData.matchNumber || null,
             scheduledAt: new Date(),
             scheduledBy: session.user.id,
             assignmentType: 'MANUAL',

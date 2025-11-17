@@ -129,18 +129,31 @@ interface PublicTeam {
 
 **Visibility**: Returns data only if `schedulePublished = true`
 
+**Query Parameters**:
+- `divisionId` (string, optional): Filter matches by division ID
+- `groupId` (string, optional): Filter matches by group ID
+- `status` (string, optional): Filter by match status (`SCHEDULED`, `LIVE`, `FINISHED`, `CANCELLED`, `POSTPONED`)
+- `startDate` (string, optional): Filter matches starting from this date (ISO 8601 format)
+- `endDate` (string, optional): Filter matches up to this date (ISO 8601 format)
+
+**Examples**:
+- `GET /api/v1/tournaments/[id]/public/matches?divisionId=clx123abc`
+- `GET /api/v1/tournaments/[id]/public/matches?status=SCHEDULED&startDate=2024-01-15T00:00:00Z`
+- `GET /api/v1/tournaments/[id]/public/matches?divisionId=clx123abc&groupId=clx456def&status=SCHEDULED`
+
 **Response**: Array of matches with teams, venues, and schedule information
 
 ```typescript
 interface PublicMatch {
   id: string;
-  startTime: string;
-  endTime: string;
-  status: string;
+  startTime: string;           // ISO 8601 datetime string
+  endTime: string | null;      // ISO 8601 datetime string
+  status: string;             // 'SCHEDULED' | 'LIVE' | 'FINISHED' | 'CANCELLED' | 'POSTPONED'
   homeTeam: {
     id: string;
     name: string;
-    shortName: string;
+    shortName: string | null;
+    logo: string | null;       // ✅ Team logo URL
     country: {
       id: string;
       name: string;
@@ -150,21 +163,22 @@ interface PublicMatch {
   awayTeam: {
     id: string;
     name: string;
-    shortName: string;
+    shortName: string | null;
+    logo: string | null;       // ✅ Team logo URL
     country: {
       id: string;
       name: string;
       code: string;
     };
   } | null;
-  homeScore: number | null;
-  awayScore: number | null;
+  homeScore: number;
+  awayScore: number;
   venue: {
     id: string;
     name: string;
-    streetName: string;
-    postalCode: string;
-    city: string;
+    streetName: string | null;
+    postalCode: string | null;
+    city: string | null;
     country: {
       id: string;
       name: string;
@@ -174,7 +188,7 @@ interface PublicMatch {
   pitch: {
     id: string;
     name: string;
-    surface: string;
+    surface: string | null;
   } | null;
   group: {
     id: string;
@@ -182,7 +196,10 @@ interface PublicMatch {
     division: {
       id: string;
       name: string;
-    };
+      level: string | null;           // ✅ Division level (e.g., 'ELITE', 'COMPETITIVE')
+      matchDuration: number | null;   // ✅ Match duration in minutes
+      breakDuration: number | null;   // ✅ Break duration in minutes
+    } | null;
   } | null;
   notes: string | null;
 }
@@ -299,6 +316,7 @@ async function getTournamentTeams(tournamentId: string) {
 
 ### Fetching Tournament Matches
 
+**Basic usage**:
 ```typescript
 async function getTournamentMatches(tournamentId: string) {
   try {
@@ -320,6 +338,69 @@ async function getTournamentMatches(tournamentId: string) {
     return [];
   }
 }
+```
+
+**With filtering**:
+```typescript
+async function getFilteredMatches(
+  tournamentId: string,
+  filters?: {
+    divisionId?: string;
+    groupId?: string;
+    status?: string;
+    startDate?: string;
+    endDate?: string;
+  }
+) {
+  try {
+    const params = new URLSearchParams();
+    if (filters?.divisionId) params.set('divisionId', filters.divisionId);
+    if (filters?.groupId) params.set('groupId', filters.groupId);
+    if (filters?.status) params.set('status', filters.status);
+    if (filters?.startDate) params.set('startDate', filters.startDate);
+    if (filters?.endDate) params.set('endDate', filters.endDate);
+
+    const queryString = params.toString();
+    const url = `/api/v1/tournaments/${tournamentId}/public/matches${
+      queryString ? `?${queryString}` : ''
+    }`;
+
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        throw new Error('Tournament not found or schedule not published');
+      }
+      throw new Error('Failed to fetch matches');
+    }
+
+    const matches = await response.json();
+    return matches;
+  } catch (error) {
+    console.error('Error fetching matches:', error);
+    return [];
+  }
+}
+
+// Usage examples:
+// Get matches for a specific division
+const divisionMatches = await getFilteredMatches(tournamentId, {
+  divisionId: 'clx123abc'
+});
+
+// Get scheduled matches for today
+const todayMatches = await getFilteredMatches(tournamentId, {
+  status: 'SCHEDULED',
+  startDate: '2024-01-15T00:00:00Z',
+  endDate: '2024-01-15T23:59:59Z'
+});
+
+// Combine filters
+const filteredMatches = await getFilteredMatches(tournamentId, {
+  divisionId: 'clx123abc',
+  groupId: 'clx456def',
+  status: 'SCHEDULED'
+});
 ```
 
 ## Best Practices

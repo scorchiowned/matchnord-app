@@ -21,6 +21,7 @@ interface Match {
   homeScore?: number;
   awayScore?: number;
   round?: string;
+  matchNumber?: string | null;
 }
 
 interface MatchListProps {
@@ -81,6 +82,11 @@ export function MatchList({
       className="flex items-center justify-between rounded-lg border p-4"
     >
       <div className="flex items-center space-x-4">
+        {match.matchNumber && (
+          <div className="text-sm font-semibold text-muted-foreground">
+            {match.matchNumber}
+          </div>
+        )}
         <Badge className={getStatusColor(match.status)}>
           {getStatusIcon(match.status)}
           <span className="ml-1 capitalize">{match.status}</span>
