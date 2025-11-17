@@ -21,6 +21,15 @@ import { Label } from '@/components/ui/label';
 import { DivisionFilter } from './division-filter';
 import { Input } from '@/components/ui/input';
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -28,7 +37,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Save, Filter, X, MapPin } from 'lucide-react';
+import { Save, Filter, X, MapPin, Calendar, List } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Match {
@@ -144,6 +153,7 @@ export function MatchSchedulerDayPilot({
   const [editStartTime, setEditStartTime] = useState('');
   const [editStartDate, setEditStartDate] = useState('');
   const [editMatchNumber, setEditMatchNumber] = useState('');
+  const [viewMode, setViewMode] = useState<'scheduler' | 'list'>('scheduler');
 
   // Update scheduledMatches when matches prop changes
   useEffect(() => {
@@ -170,8 +180,20 @@ export function MatchSchedulerDayPilot({
 
   // Prepare events (matches) for DayPilot
   const events = useMemo(() => {
+    const selectedDateStr = selectedDate.toISOString().split('T')[0];
     return scheduledMatches
       .filter((match) => {
+        // Apply date filter - only show matches on the selected date
+        if (match.startTime) {
+          const [matchDatePart] = match.startTime.split('T');
+          if (matchDatePart !== selectedDateStr) {
+            return false;
+          }
+        } else {
+          // Unscheduled matches are not shown in calendar
+          return false;
+        }
+
         // Apply filters
         if (
           filters.selectedDivision !== 'all' &&
@@ -282,7 +304,7 @@ export function MatchSchedulerDayPilot({
           `,
         };
       });
-  }, [scheduledMatches, filters, divisions]);
+  }, [scheduledMatches, filters, divisions, selectedDate]);
 
   const handleEventMove = useCallback(
     async (args: any) => {
@@ -1052,249 +1074,600 @@ export function MatchSchedulerDayPilot({
         </CardContent>
       </Card>
 
-      {/* Main Scheduler Layout */}
-      <div className="flex gap-4">
-        {/* Games Sidebar */}
-        <div className="w-80 flex-shrink-0">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Games</CardTitle>
-              <CardDescription>Unscheduled matches</CardDescription>
-            </CardHeader>
-            <CardContent className="p-3">
-              {/* Unscheduled Matches - Grouped by Group */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-sm font-medium">
-                    Unscheduled ({getUnscheduledMatches().length})
-                  </h4>
-                </div>
-                <div className="max-h-[calc(100vh-300px)] space-y-3 overflow-y-auto">
-                  {(() => {
-                    const unscheduledMatches = getUnscheduledMatches();
-                    const groupedByGroup = unscheduledMatches.reduce(
-                      (acc, match) => {
-                        const groupKey = match.group?.id || 'no-group';
-                        const groupName =
-                          match.group?.name || 'No Group Assigned';
-                        if (!acc[groupKey]) {
-                          acc[groupKey] = {
-                            name: groupName,
-                            division:
-                              match.group?.division?.name || 'Unknown Division',
-                            matches: [],
-                          };
-                        }
-                        acc[groupKey].matches.push(match);
-                        return acc;
-                      },
-                      {} as Record<
-                        string,
-                        {
-                          name: string;
-                          division: string;
-                          matches: Match[];
-                        }
-                      >
-                    );
+      {/* View Toggle */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex items-center justify-center gap-2">
+            <Button
+              variant={viewMode === 'scheduler' ? 'default' : 'outline'}
+              onClick={() => setViewMode('scheduler')}
+              className="flex items-center gap-2"
+            >
+              <Calendar className="h-4 w-4" />
+              Scheduler
+            </Button>
+            <Button
+              variant={viewMode === 'list' ? 'default' : 'outline'}
+              onClick={() => setViewMode('list')}
+              className="flex items-center gap-2"
+            >
+              <List className="h-4 w-4" />
+              List View
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
-                    return Object.entries(groupedByGroup).map(
-                      ([groupKey, groupData]) => (
-                        <div key={groupKey} className="space-y-1.5">
-                          <div className="text-xs font-semibold text-muted-foreground">
-                            {groupData.division} - {groupData.name} (
-                            {groupData.matches.length})
-                          </div>
-                          <div className="space-y-1">
-                            {groupData.matches.map((match) => {
-                              const homeLogo =
-                                match.homeTeam.logo ||
-                                match.homeTeam.clubRef?.logo;
-                              const awayLogo =
-                                match.awayTeam.logo ||
-                                match.awayTeam.clubRef?.logo;
-                              return (
-                                <div
-                                  key={match.id}
-                                  onClick={() => {
-                                    setSelectedMatch(match);
-                                    toast.info(
-                                      `Match selected: ${match.homeTeam.shortName || match.homeTeam.name} vs ${match.awayTeam.shortName || match.awayTeam.name}. Now click on a time slot to schedule it.`,
-                                      {
-                                        duration: 4000,
-                                      }
-                                    );
-                                  }}
-                                  className={`cursor-pointer rounded border p-1.5 text-xs shadow-sm transition-all hover:shadow-md ${
-                                    selectedMatch?.id === match.id
-                                      ? 'border-primary bg-primary/10 ring-2 ring-primary'
-                                      : 'bg-card hover:border-primary/50 hover:bg-primary/5'
-                                  }`}
-                                >
-                                  <div className="flex items-center gap-1.5 font-medium">
-                                    {homeLogo && (
-                                      <img
-                                        src={homeLogo}
-                                        alt=""
-                                        className="h-3 w-3 flex-shrink-0 object-contain"
-                                      />
-                                    )}
-                                    <span className="truncate">
-                                      {match.homeTeam.shortName ||
-                                        match.homeTeam.name}
-                                    </span>
-                                    <span className="text-muted-foreground">
-                                      vs
-                                    </span>
-                                    {awayLogo && (
-                                      <img
-                                        src={awayLogo}
-                                        alt=""
-                                        className="h-3 w-3 flex-shrink-0 object-contain"
-                                      />
-                                    )}
-                                    <span className="truncate">
-                                      {match.awayTeam.shortName ||
-                                        match.awayTeam.name}
-                                    </span>
-                                  </div>
-                                  {match.matchNumber && (
-                                    <div className="text-[10px] font-semibold text-muted-foreground">
-                                      {match.matchNumber}
-                                    </div>
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )
-                    );
-                  })()}
-                  {getUnscheduledMatches().length === 0 && (
-                    <div className="py-4 text-center text-xs text-muted-foreground">
-                      All matches are scheduled
-                    </div>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* DayPilot Calendar */}
-        <div className="flex-1">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Schedule Grid</CardTitle>
-                  <CardDescription>
-                    Each column represents a different pitch. Drag matches to
-                    schedule them.
-                  </CardDescription>
-                </div>
-                <div className="flex space-x-2">
-                  <Button
-                    variant={isConfirmingClear ? 'destructive' : 'outline'}
-                    onClick={handleClearSchedule}
-                    className={`flex items-center space-x-2 transition-colors ${
-                      isConfirmingClear ? 'animate-pulse' : ''
-                    }`}
-                  >
-                    <X className="h-4 w-4" />
-                    <span>
-                      {isConfirmingClear ? 'Are you sure?' : 'Clear Schedule'}
-                    </span>
-                  </Button>
-                  <Button
-                    onClick={handleSaveSchedule}
-                    disabled={isSaving}
-                    className="flex items-center space-x-2"
-                  >
-                    <Save className="h-4 w-4" />
-                    <span>{isSaving ? 'Saving...' : 'Save Schedule'}</span>
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {venues.length === 0 ||
-              venues.every((v) => !v.pitches || v.pitches.length === 0) ? (
-                <div className="py-12 text-center">
-                  <MapPin className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
-                  <h3 className="mb-2 text-lg font-semibold">
-                    No Venues or Pitches Available
-                  </h3>
-                  <p className="mb-4 text-muted-foreground">
-                    Please add venues and pitches to the tournament before
-                    scheduling matches.
-                  </p>
-                </div>
-              ) : (
-                <div
-                  className="daypilot-container"
-                  onClick={async (e) => {
-                    // Handle clicks on the calendar when a match is selected
-                    if (!selectedMatch) return;
-
-                    // Get the click position and calculate which cell was clicked
-                    const target = e.target as HTMLElement;
-                    const cellDiv = target.closest(
-                      '.calendar_default_cell, .calendar_default_cell_inner'
-                    );
-
-                    if (cellDiv && calendarRef.current) {
-                      // Try to get time and resource from DayPilot
-                      const calendar = calendarRef.current.control;
-                      if (calendar && calendar.cells) {
-                        // Find the cell that was clicked
-                        const rect = (
-                          cellDiv as HTMLElement
-                        ).getBoundingClientRect();
-                        const x = rect.left + rect.width / 2;
-                        const y = rect.top + 10; // Near the top of the cell
-
-                        try {
-                          // Try to find the cell using DayPilot's methods
-                          const coords =
-                            calendar.getCellAt && calendar.getCellAt(x, y);
-
-                          if (coords && coords.start && coords.resource) {
-                            // Use the selected match's actual division duration
-                            const matchDivision = divisions.find(
-                              (d) => d.id === selectedMatch.group?.division.id
-                            );
-                            const matchDuration =
-                              matchDivision?.matchDuration || 90;
-                            const endTime =
-                              coords.start.addMinutes(matchDuration);
-
-                            await scheduleMatchAtTime(
-                              selectedMatch,
-                              coords.start,
-                              endTime,
-                              coords.resource
-                            );
-                          } else {
-                            console.warn(
-                              'Could not determine cell coordinates'
-                            );
+      {/* Main Content - Scheduler or List View */}
+      {viewMode === 'scheduler' ? (
+        <div className="flex gap-4">
+          {/* Games Sidebar */}
+          <div className="w-80 flex-shrink-0">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Games</CardTitle>
+                <CardDescription>Unscheduled matches</CardDescription>
+              </CardHeader>
+              <CardContent className="p-3">
+                {/* Unscheduled Matches - Grouped by Group */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-medium">
+                      Unscheduled ({getUnscheduledMatches().length})
+                    </h4>
+                  </div>
+                  <div className="max-h-[calc(100vh-300px)] space-y-3 overflow-y-auto">
+                    {(() => {
+                      const unscheduledMatches = getUnscheduledMatches();
+                      const groupedByGroup = unscheduledMatches.reduce(
+                        (acc, match) => {
+                          const groupKey = match.group?.id || 'no-group';
+                          const groupName =
+                            match.group?.name || 'No Group Assigned';
+                          if (!acc[groupKey]) {
+                            acc[groupKey] = {
+                              name: groupName,
+                              division:
+                                match.group?.division?.name ||
+                                'Unknown Division',
+                              matches: [],
+                            };
                           }
-                        } catch (error) {
-                          console.error('Error getting cell info:', error);
+                          acc[groupKey].matches.push(match);
+                          return acc;
+                        },
+                        {} as Record<
+                          string,
+                          {
+                            name: string;
+                            division: string;
+                            matches: Match[];
+                          }
+                        >
+                      );
+
+                      return Object.entries(groupedByGroup).map(
+                        ([groupKey, groupData]) => (
+                          <div key={groupKey} className="space-y-1.5">
+                            <div className="text-xs font-semibold text-muted-foreground">
+                              {groupData.division} - {groupData.name} (
+                              {groupData.matches.length})
+                            </div>
+                            <div className="space-y-1">
+                              {groupData.matches.map((match) => {
+                                const homeLogo =
+                                  match.homeTeam.logo ||
+                                  match.homeTeam.clubRef?.logo;
+                                const awayLogo =
+                                  match.awayTeam.logo ||
+                                  match.awayTeam.clubRef?.logo;
+                                return (
+                                  <div
+                                    key={match.id}
+                                    onClick={() => {
+                                      setSelectedMatch(match);
+                                      toast.info(
+                                        `Match selected: ${match.homeTeam.shortName || match.homeTeam.name} vs ${match.awayTeam.shortName || match.awayTeam.name}. Now click on a time slot to schedule it.`,
+                                        {
+                                          duration: 4000,
+                                        }
+                                      );
+                                    }}
+                                    className={`cursor-pointer rounded border p-1.5 text-xs shadow-sm transition-all hover:shadow-md ${
+                                      selectedMatch?.id === match.id
+                                        ? 'border-primary bg-primary/10 ring-2 ring-primary'
+                                        : 'bg-card hover:border-primary/50 hover:bg-primary/5'
+                                    }`}
+                                  >
+                                    <div className="flex items-center gap-1.5 font-medium">
+                                      {homeLogo && (
+                                        <img
+                                          src={homeLogo}
+                                          alt=""
+                                          className="h-3 w-3 flex-shrink-0 object-contain"
+                                        />
+                                      )}
+                                      <span className="truncate">
+                                        {match.homeTeam.shortName ||
+                                          match.homeTeam.name}
+                                      </span>
+                                      <span className="text-muted-foreground">
+                                        vs
+                                      </span>
+                                      {awayLogo && (
+                                        <img
+                                          src={awayLogo}
+                                          alt=""
+                                          className="h-3 w-3 flex-shrink-0 object-contain"
+                                        />
+                                      )}
+                                      <span className="truncate">
+                                        {match.awayTeam.shortName ||
+                                          match.awayTeam.name}
+                                      </span>
+                                    </div>
+                                    {match.matchNumber && (
+                                      <div className="text-[10px] font-semibold text-muted-foreground">
+                                        {match.matchNumber}
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )
+                      );
+                    })()}
+                    {getUnscheduledMatches().length === 0 && (
+                      <div className="py-4 text-center text-xs text-muted-foreground">
+                        All matches are scheduled
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* DayPilot Calendar */}
+          <div className="flex-1">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Schedule Grid</CardTitle>
+                    <CardDescription>
+                      Each column represents a different pitch. Drag matches to
+                      schedule them.
+                    </CardDescription>
+                  </div>
+                  <div className="flex space-x-2">
+                    <Button
+                      variant={isConfirmingClear ? 'destructive' : 'outline'}
+                      onClick={handleClearSchedule}
+                      className={`flex items-center space-x-2 transition-colors ${
+                        isConfirmingClear ? 'animate-pulse' : ''
+                      }`}
+                    >
+                      <X className="h-4 w-4" />
+                      <span>
+                        {isConfirmingClear ? 'Are you sure?' : 'Clear Schedule'}
+                      </span>
+                    </Button>
+                    <Button
+                      onClick={handleSaveSchedule}
+                      disabled={isSaving}
+                      className="flex items-center space-x-2"
+                    >
+                      <Save className="h-4 w-4" />
+                      <span>{isSaving ? 'Saving...' : 'Save Schedule'}</span>
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {venues.length === 0 ||
+                venues.every((v) => !v.pitches || v.pitches.length === 0) ? (
+                  <div className="py-12 text-center">
+                    <MapPin className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+                    <h3 className="mb-2 text-lg font-semibold">
+                      No Venues or Pitches Available
+                    </h3>
+                    <p className="mb-4 text-muted-foreground">
+                      Please add venues and pitches to the tournament before
+                      scheduling matches.
+                    </p>
+                  </div>
+                ) : (
+                  <div
+                    className="daypilot-container"
+                    onClick={async (e) => {
+                      // Handle clicks on the calendar when a match is selected
+                      if (!selectedMatch) return;
+
+                      // Get the click position and calculate which cell was clicked
+                      const target = e.target as HTMLElement;
+                      const cellDiv = target.closest(
+                        '.calendar_default_cell, .calendar_default_cell_inner'
+                      );
+
+                      if (cellDiv && calendarRef.current) {
+                        // Try to get time and resource from DayPilot
+                        const calendar = calendarRef.current.control;
+                        if (calendar && calendar.cells) {
+                          // Find the cell that was clicked
+                          const rect = (
+                            cellDiv as HTMLElement
+                          ).getBoundingClientRect();
+                          const x = rect.left + rect.width / 2;
+                          const y = rect.top + 10; // Near the top of the cell
+
+                          try {
+                            // Try to find the cell using DayPilot's methods
+                            const coords =
+                              calendar.getCellAt && calendar.getCellAt(x, y);
+
+                            if (coords && coords.start && coords.resource) {
+                              // Use the selected match's actual division duration
+                              const matchDivision = divisions.find(
+                                (d) => d.id === selectedMatch.group?.division.id
+                              );
+                              const matchDuration =
+                                matchDivision?.matchDuration || 90;
+                              const endTime =
+                                coords.start.addMinutes(matchDuration);
+
+                              await scheduleMatchAtTime(
+                                selectedMatch,
+                                coords.start,
+                                endTime,
+                                coords.resource
+                              );
+                            } else {
+                              console.warn(
+                                'Could not determine cell coordinates'
+                              );
+                            }
+                          } catch (error) {
+                            console.error('Error getting cell info:', error);
+                          }
                         }
                       }
-                    }
-                  }}
-                >
-                  <DayPilotCalendar ref={calendarRef} {...calendarConfig} />
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                    }}
+                  >
+                    <DayPilotCalendar ref={calendarRef} {...calendarConfig} />
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </div>
-      </div>
+      ) : (
+        /* List View */
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Matches List</CardTitle>
+                <CardDescription>
+                  View all matches in a table format. Click on a match to edit
+                  its schedule.
+                </CardDescription>
+              </div>
+              <div className="flex space-x-2">
+                <Button
+                  variant={isConfirmingClear ? 'destructive' : 'outline'}
+                  onClick={handleClearSchedule}
+                  className={`flex items-center space-x-2 transition-colors ${
+                    isConfirmingClear ? 'animate-pulse' : ''
+                  }`}
+                >
+                  <X className="h-4 w-4" />
+                  <span>
+                    {isConfirmingClear ? 'Are you sure?' : 'Clear Schedule'}
+                  </span>
+                </Button>
+                <Button
+                  onClick={handleSaveSchedule}
+                  disabled={isSaving}
+                  className="flex items-center space-x-2"
+                >
+                  <Save className="h-4 w-4" />
+                  <span>{isSaving ? 'Saving...' : 'Save Schedule'}</span>
+                </Button>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    {scheduledMatches.some((m) => m.matchNumber) && (
+                      <TableHead>Match #</TableHead>
+                    )}
+                    <TableHead>Teams</TableHead>
+                    <TableHead>Division / Group</TableHead>
+                    <TableHead>Time</TableHead>
+                    <TableHead>Venue / Pitch</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {scheduledMatches
+                    .filter((match) => {
+                      // Apply date filter - only show matches on the selected date
+                      if (match.startTime) {
+                        const [matchDatePart] = match.startTime.split('T');
+                        const selectedDateStr = selectedDate
+                          .toISOString()
+                          .split('T')[0];
+                        if (matchDatePart !== selectedDateStr) {
+                          return false;
+                        }
+                      } else {
+                        // Unscheduled matches are shown regardless of date
+                      }
+
+                      // Apply filters
+                      if (
+                        filters.selectedDivision !== 'all' &&
+                        match.group?.division.id !== filters.selectedDivision
+                      ) {
+                        return false;
+                      }
+                      if (
+                        filters.selectedGroup !== 'all' &&
+                        match.group?.id !== filters.selectedGroup
+                      ) {
+                        return false;
+                      }
+                      if (
+                        filters.selectedVenue !== 'all' &&
+                        match.venue?.id !== filters.selectedVenue
+                      ) {
+                        return false;
+                      }
+                      if (
+                        filters.selectedTeam.length > 0 &&
+                        !filters.selectedTeam.includes(match.homeTeam.id) &&
+                        !filters.selectedTeam.includes(match.awayTeam.id)
+                      ) {
+                        return false;
+                      }
+                      return true;
+                    })
+                    .map((match) => {
+                      const homeLogo =
+                        match.homeTeam.logo || match.homeTeam.clubRef?.logo;
+                      const awayLogo =
+                        match.awayTeam.logo || match.awayTeam.clubRef?.logo;
+                      const isScheduled =
+                        match.venue && match.pitch && match.startTime;
+                      return (
+                        <TableRow
+                          key={match.id}
+                          className="cursor-pointer hover:bg-muted/50"
+                          onClick={() => {
+                            if (isScheduled) {
+                              setEditingMatch(match);
+                              // Parse time for edit modal
+                              if (match.startTime) {
+                                const [datePart = '', timePart = ''] =
+                                  match.startTime.split('T');
+                                setEditStartDate(datePart);
+                                const timeStr = timePart.slice(0, 5);
+                                setEditStartTime(timeStr);
+                              }
+                              setEditMatchNumber(match.matchNumber || '');
+                              setIsEditModalOpen(true);
+                            }
+                          }}
+                        >
+                          {scheduledMatches.some((m) => m.matchNumber) && (
+                            <TableCell>
+                              {match.matchNumber ? (
+                                <div className="font-semibold text-muted-foreground">
+                                  {match.matchNumber}
+                                </div>
+                              ) : (
+                                <div className="text-muted-foreground">-</div>
+                              )}
+                            </TableCell>
+                          )}
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-1.5">
+                                {homeLogo && (
+                                  <img
+                                    src={homeLogo}
+                                    alt=""
+                                    className="h-5 w-5 object-contain"
+                                  />
+                                )}
+                                <span className="font-medium">
+                                  {match.homeTeam.shortName ||
+                                    match.homeTeam.name}
+                                </span>
+                              </div>
+                              <span className="text-muted-foreground">vs</span>
+                              <div className="flex items-center gap-1.5">
+                                {awayLogo && (
+                                  <img
+                                    src={awayLogo}
+                                    alt=""
+                                    className="h-5 w-5 object-contain"
+                                  />
+                                )}
+                                <span className="font-medium">
+                                  {match.awayTeam.shortName ||
+                                    match.awayTeam.name}
+                                </span>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {match.group ? (
+                              <div>
+                                <div className="text-sm">
+                                  {match.group.division.name}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  {match.group.name}
+                                </div>
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {match.startTime ? (
+                              <div>
+                                <div className="text-sm">
+                                  {new Date(
+                                    match.startTime
+                                  ).toLocaleDateString()}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  {new Date(match.startTime).toLocaleTimeString(
+                                    [],
+                                    {
+                                      hour: '2-digit',
+                                      minute: '2-digit',
+                                    }
+                                  )}
+                                  {match.endTime &&
+                                    ` - ${new Date(
+                                      match.endTime
+                                    ).toLocaleTimeString([], {
+                                      hour: '2-digit',
+                                      minute: '2-digit',
+                                    })}`}
+                                </div>
+                              </div>
+                            ) : (
+                              <Badge variant="outline">Unscheduled</Badge>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {match.venue && match.pitch ? (
+                              <div>
+                                <div className="text-sm">
+                                  {match.venue.name}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  {match.pitch.name}
+                                </div>
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={
+                                isScheduled
+                                  ? 'default'
+                                  : match.status === 'finished'
+                                    ? 'secondary'
+                                    : 'outline'
+                              }
+                            >
+                              {isScheduled ? 'Scheduled' : match.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (isScheduled) {
+                                  setEditingMatch(match);
+                                  if (match.startTime) {
+                                    const [datePart = '', timePart = ''] =
+                                      match.startTime.split('T');
+                                    setEditStartDate(datePart);
+                                    const timeStr = timePart.slice(0, 5);
+                                    setEditStartTime(timeStr);
+                                  }
+                                  setEditMatchNumber(match.matchNumber || '');
+                                  setIsEditModalOpen(true);
+                                } else {
+                                  setSelectedMatch(match);
+                                  toast.info(
+                                    'Match selected. Click on a time slot in the scheduler to schedule it.',
+                                    { duration: 4000 }
+                                  );
+                                }
+                              }}
+                            >
+                              {isScheduled ? 'Edit' : 'Schedule'}
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  {scheduledMatches.filter((match) => {
+                    // Apply date filter - only show matches on the selected date
+                    if (match.startTime) {
+                      const [matchDatePart] = match.startTime.split('T');
+                      const selectedDateStr = selectedDate
+                        .toISOString()
+                        .split('T')[0];
+                      if (matchDatePart !== selectedDateStr) {
+                        return false;
+                      }
+                    }
+
+                    // Apply filters
+                    if (
+                      filters.selectedDivision !== 'all' &&
+                      match.group?.division.id !== filters.selectedDivision
+                    ) {
+                      return false;
+                    }
+                    if (
+                      filters.selectedGroup !== 'all' &&
+                      match.group?.id !== filters.selectedGroup
+                    ) {
+                      return false;
+                    }
+                    if (
+                      filters.selectedVenue !== 'all' &&
+                      match.venue?.id !== filters.selectedVenue
+                    ) {
+                      return false;
+                    }
+                    if (
+                      filters.selectedTeam.length > 0 &&
+                      !filters.selectedTeam.includes(match.homeTeam.id) &&
+                      !filters.selectedTeam.includes(match.awayTeam.id)
+                    ) {
+                      return false;
+                    }
+                    return true;
+                  }).length === 0 && (
+                    <TableRow>
+                      <TableCell
+                        colSpan={
+                          7 +
+                          (scheduledMatches.some((m) => m.matchNumber) ? 1 : 0)
+                        }
+                        className="text-center text-muted-foreground"
+                      >
+                        No matches found
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Edit Match Modal */}
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
