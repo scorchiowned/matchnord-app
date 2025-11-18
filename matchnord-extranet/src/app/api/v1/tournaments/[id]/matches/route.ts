@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { getTournamentVisibility } from '@/lib/tournament/visibility';
+import { parseUTCTime } from '@/lib/time/utc';
 
 export async function GET(
   request: NextRequest,
@@ -251,8 +252,8 @@ export async function POST(
         groupId: body.groupId,
         homeTeamId: body.homeTeamId || null,
         awayTeamId: body.awayTeamId || null,
-        startTime: body.startTime ? new Date(body.startTime) : null,
-        endTime: body.endTime ? new Date(body.endTime) : null,
+        startTime: body.startTime ? parseUTCTime(body.startTime) : null,
+        endTime: body.endTime ? parseUTCTime(body.endTime) : null,
         venueId: body.venueId || null,
         pitchId: body.pitchId || null,
         matchNumber: matchNumber,

@@ -8,6 +8,15 @@ import {
 } from 'date-fns';
 import { fi, enUS } from 'date-fns/locale';
 
+/**
+ * Time Formatting Utilities
+ * 
+ * Note: All times from the server are in UTC (ISO format with 'Z' suffix).
+ * parseISO automatically handles UTC strings and converts them to local time
+ * for display. When sending times to the server, use createUTCTimeString()
+ * from '@/lib/time/timezone' to convert local times to UTC.
+ */
+
 export type Locale = 'fi' | 'en';
 
 const locales = {

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { parseUTCTime, formatAsUTC } from '@/lib/time/utc';
 
 export async function POST(
   request: NextRequest,
@@ -87,15 +88,16 @@ export async function POST(
     const updatedMatches = await Promise.all(
       matches.map(async (matchData) => {
         // Build update data with proper relation syntax
+        // All times are parsed as UTC to ensure consistent storage
         const updateData: any = {
           startTime: matchData.startTime
-            ? new Date(matchData.startTime)
+            ? parseUTCTime(matchData.startTime)
             : undefined,
           endTime: matchData.endTime
-            ? new Date(matchData.endTime)
+            ? parseUTCTime(matchData.endTime)
             : undefined,
           matchNumber: matchData.matchNumber || null,
-          scheduledAt: new Date(),
+          scheduledAt: new Date(), // Server timestamp, already UTC
           scheduledBy: session.user.id,
           assignmentType: 'MANUAL',
         };
@@ -187,15 +189,21 @@ async function checkSchedulingConflicts(matches: any[], tournamentId: string) {
     }
 
     // Check for conflicts with existing matches
+    // Parse times as UTC to ensure consistent comparison
+    const matchStartTime = parseUTCTime(match.startTime);
+    if (!matchStartTime) {
+      continue;
+    }
+
     const conflictingMatches = await db.match.findMany({
       where: {
         tournamentId,
         pitchId: match.pitchId,
         startTime: {
-          lte: new Date(match.startTime),
+          lte: matchStartTime,
         },
         endTime: {
-          gte: new Date(match.startTime),
+          gte: matchStartTime,
         },
         id: { not: match.id },
       },

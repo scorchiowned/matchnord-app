@@ -39,6 +39,13 @@ import {
 } from '@/components/ui/dialog';
 import { Save, Filter, X, MapPin, Calendar, List } from 'lucide-react';
 import { toast } from 'sonner';
+import {
+  parseUTCTimeString,
+  createUTCTimeString,
+  calculateEndTimeUTC,
+  extractLocalDate,
+  extractLocalTime,
+} from '@/lib/time/timezone';
 
 interface Match {
   id: string;
@@ -242,16 +249,15 @@ export function MatchSchedulerDayPilot({
       })
       .filter((match) => match.startTime && match.pitch) // Only scheduled matches
       .map((match) => {
-        // Parse time without timezone conversion by reconstructing as local time string
-        const [datePart = '', timePart = ''] = match.startTime.split('T');
-        const timeParts = timePart.split(':');
-        const hours = Number(timeParts[0]) || 0;
-        const minutes = Number(timeParts[1]) || 0;
-        const seconds = Number(timeParts[2]) || 0;
+        // Parse UTC time from server and convert to local timezone for display
+        const localTime = parseUTCTimeString(match.startTime);
+        if (!localTime) {
+          // Skip invalid matches
+          return null;
+        }
 
-        // Create DayPilot.Date using string format that doesn't trigger timezone conversion
-        // Format: "YYYY-MM-DD HH:mm:ss"
-        const startStr = `${datePart} ${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        // Create DayPilot.Date from local time string
+        const startStr = `${localTime.date} ${localTime.time}:00`;
         const start = new DayPilot.Date(startStr);
         // Get the match's actual division duration
         const matchDivision = divisions.find(
@@ -265,8 +271,8 @@ export function MatchSchedulerDayPilot({
 
         const matchTitle = `${match.homeTeam.shortName || match.homeTeam.name} vs ${match.awayTeam.shortName || match.awayTeam.name}`;
 
-        // Format time strings directly from parsed values
-        const startTimeStr = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+        // Format time strings from local time
+        const startTimeStr = localTime.time;
         const endHours = end.getHours();
         const endMinutes = end.getMinutes();
         const endTimeStr = `${String(endHours).padStart(2, '0')}:${String(endMinutes).padStart(2, '0')}`;
@@ -310,7 +316,7 @@ export function MatchSchedulerDayPilot({
               </div>
               <div style="border-top: 1px solid #e5e7eb; padding-top: 8px; font-size: 13px;">
                 <div style="margin-bottom: 4px;"><strong>Time:</strong> ${startTimeStr} - ${endTimeStr}</div>
-                <div style="margin-bottom: 4px;"><strong>Date:</strong> ${datePart}</div>
+                <div style="margin-bottom: 4px;"><strong>Date:</strong> ${localTime.date}</div>
                 <div style="margin-bottom: 4px;"><strong>Venue:</strong> ${match.venue?.name || 'TBD'}</div>
                 <div style="margin-bottom: 4px;"><strong>Pitch:</strong> ${match.pitch?.name || 'TBD'}</div>
                 ${matchDivision?.level ? `<div style="margin-bottom: 4px;"><strong>Level:</strong> ${matchDivision.level}</div>` : ''}
@@ -320,7 +326,8 @@ export function MatchSchedulerDayPilot({
             </div>
           `,
         };
-      });
+      })
+      .filter((event) => event !== null); // Remove null entries from failed parsing
   }, [scheduledMatches, filters, divisions, isDateInRange]);
 
   const handleEventMove = useCallback(
@@ -341,51 +348,34 @@ export function MatchSchedulerDayPilot({
       const matchDuration = matchDivision?.matchDuration || 90;
       const calculatedEnd = newStart.addMinutes(matchDuration);
 
-      // Convert DayPilot.Date to string format for comparison (avoid timezone issues)
-      const newStartStr = newStart.toString('yyyy-MM-ddTHH:mm:ss');
-      const newEndStr = calculatedEnd.toString('yyyy-MM-ddTHH:mm:ss');
+      // Convert DayPilot.Date to local date/time strings, then to UTC for comparison
+      const newStartLocalStr = newStart.toString('yyyy-MM-ddTHH:mm:ss');
+      const newEndLocalStr = calculatedEnd.toString('yyyy-MM-ddTHH:mm:ss');
+      
+      // Parse local strings and convert to UTC for conflict checking
+      const [newStartDate, newStartTime] = newStartLocalStr.split('T');
+      const [newEndDate, newEndTime] = newEndLocalStr.split('T');
+      const newStartUTC = createUTCTimeString(newStartDate, newStartTime);
+      const newEndUTC = calculateEndTimeUTC(newStartUTC, matchDuration);
 
       // Check for conflicts on the same pitch
+      // All times are in UTC for comparison
       const conflictingMatch = scheduledMatches.find((m) => {
         if (m.id === match.id || !m.pitch || !m.startTime) return false;
         if (m.pitch.id !== newResource) return false;
 
-        // Parse existing match time without timezone conversion
-        const [mDatePart = '', mTimePart = ''] = m.startTime.split('T');
-        const mTimeParts = mTimePart.split(':');
-        const mHours = Number(mTimeParts[0]) || 0;
-        const mMinutes = Number(mTimeParts[1]) || 0;
-        const mStartStr = `${mDatePart}T${String(mHours).padStart(2, '0')}:${String(mMinutes).padStart(2, '0')}:00`;
+        // Parse existing match time (already in UTC from server)
+        const mStartUTC = m.startTime;
+        const mEndUTC = m.endTime || calculateEndTimeUTC(mStartUTC, matchDuration);
 
-        // Calculate end time for existing match
-        let mEndStr: string;
-        if (m.endTime) {
-          const [mEndDatePart = '', mEndTimePart = ''] = m.endTime.split('T');
-          const mEndTimeParts = mEndTimePart.split(':');
-          const mEndHours = Number(mEndTimeParts[0]) || 0;
-          const mEndMinutes = Number(mEndTimeParts[1]) || 0;
-          mEndStr = `${mEndDatePart}T${String(mEndHours).padStart(2, '0')}:${String(mEndMinutes).padStart(2, '0')}:00`;
-        } else {
-          // Use the conflicting match's actual division duration
-          const mDivision = divisions.find(
-            (d) => d.id === m.group?.division.id
-          );
-          const mDuration = mDivision?.matchDuration || 90;
-          // Calculate end time manually
-          const totalMinutes = mHours * 60 + mMinutes + mDuration;
-          const endHours = Math.floor(totalMinutes / 60) % 24;
-          const endMinutes = totalMinutes % 60;
-          mEndStr = `${mDatePart}T${String(endHours).padStart(2, '0')}:${String(endMinutes).padStart(2, '0')}:00`;
-        }
-
-        // Check if times overlap (string comparison works for ISO format)
-        return mStartStr < newEndStr && mEndStr > newStartStr;
+        // Check if times overlap (compare UTC ISO strings)
+        return mStartUTC < newEndUTC && mEndUTC > newStartUTC;
       });
 
       if (conflictingMatch) {
-        // Extract time directly from ISO string to avoid timezone issues
-        const [, timePartWithZ] = conflictingMatch.startTime.split('T');
-        const conflictTimeStr = timePartWithZ ? timePartWithZ.slice(0, 5) : '';
+        // Extract local time for display
+        const conflictLocalTime = parseUTCTimeString(conflictingMatch.startTime);
+        const conflictTimeStr = conflictLocalTime ? conflictLocalTime.time : '';
         toast.error(
           `Time slot conflicts with ${conflictingMatch.homeTeam.shortName || conflictingMatch.homeTeam.name} vs ${conflictingMatch.awayTeam.shortName || conflictingMatch.awayTeam.name} at ${conflictTimeStr}`,
           { duration: 5000 }
@@ -395,39 +385,20 @@ export function MatchSchedulerDayPilot({
       }
 
       // Check for team double-booking
+      // All times are in UTC for comparison
       const teamDoubleBooking = scheduledMatches.some((m) => {
         if (m.id === match.id || !m.startTime) return false;
 
-        // Parse existing match time without timezone conversion
-        const [mDatePart = '', mTimePart = ''] = m.startTime.split('T');
-        const mTimeParts = mTimePart.split(':');
-        const mHours = Number(mTimeParts[0]) || 0;
-        const mMinutes = Number(mTimeParts[1]) || 0;
-        const mStartStr = `${mDatePart}T${String(mHours).padStart(2, '0')}:${String(mMinutes).padStart(2, '0')}:00`;
+        // Parse existing match time (already in UTC from server)
+        const mStartUTC = m.startTime;
+        const mDivision = divisions.find(
+          (d) => d.id === m.group?.division.id
+        );
+        const mDuration = mDivision?.matchDuration || 90;
+        const mEndUTC = m.endTime || calculateEndTimeUTC(mStartUTC, mDuration);
 
-        // Calculate end time for existing match
-        let mEndStr: string;
-        if (m.endTime) {
-          const [mEndDatePart = '', mEndTimePart = ''] = m.endTime.split('T');
-          const mEndTimeParts = mEndTimePart.split(':');
-          const mEndHours = Number(mEndTimeParts[0]) || 0;
-          const mEndMinutes = Number(mEndTimeParts[1]) || 0;
-          mEndStr = `${mEndDatePart}T${String(mEndHours).padStart(2, '0')}:${String(mEndMinutes).padStart(2, '0')}:00`;
-        } else {
-          // Use each match's actual division duration
-          const mDivision = divisions.find(
-            (d) => d.id === m.group?.division.id
-          );
-          const mDuration = mDivision?.matchDuration || 90;
-          // Calculate end time manually
-          const totalMinutes = mHours * 60 + mMinutes + mDuration;
-          const endHours = Math.floor(totalMinutes / 60) % 24;
-          const endMinutes = totalMinutes % 60;
-          mEndStr = `${mDatePart}T${String(endHours).padStart(2, '0')}:${String(endMinutes).padStart(2, '0')}:00`;
-        }
-
-        // Check if times overlap (string comparison works for ISO format)
-        const timeOverlap = mStartStr < newEndStr && mEndStr > newStartStr;
+        // Check if times overlap (compare UTC ISO strings)
+        const timeOverlap = mStartUTC < newEndUTC && mEndUTC > newStartUTC;
 
         // Check if teams overlap
         const teamOverlap =
@@ -459,13 +430,14 @@ export function MatchSchedulerDayPilot({
         return;
       }
 
+      // Convert local time to UTC before storing
       // Use the calculated end time based on division duration, not the 15min cell duration
       const updatedMatch = {
         ...match,
         venue: { id: venue.id, name: venue.name },
         pitch: { id: pitch.id, name: pitch.name },
-        startTime: newStart.toString('yyyy-MM-ddTHH:mm:ss'),
-        endTime: calculatedEnd.toString('yyyy-MM-ddTHH:mm:ss'),
+        startTime: newStartUTC, // Store as UTC
+        endTime: newEndUTC, // Store as UTC
       };
 
       const updatedMatches = scheduledMatches.map((m) =>
@@ -536,52 +508,35 @@ export function MatchSchedulerDayPilot({
       const matchDuration = matchDivision?.matchDuration || 90;
       const calculatedEnd = start.addMinutes(matchDuration);
 
-      // Convert DayPilot.Date to string format for comparison (avoid timezone issues)
-      const newStartStr = start.toString('yyyy-MM-ddTHH:mm:ss');
-      const newEndStr = calculatedEnd.toString('yyyy-MM-ddTHH:mm:ss');
+      // Convert DayPilot.Date to local date/time strings, then to UTC
+      const newStartLocalStr = start.toString('yyyy-MM-ddTHH:mm:ss');
+      const [newStartDate, newStartTime] = newStartLocalStr.split('T');
+      const newStartUTC = createUTCTimeString(newStartDate, newStartTime);
+      const newEndUTC = calculateEndTimeUTC(newStartUTC, matchDuration);
 
+      // Check for conflicts - all times in UTC
       const conflictingMatch = scheduledMatches.find((m) => {
         // Exclude the match being scheduled from conflict check
         if (m.id === match.id) return false;
         if (!m.pitch || !m.startTime) return false;
         if (m.pitch.id !== resourceId) return false;
 
-        // Parse existing match time without timezone conversion
-        const [mDatePart = '', mTimePart = ''] = m.startTime.split('T');
-        const mTimeParts = mTimePart.split(':');
-        const mHours = Number(mTimeParts[0]) || 0;
-        const mMinutes = Number(mTimeParts[1]) || 0;
-        const mStartStr = `${mDatePart}T${String(mHours).padStart(2, '0')}:${String(mMinutes).padStart(2, '0')}:00`;
+        // Parse existing match time (already in UTC from server)
+        const mStartUTC = m.startTime;
+        const mDivision = divisions.find(
+          (d) => d.id === m.group?.division.id
+        );
+        const mDuration = mDivision?.matchDuration || 90;
+        const mEndUTC = m.endTime || calculateEndTimeUTC(mStartUTC, mDuration);
 
-        // Calculate end time for existing match
-        let mEndStr: string;
-        if (m.endTime) {
-          const [mEndDatePart = '', mEndTimePart = ''] = m.endTime.split('T');
-          const mEndTimeParts = mEndTimePart.split(':');
-          const mEndHours = Number(mEndTimeParts[0]) || 0;
-          const mEndMinutes = Number(mEndTimeParts[1]) || 0;
-          mEndStr = `${mEndDatePart}T${String(mEndHours).padStart(2, '0')}:${String(mEndMinutes).padStart(2, '0')}:00`;
-        } else {
-          // Use the conflicting match's actual division duration
-          const mDivision = divisions.find(
-            (d) => d.id === m.group?.division.id
-          );
-          const mDuration = mDivision?.matchDuration || 90;
-          // Calculate end time manually
-          const totalMinutes = mHours * 60 + mMinutes + mDuration;
-          const endHours = Math.floor(totalMinutes / 60) % 24;
-          const endMinutes = totalMinutes % 60;
-          mEndStr = `${mDatePart}T${String(endHours).padStart(2, '0')}:${String(endMinutes).padStart(2, '0')}:00`;
-        }
-
-        // Check if times overlap (string comparison works for ISO format)
-        return mStartStr < newEndStr && mEndStr > newStartStr;
+        // Check if times overlap (compare UTC ISO strings)
+        return mStartUTC < newEndUTC && mEndUTC > newStartUTC;
       });
 
       if (conflictingMatch) {
-        // Extract time directly from ISO string to avoid timezone issues
-        const [, timePartWithZ] = conflictingMatch.startTime.split('T');
-        const conflictTimeStr = timePartWithZ ? timePartWithZ.slice(0, 5) : '';
+        // Extract local time for display
+        const conflictLocalTime = parseUTCTimeString(conflictingMatch.startTime);
+        const conflictTimeStr = conflictLocalTime ? conflictLocalTime.time : '';
         toast.error(
           `Time slot conflicts with ${conflictingMatch.homeTeam.shortName || conflictingMatch.homeTeam.name} vs ${conflictingMatch.awayTeam.shortName || conflictingMatch.awayTeam.name} at ${conflictTimeStr}`,
           { duration: 5000 }
@@ -590,42 +545,22 @@ export function MatchSchedulerDayPilot({
         return;
       }
 
-      // Check for team double-booking
+      // Check for team double-booking - all times in UTC
       const teamDoubleBooking = scheduledMatches.some((m) => {
         // Exclude the match being scheduled from conflict check
         if (m.id === match.id) return false;
         if (!m.startTime) return false;
 
-        // Parse existing match time without timezone conversion
-        const [mDatePart = '', mTimePart = ''] = m.startTime.split('T');
-        const mTimeParts = mTimePart.split(':');
-        const mHours = Number(mTimeParts[0]) || 0;
-        const mMinutes = Number(mTimeParts[1]) || 0;
-        const mStartStr = `${mDatePart}T${String(mHours).padStart(2, '0')}:${String(mMinutes).padStart(2, '0')}:00`;
+        // Parse existing match time (already in UTC from server)
+        const mStartUTC = m.startTime;
+        const mDivision = divisions.find(
+          (d) => d.id === m.group?.division.id
+        );
+        const mDuration = mDivision?.matchDuration || 90;
+        const mEndUTC = m.endTime || calculateEndTimeUTC(mStartUTC, mDuration);
 
-        // Calculate end time for existing match
-        let mEndStr: string;
-        if (m.endTime) {
-          const [mEndDatePart = '', mEndTimePart = ''] = m.endTime.split('T');
-          const mEndTimeParts = mEndTimePart.split(':');
-          const mEndHours = Number(mEndTimeParts[0]) || 0;
-          const mEndMinutes = Number(mEndTimeParts[1]) || 0;
-          mEndStr = `${mEndDatePart}T${String(mEndHours).padStart(2, '0')}:${String(mEndMinutes).padStart(2, '0')}:00`;
-        } else {
-          // Use each match's actual division duration
-          const mDivision = divisions.find(
-            (d) => d.id === m.group?.division.id
-          );
-          const mDuration = mDivision?.matchDuration || 90;
-          // Calculate end time manually
-          const totalMinutes = mHours * 60 + mMinutes + mDuration;
-          const endHours = Math.floor(totalMinutes / 60) % 24;
-          const endMinutes = totalMinutes % 60;
-          mEndStr = `${mDatePart}T${String(endHours).padStart(2, '0')}:${String(endMinutes).padStart(2, '0')}:00`;
-        }
-
-        // Check if times overlap (string comparison works for ISO format)
-        const timeOverlap = mStartStr < newEndStr && mEndStr > newStartStr;
+        // Check if times overlap (compare UTC ISO strings)
+        const timeOverlap = mStartUTC < newEndUTC && mEndUTC > newStartUTC;
         const teamOverlap =
           m.homeTeam.id === match.homeTeam.id ||
           m.homeTeam.id === match.awayTeam.id ||
@@ -641,14 +576,15 @@ export function MatchSchedulerDayPilot({
         return;
       }
 
+      // Convert local time to UTC before storing
       // Use the calculated end time based on division duration, not the 15min cell duration
       // Update the match
       const updatedMatch = {
         ...match,
         venue: { id: venue.id, name: venue.name },
         pitch: { id: pitch.id, name: pitch.name },
-        startTime: start.toString('yyyy-MM-ddTHH:mm:ss'),
-        endTime: calculatedEnd.toString('yyyy-MM-ddTHH:mm:ss'),
+        startTime: newStartUTC, // Store as UTC
+        endTime: newEndUTC, // Store as UTC
       };
 
       const updatedMatches = scheduledMatches.map((m) =>
@@ -749,12 +685,16 @@ export function MatchSchedulerDayPilot({
           const match = scheduledMatches.find((m) => m.id === args.e.id());
           if (match && match.startTime) {
             setEditingMatch(match);
-            // Parse ISO string directly to avoid timezone conversion
-            const isoString = match.startTime;
-            const [datePart, timePart] = isoString.split('T');
-            const timeOnly = timePart ? timePart.slice(0, 5) : '09:00';
-            setEditStartDate(datePart || '');
-            setEditStartTime(timeOnly);
+            // Parse UTC time and convert to local for display
+            const localTime = parseUTCTimeString(match.startTime);
+            if (localTime) {
+              setEditStartDate(localTime.date);
+              setEditStartTime(localTime.time);
+            } else {
+              // Fallback
+              setEditStartDate('');
+              setEditStartTime('09:00');
+            }
             setEditMatchNumber(match.matchNumber || '');
             setIsEditModalOpen(true);
           }
@@ -1513,13 +1453,16 @@ export function MatchSchedulerDayPilot({
                           onClick={() => {
                             if (isScheduled) {
                               setEditingMatch(match);
-                              // Parse time for edit modal
+                              // Parse UTC time and convert to local for display
                               if (match.startTime) {
-                                const [datePart = '', timePart = ''] =
-                                  match.startTime.split('T');
-                                setEditStartDate(datePart);
-                                const timeStr = timePart.slice(0, 5);
-                                setEditStartTime(timeStr);
+                                const localTime = parseUTCTimeString(match.startTime);
+                                if (localTime) {
+                                  setEditStartDate(localTime.date);
+                                  setEditStartTime(localTime.time);
+                                } else {
+                                  setEditStartDate('');
+                                  setEditStartTime('09:00');
+                                }
                               }
                               setEditMatchNumber(match.matchNumber || '');
                               setIsEditModalOpen(true);
@@ -1646,12 +1589,16 @@ export function MatchSchedulerDayPilot({
                                 e.stopPropagation();
                                 if (isScheduled) {
                                   setEditingMatch(match);
+                                  // Parse UTC time and convert to local for display
                                   if (match.startTime) {
-                                    const [datePart = '', timePart = ''] =
-                                      match.startTime.split('T');
-                                    setEditStartDate(datePart);
-                                    const timeStr = timePart.slice(0, 5);
-                                    setEditStartTime(timeStr);
+                                    const localTime = parseUTCTimeString(match.startTime);
+                                    if (localTime) {
+                                      setEditStartDate(localTime.date);
+                                      setEditStartTime(localTime.time);
+                                    } else {
+                                      setEditStartDate('');
+                                      setEditStartTime('09:00');
+                                    }
                                   }
                                   setEditMatchNumber(match.matchNumber || '');
                                   setIsEditModalOpen(true);
@@ -1838,93 +1785,58 @@ export function MatchSchedulerDayPilot({
               onClick={async () => {
                 if (editingMatch && editStartDate && editStartTime) {
                   try {
-                    // Create ISO string directly without timezone conversion
-                    const newStartTimeString = `${editStartDate}T${editStartTime}:00`;
-                    // Get the match's actual division duration, not the filter state
+                    // Convert local time to UTC before storing
+                    const newStartUTC = createUTCTimeString(editStartDate, editStartTime);
+                    // Get the match's actual division duration
                     const matchDivision = divisions.find(
                       (d) => d.id === editingMatch.group?.division.id
                     );
                     const matchDuration = matchDivision?.matchDuration || 90;
+                    const newEndUTC = calculateEndTimeUTC(newStartUTC, matchDuration);
 
-                    // Calculate end time manually to avoid timezone issues
-                    const timeParts = editStartTime.split(':').map(Number);
-                    const hours = timeParts[0] || 0;
-                    const minutes = timeParts[1] || 0;
-                    const totalMinutes = hours * 60 + minutes + matchDuration;
-                    const endHours = Math.floor(totalMinutes / 60) % 24;
-                    const endMinutes = totalMinutes % 60;
-                    const newEndTimeString = `${editStartDate}T${String(endHours).padStart(2, '0')}:${String(endMinutes).padStart(2, '0')}:00`;
-
-                    // Helper function to compare times without timezone issues
-                    const timeToMinutes = (timeStr: string) => {
-                      const [, timePart] = timeStr.split('T');
-                      if (!timePart) return 0;
-                      const timeParts = timePart.split(':').map(Number);
-                      const h = timeParts[0] || 0;
-                      const m = timeParts[1] || 0;
-                      return h * 60 + m;
-                    };
-
-                    // Check for conflicts with other matches
+                    // Check for conflicts with other matches - all times in UTC
                     const conflictingMatch = scheduledMatches.find((m) => {
                       if (m.id === editingMatch.id) return false; // Don't check against itself
                       if (!m.pitch || !m.startTime) return false;
                       if (m.pitch.id !== editingMatch.pitch?.id) return false;
 
-                      // Check if they're on the same date
-                      const [mDate] = m.startTime.split('T');
-                      if (mDate !== editStartDate) return false;
-
-                      // Compare times as minutes since midnight
-                      const mStartMinutes = timeToMinutes(m.startTime);
-                      const mEndMinutes = m.endTime
-                        ? timeToMinutes(m.endTime)
-                        : mStartMinutes + matchDuration;
-
-                      const newStartMinutes = hours * 60 + minutes;
-                      const newEndMinutes = newStartMinutes + matchDuration;
-
-                      // Check if time ranges overlap
-                      return (
-                        mStartMinutes < newEndMinutes &&
-                        mEndMinutes > newStartMinutes
+                      // Parse existing match time (already in UTC from server)
+                      const mStartUTC = m.startTime;
+                      const mDivision = divisions.find(
+                        (d) => d.id === m.group?.division.id
                       );
+                      const mDuration = mDivision?.matchDuration || 90;
+                      const mEndUTC = m.endTime || calculateEndTimeUTC(mStartUTC, mDuration);
+
+                      // Check if time ranges overlap (compare UTC ISO strings)
+                      return mStartUTC < newEndUTC && mEndUTC > newStartUTC;
                     });
 
                     if (conflictingMatch) {
-                      // Extract time directly from ISO string to avoid timezone issues
-                      const [, timePartWithZ] =
-                        conflictingMatch.startTime.split('T');
-                      const conflictTimeStr = timePartWithZ
-                        ? timePartWithZ.slice(0, 5)
-                        : '';
+                      // Extract local time for display
+                      const conflictLocalTime = parseUTCTimeString(conflictingMatch.startTime);
+                      const conflictTimeStr = conflictLocalTime ? conflictLocalTime.time : '';
                       toast.error(
                         `Time slot conflicts with ${conflictingMatch.homeTeam.shortName || conflictingMatch.homeTeam.name} vs ${conflictingMatch.awayTeam.shortName || conflictingMatch.awayTeam.name} at ${conflictTimeStr}`
                       );
                       return;
                     }
 
-                    // Check for team double-booking
+                    // Check for team double-booking - all times in UTC
                     const teamDoubleBooking = scheduledMatches.some((m) => {
                       if (m.id === editingMatch.id) return false;
                       if (!m.startTime) return false;
 
-                      // Check if they're on the same date
-                      const [mDate] = m.startTime.split('T');
-                      if (mDate !== editStartDate) return false;
+                      // Parse existing match time (already in UTC from server)
+                      const mStartUTC = m.startTime;
+                      const mDivision = divisions.find(
+                        (d) => d.id === m.group?.division.id
+                      );
+                      const mDuration = mDivision?.matchDuration || 90;
+                      const mEndUTC = m.endTime || calculateEndTimeUTC(mStartUTC, mDuration);
 
-                      // Compare times as minutes since midnight
-                      const mStartMinutes = timeToMinutes(m.startTime);
-                      const mEndMinutes = m.endTime
-                        ? timeToMinutes(m.endTime)
-                        : mStartMinutes + matchDuration;
-
-                      const newStartMinutes = hours * 60 + minutes;
-                      const newEndMinutes = newStartMinutes + matchDuration;
-
-                      const timeOverlap =
-                        mStartMinutes < newEndMinutes &&
-                        mEndMinutes > newStartMinutes;
+                      // Check if time ranges overlap (compare UTC ISO strings)
+                      const timeOverlap = mStartUTC < newEndUTC && mEndUTC > newStartUTC;
                       const teamOverlap =
                         m.homeTeam.id === editingMatch.homeTeam.id ||
                         m.homeTeam.id === editingMatch.awayTeam.id ||
@@ -1941,11 +1853,11 @@ export function MatchSchedulerDayPilot({
                       return;
                     }
 
-                    // Update the match
+                    // Update the match with UTC times
                     const updatedMatch = {
                       ...editingMatch,
-                      startTime: newStartTimeString,
-                      endTime: newEndTimeString,
+                      startTime: newStartUTC,
+                      endTime: newEndUTC,
                       matchNumber: editMatchNumber || undefined,
                     };
 
