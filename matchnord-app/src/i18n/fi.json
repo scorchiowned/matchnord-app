@@ -182,6 +182,7 @@
             "divisions": "Sarjat",
             "matches": "Ottelut",
             "teams": "Joukkueet",
+            "bracket": "Kaavio",
             "venues": "Kentät",
             "register": "Ilmoittautuminen"
         },

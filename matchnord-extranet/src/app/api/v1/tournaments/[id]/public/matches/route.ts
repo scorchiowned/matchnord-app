@@ -89,6 +89,13 @@ export async function GET(
                 code: true,
               },
             },
+            clubRef: {
+              select: {
+                id: true,
+                name: true,
+                logo: true,
+              },
+            },
           },
         },
         awayTeam: {
@@ -98,6 +105,13 @@ export async function GET(
                 id: true,
                 name: true,
                 code: true,
+              },
+            },
+            clubRef: {
+              select: {
+                id: true,
+                name: true,
+                logo: true,
               },
             },
           },
@@ -145,6 +159,7 @@ export async function GET(
             shortName: match.homeTeam.shortName,
             logo: match.homeTeam.logo || null,
             country: match.homeTeam.country,
+            clubRef: match.homeTeam.clubRef,
           }
         : null,
       awayTeam: match.awayTeam
@@ -154,6 +169,7 @@ export async function GET(
             shortName: match.awayTeam.shortName,
             logo: match.awayTeam.logo || null,
             country: match.awayTeam.country,
+            clubRef: match.awayTeam.clubRef,
           }
         : null,
       homeScore: match.homeScore,

@@ -242,6 +242,8 @@
             "divisions": "Divisions",
             "matches": "Matches",
             "teams": "Teams",
+            "bracket": "Bracket",
+            "venues": "Venues",
             "register": "Register"
         },
         "details": {

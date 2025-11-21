@@ -4,12 +4,20 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { Link as I18nLink } from "@/i18n/routing";
+import Image from "next/image";
+
+interface ClubRef {
+  id: string;
+  name: string;
+  logo?: string;
+}
 
 interface Team {
   id: string;
   name: string;
   shortName?: string;
   logo?: string;
+  clubRef?: ClubRef | null;
 }
 
 interface Venue {
@@ -140,9 +148,22 @@ export function MatchesTable({
                   {match.homeTeam?.id ? (
                     <I18nLink
                       href={`/tournaments/${tournamentId}/teams/${match.homeTeam.id}/matches`}
-                      className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline"
+                      className="flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline"
                     >
-                      {match.homeTeam.name}
+                      {(() => {
+                        const logo = match.homeTeam.logo || 
+                          (typeof match.homeTeam.clubRef === 'object' ? match.homeTeam.clubRef?.logo : null);
+                        return logo ? (
+                          <Image
+                            src={logo}
+                            alt={match.homeTeam.name}
+                            width={24}
+                            height={24}
+                            className="rounded-full object-contain flex-shrink-0"
+                          />
+                        ) : null;
+                      })()}
+                      <span>{match.homeTeam.name}</span>
                     </I18nLink>
                   ) : (
                     <div className="text-sm font-medium text-gray-900">
@@ -159,9 +180,22 @@ export function MatchesTable({
                   {match.awayTeam?.id ? (
                     <I18nLink
                       href={`/tournaments/${tournamentId}/teams/${match.awayTeam.id}/matches`}
-                      className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline"
+                      className="flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline"
                     >
-                      {match.awayTeam.name}
+                      {(() => {
+                        const logo = match.awayTeam.logo || 
+                          (typeof match.awayTeam.clubRef === 'object' ? match.awayTeam.clubRef?.logo : null);
+                        return logo ? (
+                          <Image
+                            src={logo}
+                            alt={match.awayTeam.name}
+                            width={24}
+                            height={24}
+                            className="rounded-full object-contain flex-shrink-0"
+                          />
+                        ) : null;
+                      })()}
+                      <span>{match.awayTeam.name}</span>
                     </I18nLink>
                   ) : (
                     <div className="text-sm font-medium text-gray-900">
