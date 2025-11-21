@@ -43,8 +43,6 @@ import {
   parseUTCTimeString,
   createUTCTimeString,
   calculateEndTimeUTC,
-  extractLocalDate,
-  extractLocalTime,
 } from '@/lib/time/timezone';
 
 interface Match {
@@ -146,13 +144,7 @@ export function MatchSchedulerDayPilot({
   const [scheduledMatches, setScheduledMatches] = useState<Match[]>(matches);
   const [isSaving, setIsSaving] = useState(false);
   const today = new Date().toISOString().split('T')[0] || '';
-  const [selectedDateRange, setSelectedDateRange] = useState<{
-    start: string;
-    end: string;
-  }>({
-    start: today,
-    end: today,
-  });
+  const [selectedDates, setSelectedDates] = useState<string[]>([today]);
   const calendarRef = useRef<any>(null);
   const [filters, setFilters] = useState<FilterState>({
     selectedDivision: 'all',
@@ -192,15 +184,80 @@ export function MatchSchedulerDayPilot({
     return allPitches;
   }, [venues]);
 
+  // Generate available dates from matches' date range
+  const availableDates = useMemo(() => {
+    const dateSet = new Set<string>();
+
+    // Use matches' date range
+    if (scheduledMatches.length > 0) {
+      const matchDates = scheduledMatches
+        .map((m) => (m.startTime ? m.startTime.split('T')[0] : null))
+        .filter((d): d is string => Boolean(d));
+      if (matchDates.length > 0) {
+        const sortedDates = matchDates.sort();
+        const firstDate = sortedDates[0];
+        const lastDate = sortedDates[sortedDates.length - 1];
+        if (firstDate && lastDate) {
+          const start = new Date(firstDate);
+          const end = new Date(lastDate);
+          const current = new Date(start);
+          while (current <= end) {
+            const dateStr = current.toISOString().split('T')[0];
+            if (dateStr) {
+              dateSet.add(dateStr);
+            }
+            current.setDate(current.getDate() + 1);
+          }
+        }
+      }
+    }
+
+    // If no match dates available, use today as fallback
+    if (dateSet.size === 0) {
+      dateSet.add(today);
+    }
+
+    return Array.from(dateSet).sort();
+  }, [scheduledMatches, today]);
+
+  // Sync selectedDates with availableDates when they change
+  useEffect(() => {
+    if (availableDates.length > 0) {
+      // Filter out any selected dates that are no longer available
+      const validSelectedDates = selectedDates.filter((date) =>
+        availableDates.includes(date)
+      );
+
+      // If no valid dates remain, select the first available date
+      if (validSelectedDates.length === 0) {
+        setSelectedDates([availableDates[0]!]);
+      } else if (validSelectedDates.length !== selectedDates.length) {
+        // Update if some dates were removed
+        setSelectedDates(validSelectedDates);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [availableDates]); // Only depend on availableDates, not selectedDates to avoid loops
+
+  // Calculate date range from selected dates
+  const selectedDateRange = useMemo(() => {
+    if (selectedDates.length === 0) {
+      return { start: today, end: today };
+    }
+    const sorted = [...selectedDates].sort();
+    return {
+      start: sorted[0]!,
+      end: sorted[sorted.length - 1]!,
+    };
+  }, [selectedDates, today]);
+
   // Helper function to check if a date is within the selected range
   const isDateInRange = useCallback(
     (dateStr: string | undefined): boolean => {
       if (!dateStr) return false;
-      return (
-        dateStr >= selectedDateRange.start && dateStr <= selectedDateRange.end
-      );
+      return selectedDates.includes(dateStr);
     },
-    [selectedDateRange]
+    [selectedDates]
   );
 
   // Prepare events (matches) for DayPilot
@@ -350,11 +407,14 @@ export function MatchSchedulerDayPilot({
 
       // Convert DayPilot.Date to local date/time strings, then to UTC for comparison
       const newStartLocalStr = newStart.toString('yyyy-MM-ddTHH:mm:ss');
-      const newEndLocalStr = calculatedEnd.toString('yyyy-MM-ddTHH:mm:ss');
-      
+
       // Parse local strings and convert to UTC for conflict checking
       const [newStartDate, newStartTime] = newStartLocalStr.split('T');
-      const [newEndDate, newEndTime] = newEndLocalStr.split('T');
+      if (!newStartDate || !newStartTime) {
+        toast.error('Invalid date/time format');
+        args.preventDefault();
+        return;
+      }
       const newStartUTC = createUTCTimeString(newStartDate, newStartTime);
       const newEndUTC = calculateEndTimeUTC(newStartUTC, matchDuration);
 
@@ -366,7 +426,8 @@ export function MatchSchedulerDayPilot({
 
         // Parse existing match time (already in UTC from server)
         const mStartUTC = m.startTime;
-        const mEndUTC = m.endTime || calculateEndTimeUTC(mStartUTC, matchDuration);
+        const mEndUTC =
+          m.endTime || calculateEndTimeUTC(mStartUTC, matchDuration);
 
         // Check if times overlap (compare UTC ISO strings)
         return mStartUTC < newEndUTC && mEndUTC > newStartUTC;
@@ -374,7 +435,9 @@ export function MatchSchedulerDayPilot({
 
       if (conflictingMatch) {
         // Extract local time for display
-        const conflictLocalTime = parseUTCTimeString(conflictingMatch.startTime);
+        const conflictLocalTime = parseUTCTimeString(
+          conflictingMatch.startTime
+        );
         const conflictTimeStr = conflictLocalTime ? conflictLocalTime.time : '';
         toast.error(
           `Time slot conflicts with ${conflictingMatch.homeTeam.shortName || conflictingMatch.homeTeam.name} vs ${conflictingMatch.awayTeam.shortName || conflictingMatch.awayTeam.name} at ${conflictTimeStr}`,
@@ -391,9 +454,7 @@ export function MatchSchedulerDayPilot({
 
         // Parse existing match time (already in UTC from server)
         const mStartUTC = m.startTime;
-        const mDivision = divisions.find(
-          (d) => d.id === m.group?.division.id
-        );
+        const mDivision = divisions.find((d) => d.id === m.group?.division.id);
         const mDuration = mDivision?.matchDuration || 90;
         const mEndUTC = m.endTime || calculateEndTimeUTC(mStartUTC, mDuration);
 
@@ -506,11 +567,15 @@ export function MatchSchedulerDayPilot({
         (d) => d.id === match.group?.division.id
       );
       const matchDuration = matchDivision?.matchDuration || 90;
-      const calculatedEnd = start.addMinutes(matchDuration);
 
       // Convert DayPilot.Date to local date/time strings, then to UTC
       const newStartLocalStr = start.toString('yyyy-MM-ddTHH:mm:ss');
       const [newStartDate, newStartTime] = newStartLocalStr.split('T');
+      if (!newStartDate || !newStartTime) {
+        toast.error('Invalid date/time format');
+        setSelectedMatch(null);
+        return;
+      }
       const newStartUTC = createUTCTimeString(newStartDate, newStartTime);
       const newEndUTC = calculateEndTimeUTC(newStartUTC, matchDuration);
 
@@ -523,9 +588,7 @@ export function MatchSchedulerDayPilot({
 
         // Parse existing match time (already in UTC from server)
         const mStartUTC = m.startTime;
-        const mDivision = divisions.find(
-          (d) => d.id === m.group?.division.id
-        );
+        const mDivision = divisions.find((d) => d.id === m.group?.division.id);
         const mDuration = mDivision?.matchDuration || 90;
         const mEndUTC = m.endTime || calculateEndTimeUTC(mStartUTC, mDuration);
 
@@ -535,7 +598,9 @@ export function MatchSchedulerDayPilot({
 
       if (conflictingMatch) {
         // Extract local time for display
-        const conflictLocalTime = parseUTCTimeString(conflictingMatch.startTime);
+        const conflictLocalTime = parseUTCTimeString(
+          conflictingMatch.startTime
+        );
         const conflictTimeStr = conflictLocalTime ? conflictLocalTime.time : '';
         toast.error(
           `Time slot conflicts with ${conflictingMatch.homeTeam.shortName || conflictingMatch.homeTeam.name} vs ${conflictingMatch.awayTeam.shortName || conflictingMatch.awayTeam.name} at ${conflictTimeStr}`,
@@ -553,9 +618,7 @@ export function MatchSchedulerDayPilot({
 
         // Parse existing match time (already in UTC from server)
         const mStartUTC = m.startTime;
-        const mDivision = divisions.find(
-          (d) => d.id === m.group?.division.id
-        );
+        const mDivision = divisions.find((d) => d.id === m.group?.division.id);
         const mDuration = mDivision?.matchDuration || 90;
         const mEndUTC = m.endTime || calculateEndTimeUTC(mStartUTC, mDuration);
 
@@ -911,55 +974,95 @@ export function MatchSchedulerDayPilot({
             </div>
           )}
 
-          {/* Date Range Filter */}
+          {/* Date Selection Filter */}
           <div className="mb-6">
-            <Label>Date Range</Label>
-            <div className="mt-2 grid grid-cols-2 gap-2">
-              <div className="space-y-1">
-                <Label
-                  htmlFor="date-start"
-                  className="text-xs text-muted-foreground"
-                >
-                  Start Date
-                </Label>
-                <input
-                  id="date-start"
-                  type="date"
-                  value={selectedDateRange.start}
-                  onChange={(e) =>
-                    setSelectedDateRange({
-                      ...selectedDateRange,
-                      start: e.target.value,
-                    })
-                  }
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label
-                  htmlFor="date-end"
-                  className="text-xs text-muted-foreground"
-                >
-                  End Date
-                </Label>
-                <input
-                  id="date-end"
-                  type="date"
-                  value={selectedDateRange.end}
-                  onChange={(e) =>
-                    setSelectedDateRange({
-                      ...selectedDateRange,
-                      end: e.target.value,
-                    })
-                  }
-                  min={selectedDateRange.start}
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                />
-              </div>
+            <Label>Select Dates</Label>
+            <div className="mt-2 max-h-48 space-y-2 overflow-y-auto rounded-md border p-3">
+              {availableDates.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  No dates available. Please ensure matches have scheduled
+                  dates.
+                </p>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between pb-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (selectedDates.length === availableDates.length) {
+                          setSelectedDates([]);
+                        } else {
+                          setSelectedDates([...availableDates]);
+                        }
+                      }}
+                      className="text-xs text-primary hover:underline"
+                    >
+                      {selectedDates.length === availableDates.length
+                        ? 'Deselect All'
+                        : 'Select All'}
+                    </button>
+                    <span className="text-xs text-muted-foreground">
+                      {selectedDates.length} of {availableDates.length} selected
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
+                    {availableDates.map((date) => {
+                      const isSelected = selectedDates.includes(date);
+                      const dateObj = new Date(date);
+                      const dayName = dateObj.toLocaleDateString('en-US', {
+                        weekday: 'short',
+                      });
+                      const dateStr = dateObj.toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                      });
+                      return (
+                        <label
+                          key={date}
+                          className={`flex cursor-pointer items-center space-x-2 rounded-md border p-2 text-sm transition-colors hover:bg-accent ${
+                            isSelected
+                              ? 'border-primary bg-primary/10'
+                              : 'border-input'
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedDates([...selectedDates, date]);
+                              } else {
+                                setSelectedDates(
+                                  selectedDates.filter((d) => d !== date)
+                                );
+                              }
+                            }}
+                            className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                          />
+                          <div className="flex flex-col">
+                            <span className="text-xs font-medium">
+                              {dayName}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {dateStr}
+                            </span>
+                          </div>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
             </div>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Select a date range to view matches across multiple days
-            </p>
+            {selectedDates.length > 0 && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                Showing matches from{' '}
+                {new Date(selectedDateRange.start).toLocaleDateString()} to{' '}
+                {new Date(selectedDateRange.end).toLocaleDateString()} (
+                {selectedDates.length} day
+                {selectedDates.length !== 1 ? 's' : ''} selected)
+              </p>
+            )}
           </div>
 
           {/* Other Filters */}
@@ -1455,7 +1558,9 @@ export function MatchSchedulerDayPilot({
                               setEditingMatch(match);
                               // Parse UTC time and convert to local for display
                               if (match.startTime) {
-                                const localTime = parseUTCTimeString(match.startTime);
+                                const localTime = parseUTCTimeString(
+                                  match.startTime
+                                );
                                 if (localTime) {
                                   setEditStartDate(localTime.date);
                                   setEditStartTime(localTime.time);
@@ -1591,7 +1696,9 @@ export function MatchSchedulerDayPilot({
                                   setEditingMatch(match);
                                   // Parse UTC time and convert to local for display
                                   if (match.startTime) {
-                                    const localTime = parseUTCTimeString(match.startTime);
+                                    const localTime = parseUTCTimeString(
+                                      match.startTime
+                                    );
                                     if (localTime) {
                                       setEditStartDate(localTime.date);
                                       setEditStartTime(localTime.time);
@@ -1786,13 +1893,19 @@ export function MatchSchedulerDayPilot({
                 if (editingMatch && editStartDate && editStartTime) {
                   try {
                     // Convert local time to UTC before storing
-                    const newStartUTC = createUTCTimeString(editStartDate, editStartTime);
+                    const newStartUTC = createUTCTimeString(
+                      editStartDate,
+                      editStartTime
+                    );
                     // Get the match's actual division duration
                     const matchDivision = divisions.find(
                       (d) => d.id === editingMatch.group?.division.id
                     );
                     const matchDuration = matchDivision?.matchDuration || 90;
-                    const newEndUTC = calculateEndTimeUTC(newStartUTC, matchDuration);
+                    const newEndUTC = calculateEndTimeUTC(
+                      newStartUTC,
+                      matchDuration
+                    );
 
                     // Check for conflicts with other matches - all times in UTC
                     const conflictingMatch = scheduledMatches.find((m) => {
@@ -1806,7 +1919,8 @@ export function MatchSchedulerDayPilot({
                         (d) => d.id === m.group?.division.id
                       );
                       const mDuration = mDivision?.matchDuration || 90;
-                      const mEndUTC = m.endTime || calculateEndTimeUTC(mStartUTC, mDuration);
+                      const mEndUTC =
+                        m.endTime || calculateEndTimeUTC(mStartUTC, mDuration);
 
                       // Check if time ranges overlap (compare UTC ISO strings)
                       return mStartUTC < newEndUTC && mEndUTC > newStartUTC;
@@ -1814,8 +1928,12 @@ export function MatchSchedulerDayPilot({
 
                     if (conflictingMatch) {
                       // Extract local time for display
-                      const conflictLocalTime = parseUTCTimeString(conflictingMatch.startTime);
-                      const conflictTimeStr = conflictLocalTime ? conflictLocalTime.time : '';
+                      const conflictLocalTime = parseUTCTimeString(
+                        conflictingMatch.startTime
+                      );
+                      const conflictTimeStr = conflictLocalTime
+                        ? conflictLocalTime.time
+                        : '';
                       toast.error(
                         `Time slot conflicts with ${conflictingMatch.homeTeam.shortName || conflictingMatch.homeTeam.name} vs ${conflictingMatch.awayTeam.shortName || conflictingMatch.awayTeam.name} at ${conflictTimeStr}`
                       );
@@ -1833,10 +1951,12 @@ export function MatchSchedulerDayPilot({
                         (d) => d.id === m.group?.division.id
                       );
                       const mDuration = mDivision?.matchDuration || 90;
-                      const mEndUTC = m.endTime || calculateEndTimeUTC(mStartUTC, mDuration);
+                      const mEndUTC =
+                        m.endTime || calculateEndTimeUTC(mStartUTC, mDuration);
 
                       // Check if time ranges overlap (compare UTC ISO strings)
-                      const timeOverlap = mStartUTC < newEndUTC && mEndUTC > newStartUTC;
+                      const timeOverlap =
+                        mStartUTC < newEndUTC && mEndUTC > newStartUTC;
                       const teamOverlap =
                         m.homeTeam.id === editingMatch.homeTeam.id ||
                         m.homeTeam.id === editingMatch.awayTeam.id ||
