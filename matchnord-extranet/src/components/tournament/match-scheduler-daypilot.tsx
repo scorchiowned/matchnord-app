@@ -223,17 +223,15 @@ export function MatchSchedulerDayPilot({
   // Sync selectedDates with availableDates when they change
   useEffect(() => {
     if (availableDates.length > 0) {
-      // Filter out any selected dates that are no longer available
-      const validSelectedDates = selectedDates.filter((date) =>
-        availableDates.includes(date)
-      );
+      // Check if the currently selected date is still available
+      const currentSelectedDate = selectedDates[0];
 
-      // If no valid dates remain, select the first available date
-      if (validSelectedDates.length === 0) {
+      // If no date is selected or the selected date is no longer available, select the first available date
+      if (
+        !currentSelectedDate ||
+        !availableDates.includes(currentSelectedDate)
+      ) {
         setSelectedDates([availableDates[0]!]);
-      } else if (validSelectedDates.length !== selectedDates.length) {
-        // Update if some dates were removed
-        setSelectedDates(validSelectedDates);
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -976,7 +974,7 @@ export function MatchSchedulerDayPilot({
 
           {/* Date Selection Filter */}
           <div className="mb-6">
-            <Label>Select Dates</Label>
+            <Label>Select Date</Label>
             <div className="mt-2 max-h-48 space-y-2 overflow-y-auto rounded-md border p-3">
               {availableDates.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
@@ -985,26 +983,6 @@ export function MatchSchedulerDayPilot({
                 </p>
               ) : (
                 <>
-                  <div className="flex items-center justify-between pb-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (selectedDates.length === availableDates.length) {
-                          setSelectedDates([]);
-                        } else {
-                          setSelectedDates([...availableDates]);
-                        }
-                      }}
-                      className="text-xs text-primary hover:underline"
-                    >
-                      {selectedDates.length === availableDates.length
-                        ? 'Deselect All'
-                        : 'Select All'}
-                    </button>
-                    <span className="text-xs text-muted-foreground">
-                      {selectedDates.length} of {availableDates.length} selected
-                    </span>
-                  </div>
                   <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
                     {availableDates.map((date) => {
                       const isSelected = selectedDates.includes(date);
@@ -1026,18 +1004,13 @@ export function MatchSchedulerDayPilot({
                           }`}
                         >
                           <input
-                            type="checkbox"
+                            type="radio"
+                            name="date-filter"
                             checked={isSelected}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setSelectedDates([...selectedDates, date]);
-                              } else {
-                                setSelectedDates(
-                                  selectedDates.filter((d) => d !== date)
-                                );
-                              }
+                            onChange={() => {
+                              setSelectedDates([date]);
                             }}
-                            className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                            className="h-4 w-4 border-gray-300 text-primary focus:ring-2 focus:ring-primary focus:ring-offset-2"
                           />
                           <div className="flex flex-col">
                             <span className="text-xs font-medium">
@@ -1056,11 +1029,8 @@ export function MatchSchedulerDayPilot({
             </div>
             {selectedDates.length > 0 && (
               <p className="mt-1 text-xs text-muted-foreground">
-                Showing matches from{' '}
-                {new Date(selectedDateRange.start).toLocaleDateString()} to{' '}
-                {new Date(selectedDateRange.end).toLocaleDateString()} (
-                {selectedDates.length} day
-                {selectedDates.length !== 1 ? 's' : ''} selected)
+                Showing matches for{' '}
+                {new Date(selectedDateRange.start).toLocaleDateString()}
               </p>
             )}
           </div>
