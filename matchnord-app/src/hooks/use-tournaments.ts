@@ -68,6 +68,16 @@ export function useTournamentMatches(
   });
 }
 
+// Get single tournament match
+export function useTournamentMatch(tournamentId: string, matchId: string) {
+  return useQuery({
+    queryKey: ["tournament", tournamentId, "match", matchId],
+    queryFn: () => api.tournaments.getMatch(tournamentId, matchId),
+    enabled: !!tournamentId && !!matchId,
+    staleTime: 30 * 1000, // 30 seconds (matches change frequently)
+  });
+}
+
 // Get tournament teams
 export function useTournamentTeams(tournamentId: string) {
   return useQuery({

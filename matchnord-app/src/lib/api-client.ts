@@ -129,6 +129,11 @@ export const tournamentApi = {
     return fetchApi<Match[]>(endpoint);
   },
 
+  // Get single tournament match
+  getMatch: async (tournamentId: string, matchId: string) => {
+    return fetchApi<Match>(`/api/v1/tournaments/${tournamentId}/public/matches/${matchId}`);
+  },
+
   // Get tournament teams
   getTeams: async (id: string) => {
     return fetchApi<Team[]>(`/api/v1/tournaments/${id}/public/teams`);

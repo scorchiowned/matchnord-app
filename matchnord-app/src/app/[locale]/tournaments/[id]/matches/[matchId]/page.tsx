@@ -1,78 +1,44 @@
 "use client";
 
-import { useParams, useSearchParams, useRouter } from "next/navigation";
-import { useState, useEffect, useMemo } from "react";
+import { useParams } from "next/navigation";
 import {
   usePublicTournament,
-  useTournamentMatches,
+  useTournamentMatch,
 } from "@/hooks/use-tournaments";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Calendar,
   Clock,
   MapPin,
   ArrowLeft,
-  Trophy,
   Users,
-  Target,
 } from "lucide-react";
 import { format } from "date-fns";
 import { Link as I18nLink } from "@/i18n/routing";
 import { useTranslations } from "next-intl";
+import Image from "next/image";
 
 export default function TournamentMatchDetailsPage() {
   const params = useParams();
-  const searchParams = useSearchParams();
-  const router = useRouter();
   const tournamentId = params.id as string;
   const matchId = params.matchId as string;
   const t = useTranslations();
-
-  // Tab state management
-  const tabFromUrl = searchParams.get("tab");
-  const validTabs = useMemo(
-    () => ["overview", "teams", "venue"],
-    []
-  );
-  const initialTab = tabFromUrl && validTabs.includes(tabFromUrl) ? tabFromUrl : "overview";
-  const [activeTab, setActiveTab] = useState(initialTab);
-
-  // Sync tab state with URL
-  useEffect(() => {
-    const currentTab = searchParams.get("tab");
-    if (currentTab && validTabs.includes(currentTab) && currentTab !== activeTab) {
-      setActiveTab(currentTab);
-    }
-  }, [searchParams, activeTab, validTabs]);
-
-  // Update URL when tab changes
-  const handleTabChange = (value: string) => {
-    setActiveTab(value);
-    const params = new URLSearchParams(searchParams.toString());
-    if (value === "overview") {
-      params.delete("tab");
-    } else {
-      params.set("tab", value);
-    }
-    const queryString = params.toString();
-    const newUrl = queryString
-      ? `${window.location.pathname}?${queryString}`
-      : window.location.pathname;
-    router.replace(newUrl, { scroll: false });
-  };
 
   const {
     data: tournament,
     isLoading: tournamentLoading,
     error: tournamentError,
   } = usePublicTournament(tournamentId);
-  const { data: matches, isLoading: matchesLoading } =
-    useTournamentMatches(tournamentId);
+  
+  const {
+    data: match,
+    isLoading: matchLoading,
+    error: matchError,
+  } = useTournamentMatch(tournamentId, matchId);
 
-  if (tournamentLoading) {
+  if (tournamentLoading || matchLoading) {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="flex items-center justify-center min-h-[400px]">
@@ -85,39 +51,18 @@ export default function TournamentMatchDetailsPage() {
     );
   }
 
-  if (tournamentError || !tournament) {
+  if (tournamentError || !tournament || matchError || !match) {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 mb-4">
-            {t("common.error")}
+            {matchError ? t("tournament.details.matchNotFound") : t("common.error")}
           </h1>
           <p className="text-gray-600 mb-6">
-            {t("tournament.details.matchNotFound")}
-          </p>
-          <I18nLink href={`/tournaments/${tournamentId}`}>
-            <Button>
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              {t("common.back")} {t("tournament.details.tournament")}
-            </Button>
-          </I18nLink>
-        </div>
-      </div>
-    );
-  }
-
-  // Find the specific match
-  const match = matches?.find((m) => m.id === matchId);
-
-  if (!match) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">
-            {t("tournament.details.matchNotFound")}
-          </h1>
-          <p className="text-gray-600 mb-6">
-            {t("tournament.details.matchNotFoundDescription")}
+            {matchError 
+              ? t("tournament.details.matchNotFoundDescription")
+              : t("common.error")
+            }
           </p>
           <I18nLink href={`/tournaments/${tournamentId}`}>
             <Button>
@@ -131,432 +76,283 @@ export default function TournamentMatchDetailsPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      {/* Header */}
-      <div className="mb-6">
-        <I18nLink href={`/tournaments/${tournamentId}`}>
-          <Button variant="outline" className="mb-4">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            {t("common.back")} {t("tournament.details.tournament")}
-          </Button>
-        </I18nLink>
+    <div className="container mx-auto px-4 py-8 max-w-5xl">
+      {/* Back Button */}
+      <I18nLink href={`/tournaments/${tournamentId}`}>
+        <Button variant="outline" className="mb-6">
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          {t("common.back")}
+        </Button>
+      </I18nLink>
 
-        <div className="text-center mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            {match.homeTeam?.name || "TBD"} vs {match.awayTeam?.name || "TBD"}
-          </h1>
-          <p className="text-lg text-gray-600 mb-4">
-            {tournament.name} • {tournament.season}
-          </p>
-          <div className="flex items-center justify-center gap-4 text-sm text-gray-600">
-            <div className="flex items-center">
-              <Calendar className="w-4 h-4 mr-1" />
-              <span>{format(new Date(match.startTime), "MMM d, yyyy")}</span>
-            </div>
-            <div className="flex items-center">
-              <Clock className="w-4 h-4 mr-1" />
-              <span>{format(new Date(match.startTime), "HH:mm")}</span>
-            </div>
-            {match.venue?.name && (
-              <div className="flex items-center">
-                <MapPin className="w-4 h-4 mr-1" />
-                <span>{match.venue.name}</span>
-              </div>
-            )}
-          </div>
-        </div>
+      {/* Match Header */}
+      <div className="text-center mb-6">
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          {match.matchNumber && (
+            <span className="text-gray-500 mr-2">#{match.matchNumber}</span>
+          )}
+          {match.homeTeam?.name || "TBD"} vs {match.awayTeam?.name || "TBD"}
+        </h1>
+        <p className="text-gray-600">
+          {tournament.name} • {tournament.season}
+        </p>
+      </div>
 
-        {/* Match Score */}
-        <div className="bg-gradient-to-r from-blue-50 to-green-50 rounded-lg p-6 mb-6">
-          <div className="flex items-center justify-center">
-            <div className="text-center">
+      {/* Score Display */}
+      <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg p-8 mb-8">
+        <div className="text-center">
+          <div className="flex items-center justify-center gap-8 mb-6">
+            {/* Home Team Logo & Name */}
+            <div className="flex flex-col items-center">
+              {(() => {
+                // Check for logo in team, then fallback to club logo
+                const logo = match.homeTeam?.logo || 
+                  (typeof match.homeTeam?.clubRef === 'object' ? match.homeTeam.clubRef?.logo : null);
+                
+                return logo ? (
+                  <Image
+                    src={logo}
+                    alt={match.homeTeam?.name || "Home Team"}
+                    width={80}
+                    height={80}
+                    className="mb-3 object-contain"
+                  />
+                ) : (
+                  <div className="w-20 h-20 mb-3 bg-gray-200 rounded-full flex items-center justify-center">
+                    <Users className="w-10 h-10 text-gray-400" />
+                  </div>
+                );
+              })()}
+              <h3 className="font-semibold text-lg">
+                {match.homeTeam?.name || "TBD"}
+              </h3>
+            </div>
+
+            {/* Score */}
+            <div className="flex flex-col items-center">
               <div className="text-6xl font-bold text-gray-900 mb-2">
                 {match.homeScore} - {match.awayScore}
               </div>
-              <div className="flex items-center justify-center gap-8">
-                <div className="text-center">
-                  <div className="text-lg font-semibold text-gray-900">
-                    {match.homeTeam?.name || "TBD"}
+              <div className="text-sm text-gray-500">vs</div>
+            </div>
+
+            {/* Away Team Logo & Name */}
+            <div className="flex flex-col items-center">
+              {(() => {
+                // Check for logo in team, then fallback to club logo
+                const logo = match.awayTeam?.logo || 
+                  (typeof match.awayTeam?.clubRef === 'object' ? match.awayTeam.clubRef?.logo : null);
+                
+                return logo ? (
+                  <Image
+                    src={logo}
+                    alt={match.awayTeam?.name || "Away Team"}
+                    width={80}
+                    height={80}
+                    className="mb-3 object-contain"
+                  />
+                ) : (
+                  <div className="w-20 h-20 mb-3 bg-gray-200 rounded-full flex items-center justify-center">
+                    <Users className="w-10 h-10 text-gray-400" />
                   </div>
-                  {match.homeTeam?.shortName && (
-                    <div className="text-sm text-gray-600">
-                      ({match.homeTeam.shortName})
-                    </div>
-                  )}
-                </div>
-                <div className="text-gray-400">vs</div>
-                <div className="text-center">
-                  <div className="text-lg font-semibold text-gray-900">
-                    {match.awayTeam?.name || "TBD"}
-                  </div>
-                  {match.awayTeam?.shortName && (
-                    <div className="text-sm text-gray-600">
-                      ({match.awayTeam.shortName})
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div className="mt-4">
-                <Badge
-                  className={
-                    match.status === "LIVE"
-                      ? "bg-red-100 text-red-800"
-                      : match.status === "FINISHED"
-                      ? "bg-green-100 text-green-800"
-                      : "bg-gray-100 text-gray-800"
-                  }
-                >
-                  {match.status}
-                </Badge>
-              </div>
+                );
+              })()}
+              <h3 className="font-semibold text-lg">
+                {match.awayTeam?.name || "TBD"}
+              </h3>
             </div>
           </div>
+
+          <Badge
+            className={
+              match.status === "FINISHED"
+                ? "bg-gray-800 text-white uppercase"
+                : match.status === "LIVE"
+                ? "bg-red-600 text-white uppercase"
+                : "bg-gray-200 text-gray-800 uppercase"
+            }
+          >
+            {match.status === "SCHEDULED" ? "Scheduled" : match.status}
+          </Badge>
         </div>
       </div>
 
-      {/* Match Details */}
-      <Tabs
-        value={activeTab}
-        onValueChange={handleTabChange}
-        className="w-full"
-      >
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="overview">
-            {t("tournament.tabs.overview")}
-          </TabsTrigger>
-          <TabsTrigger value="teams">
-            {t("tournament.tabs.teams")}
-          </TabsTrigger>
-          <TabsTrigger value="venue">
-            {t("tournament.tabs.venues")}
-          </TabsTrigger>
-        </TabsList>
+      {/* Match Details Table */}
+      <Card className="mb-8">
+        <CardContent className="p-6">
+          <div className="space-y-3">
+            <div className="grid grid-cols-[120px_1fr] gap-4 py-2 border-b">
+              <div className="font-medium text-gray-700">
+                {t("tournament.details.gameFormat")}
+              </div>
+              <div className="text-gray-900">
+                {match.division?.matchDuration || 90} min
+                {match.division?.format && ` • ${match.division.format}`}
+              </div>
+            </div>
 
-        <TabsContent value="overview" className="mt-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Match Information */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Calendar className="w-5 h-5 mr-2" />
-                  {t("tournament.details.matchInformation")}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <h4 className="font-medium text-gray-900 mb-2">
-                    {t("tournament.details.matchDate")}
-                  </h4>
-                  <div className="flex items-center text-gray-600">
-                    <Calendar className="w-4 h-4 mr-2" />
-                    <span>
-                      {format(new Date(match.startTime), "EEEE, MMMM d, yyyy")}
-                    </span>
-                  </div>
+            <div className="grid grid-cols-[120px_1fr] gap-4 py-2 border-b">
+              <div className="font-medium text-gray-700">
+                {t("tournament.details.matchDate")}
+              </div>
+              <div className="text-gray-900 flex items-center">
+                <Calendar className="w-4 h-4 mr-2 text-gray-500" />
+                {format(new Date(match.startTime), "MMMM d, yyyy")}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-[120px_1fr] gap-4 py-2 border-b">
+              <div className="font-medium text-gray-700">
+                {t("tournament.details.matchTime")}
+              </div>
+              <div className="text-gray-900 flex items-center">
+                <Clock className="w-4 h-4 mr-2 text-gray-500" />
+                {format(new Date(match.startTime), "HH:mm")}
+                {match.endTime &&
+                  ` - ${format(new Date(match.endTime), "HH:mm")}`}
+              </div>
+            </div>
+
+            {match.venue && (
+              <div className="grid grid-cols-[120px_1fr] gap-4 py-2 border-b">
+                <div className="font-medium text-gray-700">
+                  {t("tournament.details.venue")}
                 </div>
-
-                <div>
-                  <h4 className="font-medium text-gray-900 mb-2">
-                    {t("tournament.details.matchTime")}
-                  </h4>
-                  <div className="flex items-center text-gray-600">
-                    <Clock className="w-4 h-4 mr-2" />
-                    <span>{format(new Date(match.startTime), "HH:mm")}</span>
-                  </div>
-                </div>
-
-                <div>
-                  <h4 className="font-medium text-gray-900 mb-2">
-                    {t("tournament.details.status")}
-                  </h4>
-                  <Badge
-                    className={
-                      match.status === "LIVE"
-                        ? "bg-red-100 text-red-800"
-                        : match.status === "FINISHED"
-                        ? "bg-green-100 text-green-800"
-                        : "bg-gray-100 text-gray-800"
-                    }
-                  >
-                    {match.status}
-                  </Badge>
-                </div>
-
-                <div>
-                  <h4 className="font-medium text-gray-900 mb-2">
-                    {t("tournament.details.score")}
-                  </h4>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {match.homeScore} - {match.awayScore}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Tournament Information */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Trophy className="w-5 h-5 mr-2" />
-                  {t("tournament.details.tournamentInformation")}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <h4 className="font-medium text-gray-900 mb-2">
-                    {t("tournament.details.tournamentName")}
-                  </h4>
-                  <p className="text-gray-600">{tournament.name}</p>
-                </div>
-
-                <div>
-                  <h4 className="font-medium text-gray-900 mb-2">
-                    {t("tournament.details.season")}
-                  </h4>
-                  <p className="text-gray-600">{tournament.season || "TBD"}</p>
-                </div>
-
-                <div>
-                  <h4 className="font-medium text-gray-900 mb-2">
-                    {t("tournament.details.dates")}
-                  </h4>
-                  <div className="flex items-center text-gray-600">
-                    <Calendar className="w-4 h-4 mr-2" />
-                    <span>
-                      {format(new Date(tournament.startDate), "MMM d, yyyy")} -{" "}
-                      {format(new Date(tournament.endDate), "MMM d, yyyy")}
-                    </span>
-                  </div>
-                </div>
-
-                <div>
-                  <h4 className="font-medium text-gray-900 mb-2">
-                    {t("tournament.details.status")}
-                  </h4>
-                  <Badge
-                    className={
-                      tournament.status === "ACTIVE"
-                        ? "bg-green-100 text-green-800"
-                        : tournament.status === "UPCOMING"
-                        ? "bg-blue-100 text-blue-800"
-                        : "bg-gray-100 text-gray-800"
-                    }
-                  >
-                    {tournament.status}
-                  </Badge>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="teams" className="mt-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Home Team */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Users className="w-5 h-5 mr-2" />
-                  {t("tournament.details.homeTeam")}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {match.homeTeam ? (
-                  <div className="space-y-4">
-                    <div>
-                      <h4 className="font-medium text-gray-900 mb-2">
-                        {t("tournament.details.teamName")}
-                      </h4>
-                      <p className="text-gray-600">{match.homeTeam.name}</p>
-                    </div>
-
-                    {match.homeTeam.shortName && (
-                      <div>
-                        <h4 className="font-medium text-gray-900 mb-2">
-                          {t("tournament.details.shortName")}
-                        </h4>
-                        <p className="text-gray-600">
-                          {match.homeTeam.shortName}
-                        </p>
-                      </div>
-                    )}
-
-                    {match.homeTeam.club && (
-                      <div>
-                        <h4 className="font-medium text-gray-900 mb-2">
-                          {t("tournament.details.club")}
-                        </h4>
-                        <p className="text-gray-600">{match.homeTeam.club}</p>
-                      </div>
-                    )}
-
-                    <div>
-                      <h4 className="font-medium text-gray-900 mb-2">
-                        {t("tournament.details.location")}
-                      </h4>
-                      <p className="text-gray-600">
-                        {match.homeTeam.city && `${match.homeTeam.city}, `}
-                        {match.homeTeam.country?.name || "Unknown"}
-                      </p>
-                    </div>
-
-                    <I18nLink
-                      href={`/tournaments/${tournamentId}/teams/${match.homeTeam.id}`}
-                    >
-                      <Button className="w-full">
-                        {t("common.view")} {t("tournament.details.team")}
-                      </Button>
-                    </I18nLink>
-                  </div>
-                ) : (
-                  <div className="text-center py-4">
-                    <Users className="w-12 h-12 text-gray-400 mx-auto mb-2" />
-                    <p className="text-gray-500">
-                      {t("tournament.details.teamTBD")}
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Away Team */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Users className="w-5 h-5 mr-2" />
-                  {t("tournament.details.awayTeam")}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {match.awayTeam ? (
-                  <div className="space-y-4">
-                    <div>
-                      <h4 className="font-medium text-gray-900 mb-2">
-                        {t("tournament.details.teamName")}
-                      </h4>
-                      <p className="text-gray-600">{match.awayTeam.name}</p>
-                    </div>
-
-                    {match.awayTeam.shortName && (
-                      <div>
-                        <h4 className="font-medium text-gray-900 mb-2">
-                          {t("tournament.details.shortName")}
-                        </h4>
-                        <p className="text-gray-600">
-                          {match.awayTeam.shortName}
-                        </p>
-                      </div>
-                    )}
-
-                    {match.awayTeam.club && (
-                      <div>
-                        <h4 className="font-medium text-gray-900 mb-2">
-                          {t("tournament.details.club")}
-                        </h4>
-                        <p className="text-gray-600">{match.awayTeam.club}</p>
-                      </div>
-                    )}
-
-                    <div>
-                      <h4 className="font-medium text-gray-900 mb-2">
-                        {t("tournament.details.location")}
-                      </h4>
-                      <p className="text-gray-600">
-                        {match.awayTeam.city && `${match.awayTeam.city}, `}
-                        {match.awayTeam.country?.name || "Unknown"}
-                      </p>
-                    </div>
-
-                    <I18nLink
-                      href={`/tournaments/${tournamentId}/teams/${match.awayTeam.id}`}
-                    >
-                      <Button className="w-full">
-                        {t("common.view")} {t("tournament.details.team")}
-                      </Button>
-                    </I18nLink>
-                  </div>
-                ) : (
-                  <div className="text-center py-4">
-                    <Users className="w-12 h-12 text-gray-400 mx-auto mb-2" />
-                    <p className="text-gray-500">
-                      {t("tournament.details.teamTBD")}
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="venue" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <MapPin className="w-5 h-5 mr-2" />
-                {t("tournament.details.venue")}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {match.venue ? (
-                <div className="space-y-4">
-                  <div>
-                    <h4 className="font-medium text-gray-900 mb-2">
-                      {t("tournament.details.venueName")}
-                    </h4>
-                    <p className="text-gray-600">{match.venue.name}</p>
-                  </div>
-
-                  {match.venue.streetName && (
-                    <div>
-                      <h4 className="font-medium text-gray-900 mb-2">
-                        {t("tournament.details.address")}
-                      </h4>
-                      <p className="text-gray-600">{match.venue.streetName}</p>
-                    </div>
-                  )}
-
-                  <div>
-                    <h4 className="font-medium text-gray-900 mb-2">
-                      {t("tournament.details.location")}
-                    </h4>
-                    <p className="text-gray-600">
-                      {tournament.city || "City TBD"},{" "}
-                      {tournament.country?.name || "Country TBD"}
-                    </p>
-                  </div>
-
-                  {match.venue.xCoordinate && match.venue.yCoordinate && (
-                    <div>
-                      <h4 className="font-medium text-gray-900 mb-2">
-                        {t("tournament.details.coordinates")}
-                      </h4>
-                      <p className="text-gray-600 font-mono text-sm">
-                        {match.venue.yCoordinate.toFixed(6)},{" "}
-                        {match.venue.xCoordinate.toFixed(6)}
-                      </p>
-                    </div>
-                  )}
-
+                <div className="text-gray-900 flex items-center">
+                  <MapPin className="w-4 h-4 mr-2 text-gray-500" />
                   <I18nLink
                     href={`/tournaments/${tournamentId}/venues/${match.venue.id}`}
+                    className="text-blue-600 hover:underline"
                   >
-                    <Button className="w-full">
-                      {t("common.view")} {t("tournament.details.venue")}
-                    </Button>
+                    {match.venue.name}
+                    {match.pitch && ` • ${match.pitch.name}`}
                   </I18nLink>
                 </div>
-              ) : (
-                <div className="text-center py-8">
-                  <MapPin className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-500">
-                    {t("tournament.details.venueTBD")}
-                  </p>
+              </div>
+            )}
+
+            {match.spectators !== undefined && match.spectators !== null && (
+              <div className="grid grid-cols-[120px_1fr] gap-4 py-2">
+                <div className="font-medium text-gray-700">
+                  {t("tournament.details.spectators")}
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+                <div className="text-gray-900">{match.spectators}</div>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Teams Section */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Home Team */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Users className="w-5 h-5 mr-2" />
+              {t("tournament.details.homeTeam")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {match.homeTeam ? (
+              <div className="space-y-3">
+                <div>
+                  <div className="text-sm font-medium text-gray-500 mb-1">
+                    {t("tournament.details.teamName")}
+                  </div>
+                  <div className="text-gray-900">{match.homeTeam.name}</div>
+                </div>
+
+                {match.homeTeam.club && (
+                  <div>
+                    <div className="text-sm font-medium text-gray-500 mb-1">
+                      {t("tournament.details.club")}
+                    </div>
+                    <div className="text-gray-900">{match.homeTeam.club}</div>
+                  </div>
+                )}
+
+                <div>
+                  <div className="text-sm font-medium text-gray-500 mb-1">
+                    {t("tournament.details.location")}
+                  </div>
+                  <div className="text-gray-900">
+                    {match.homeTeam.country?.name || "Unknown"}
+                  </div>
+                </div>
+
+                <I18nLink
+                  href={`/tournaments/${tournamentId}/teams/${match.homeTeam.id}`}
+                  className="block mt-4"
+                >
+                  <Button variant="outline" className="w-full">
+                    {t("common.view")} {t("tournament.details.teamDetails")}
+                  </Button>
+                </I18nLink>
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <Users className="w-12 h-12 text-gray-400 mx-auto mb-2" />
+                <p className="text-gray-500">{t("tournament.details.teamTBD")}</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Away Team */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Users className="w-5 h-5 mr-2" />
+              {t("tournament.details.awayTeam")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {match.awayTeam ? (
+              <div className="space-y-3">
+                <div>
+                  <div className="text-sm font-medium text-gray-500 mb-1">
+                    {t("tournament.details.teamName")}
+                  </div>
+                  <div className="text-gray-900">{match.awayTeam.name}</div>
+                </div>
+
+                {match.awayTeam.club && (
+                  <div>
+                    <div className="text-sm font-medium text-gray-500 mb-1">
+                      {t("tournament.details.club")}
+                    </div>
+                    <div className="text-gray-900">{match.awayTeam.club}</div>
+                  </div>
+                )}
+
+                <div>
+                  <div className="text-sm font-medium text-gray-500 mb-1">
+                    {t("tournament.details.location")}
+                  </div>
+                  <div className="text-gray-900">
+                    {match.awayTeam.country?.name || "Unknown"}
+                  </div>
+                </div>
+
+                <I18nLink
+                  href={`/tournaments/${tournamentId}/teams/${match.awayTeam.id}`}
+                  className="block mt-4"
+                >
+                  <Button variant="outline" className="w-full">
+                    {t("common.view")} {t("tournament.details.teamDetails")}
+                  </Button>
+                </I18nLink>
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <Users className="w-12 h-12 text-gray-400 mx-auto mb-2" />
+                <p className="text-gray-500">{t("tournament.details.teamTBD")}</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

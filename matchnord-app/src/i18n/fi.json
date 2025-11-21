@@ -247,7 +247,13 @@
             "tournament": "turnaukseen",
             "division": "Sarja",
             "level": "Taso",
-            "format": "Muoto"
+            "format": "Muoto",
+            "gameFormat": "Peliaika",
+            "spectators": "Katsojia",
+            "team": "joukkue",
+            "teamDetails": "Joukkueen tiedot",
+            "season": "Kausi",
+            "dates": "Päivämäärät"
         }
     },
     "registration": {
