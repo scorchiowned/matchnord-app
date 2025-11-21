@@ -20,6 +20,12 @@ const nextConfig: NextConfig = {
         port: '',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'storage.azure.com',
+        port: '',
+        pathname: '/**',
+      },
     ],
   },
   async rewrites() {
