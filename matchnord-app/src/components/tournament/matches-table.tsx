@@ -65,8 +65,8 @@ export function MatchesTable({
 }: MatchesTableProps) {
   if (isLoading) {
     return (
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-        <div className="px-6 py-8 text-center">
+      <div className="bg-white overflow-hidden">
+        <div className="py-8 text-center">
           <div className="flex items-center justify-center">
             <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
             <span className="ml-2 text-gray-600">Loading matches...</span>
@@ -78,8 +78,8 @@ export function MatchesTable({
 
   if (!matches || matches.length === 0) {
     return (
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-        <div className="px-6 py-8 text-center text-gray-500">
+      <div className="bg-white overflow-hidden">
+        <div className="py-8 text-center text-gray-500">
           <p>No matches found.</p>
         </div>
       </div>
@@ -87,9 +87,9 @@ export function MatchesTable({
   }
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
+    <div className="bg-white overflow-hidden w-full">
+      <div className="overflow-x-auto w-full">
+        <table className="w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
               {matches.some((m) => m.matchNumber) && (

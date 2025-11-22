@@ -123,6 +123,17 @@
             "quarterFinal": "Quarter-Final",
             "roundOf16": "Round of 16"
         },
+        "nav": {
+            "finals": "Finals",
+            "registered": "Registered",
+            "venues": "Venues",
+            "days": "Days",
+            "divisions": "Divisions",
+            "clubs": "Clubs",
+            "favorites": "Favorites",
+            "rules": "Rules",
+            "tournamentSite": "Tournament Site"
+        },
         "live": "Live Scores",
         "manage": "Manage Tournament",
         "public": "Public View",

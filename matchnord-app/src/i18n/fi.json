@@ -116,6 +116,17 @@
         "matchesTab": "Ottelut",
         "bracketTab": "Kaavio",
         "infoTab": "Tiedot",
+        "nav": {
+            "finals": "FINAALIT",
+            "registered": "ILMOITTAUTUNEET",
+            "venues": "PAIKAT",
+            "days": "PÄIVÄT",
+            "divisions": "SARJAT",
+            "clubs": "SEURAT",
+            "favorites": "SUOSIKIT",
+            "rules": "SÄÄNNÖT",
+            "tournamentSite": "TURNAUSSIVUSTO"
+        },
         "groupStandings": "Lohkon sarjataulukko",
         "matchSchedule": "Otteluohjelma",
         "allMatches": "Kaikki ottelut",
