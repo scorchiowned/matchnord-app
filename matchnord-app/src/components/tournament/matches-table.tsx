@@ -261,9 +261,19 @@ export function MatchesTable({
                   </div>
                 </td>
                 <td className="px-6 py-4 w-48">
-                  <div className="text-sm text-gray-900">
-                    {match.venue?.name || "-"}
-                  </div>
+                  {match.venue?.id ? (
+                    <I18nLink
+                      href={`/tournaments/${tournamentId}?tab=venues&venue=${match.venue.id}`}
+                      className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {match.venue.name}
+                    </I18nLink>
+                  ) : (
+                    <div className="text-sm text-gray-900">
+                      {match.venue?.name || "-"}
+                    </div>
+                  )}
                 </td>
               </tr>
             ))}

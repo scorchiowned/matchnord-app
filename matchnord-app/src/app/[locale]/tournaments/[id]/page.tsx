@@ -1,6 +1,6 @@
 "use client";
 
-import { useParams, useSearchParams, useRouter } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -29,7 +29,7 @@ import {
 import Image from "next/image";
 import { format } from "date-fns";
 import { useTranslations } from "next-intl";
-import { Link as I18nLink } from "@/i18n/routing";
+import { Link as I18nLink, useRouter } from "@/i18n/routing";
 import type { Match, Team } from "@/types/api";
 
 export default function TournamentDetailPage() {
@@ -1079,7 +1079,9 @@ export default function TournamentDetailPage() {
 
             {activeTab === "matches" && (
               <>
-                {matchId ? null : divisionId && selectedDivision ? ( // Match details are shown above in the detail views section // Don't show matches table when a specific match is selected
+                {matchId ? // Don't show matches table when a specific match is selected
+                // Match details are shown above in the detail views section
+                null : divisionId && selectedDivision ? (
                   // Show division details when division is selected
                   <div>
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -1110,10 +1112,29 @@ export default function TournamentDetailPage() {
                       tournamentId={tournamentId}
                     />
                   </div>
+                ) : dateParam ? (
+                  // Show date header when date is selected
+                  <div>
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+                      <div className="mb-6">
+                        <h2 className="text-2xl font-bold text-gray-900">
+                          {format(
+                            new Date(dateParam + "T00:00:00"),
+                            "EEEE, MMMM d, yyyy"
+                          )}
+                        </h2>
+                      </div>
+                    </div>
+                    <MatchesTable
+                      matches={filteredMatches}
+                      isLoading={matchesLoading}
+                      tournamentId={tournamentId}
+                    />
+                  </div>
                 ) : (
                   <MatchesTable
                     matches={
-                      dateParam || groupId || teamId || venueId
+                      groupId || teamId || venueId
                         ? filteredMatches
                         : matches || []
                     }
