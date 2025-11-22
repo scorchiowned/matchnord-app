@@ -1,9 +1,8 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
 import { Loader2 } from "lucide-react";
 import { format } from "date-fns";
-import { Link as I18nLink } from "@/i18n/routing";
+import { Link as I18nLink, useRouter } from "@/i18n/routing";
 import Image from "next/image";
 
 interface ClubRef {
@@ -63,6 +62,8 @@ export function MatchesTable({
   isLoading = false,
   tournamentId,
 }: MatchesTableProps) {
+  const router = useRouter();
+  
   if (isLoading) {
     return (
       <div className="bg-white overflow-hidden">
@@ -107,32 +108,32 @@ export function MatchesTable({
                 Away Team
               </th>
               {matches.some((m) => m.group || m.groupId) && (
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
                   Group
                 </th>
               )}
               {matches.some((m) => m.division) && (
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
                   Division
                 </th>
               )}
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-40">
                 Date & Time
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-48">
                 Venue
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Status
-              </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Actions
               </th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {matches.map((match) => (
-              <tr key={match.id} className="hover:bg-gray-50">
+              <tr
+                key={match.id}
+                className="hover:bg-gray-50 cursor-pointer"
+                onClick={() => {
+                  router.push(`/tournaments/${tournamentId}?tab=matches&match=${match.id}`);
+                }}
+              >
                 {matches.some((m) => m.matchNumber) && (
                   <td className="px-6 py-4">
                     {match.matchNumber ? (
@@ -149,6 +150,7 @@ export function MatchesTable({
                     <I18nLink
                       href={`/tournaments/${tournamentId}?tab=teams&team=${match.homeTeam.id}`}
                       className="flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline"
+                      onClick={(e) => e.stopPropagation()}
                     >
                       {(() => {
                         const logo = match.homeTeam.logo || 
@@ -181,6 +183,7 @@ export function MatchesTable({
                     <I18nLink
                       href={`/tournaments/${tournamentId}?tab=teams&team=${match.awayTeam.id}`}
                       className="flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline"
+                      onClick={(e) => e.stopPropagation()}
                     >
                       {(() => {
                         const logo = match.awayTeam.logo || 
@@ -204,11 +207,12 @@ export function MatchesTable({
                   )}
                 </td>
                 {matches.some((m) => m.group || m.groupId) && (
-                  <td className="px-6 py-4">
+                  <td className="px-4 py-4 w-24">
                     {match.group?.id ? (
                       <I18nLink
                         href={`/tournaments/${tournamentId}?tab=matches&group=${match.group.id}`}
                         className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
+                        onClick={(e) => e.stopPropagation()}
                       >
                         {match.group.name}
                       </I18nLink>
@@ -216,6 +220,7 @@ export function MatchesTable({
                       <I18nLink
                         href={`/tournaments/${tournamentId}?tab=matches&group=${match.groupId}`}
                         className="text-sm text-gray-500 hover:text-blue-800 hover:underline"
+                        onClick={(e) => e.stopPropagation()}
                       >
                         View Group
                       </I18nLink>
@@ -225,11 +230,12 @@ export function MatchesTable({
                   </td>
                 )}
                 {matches.some((m) => m.division) && (
-                  <td className="px-6 py-4">
+                  <td className="px-4 py-4 w-32">
                     {match.division?.id ? (
                       <I18nLink
                         href={`/tournaments/${tournamentId}?tab=matches&division=${match.division.id}`}
                         className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
+                        onClick={(e) => e.stopPropagation()}
                       >
                         {match.division.name}
                       </I18nLink>
@@ -237,6 +243,7 @@ export function MatchesTable({
                       <I18nLink
                         href={`/tournaments/${tournamentId}?tab=matches&division=${match.group.divisionId}`}
                         className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
+                        onClick={(e) => e.stopPropagation()}
                       >
                         View Division
                       </I18nLink>
@@ -245,7 +252,7 @@ export function MatchesTable({
                     )}
                   </td>
                 )}
-                <td className="px-6 py-4">
+                <td className="px-6 py-4 w-40">
                   <div className="text-sm text-gray-900">
                     {format(new Date(match.startTime), "MMM d, yyyy")}
                   </div>
@@ -253,31 +260,10 @@ export function MatchesTable({
                     {format(new Date(match.startTime), "HH:mm")}
                   </div>
                 </td>
-                <td className="px-6 py-4">
+                <td className="px-6 py-4 w-48">
                   <div className="text-sm text-gray-900">
                     {match.venue?.name || "-"}
                   </div>
-                </td>
-                <td className="px-6 py-4">
-                  <Badge
-                    className={
-                      match.status === "LIVE"
-                        ? "bg-red-100 text-red-800"
-                        : match.status === "FINISHED"
-                        ? "bg-green-100 text-green-800"
-                        : "bg-gray-100 text-gray-800"
-                    }
-                  >
-                    {match.status}
-                  </Badge>
-                </td>
-                <td className="px-6 py-4 text-right">
-                  <I18nLink
-                    href={`/tournaments/${tournamentId}?tab=matches&match=${match.id}`}
-                    className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                  >
-                    View
-                  </I18nLink>
                 </td>
               </tr>
             ))}

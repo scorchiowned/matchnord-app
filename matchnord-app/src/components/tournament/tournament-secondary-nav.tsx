@@ -89,15 +89,8 @@ export function TournamentSecondaryNav({
     tab: string
   ) => {
     e.preventDefault();
+    // Let handleTabChange handle URL updates and query parameter clearing
     onTabChange(tab);
-    // Update URL without full page reload
-    const url = new URL(window.location.href);
-    if (tab === "overview") {
-      url.searchParams.delete("tab");
-    } else {
-      url.searchParams.set("tab", tab);
-    }
-    window.history.pushState({}, "", url.toString());
   };
 
   return (
