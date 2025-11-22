@@ -209,7 +209,7 @@ export function TournamentSecondaryNav({
               <I18nLink
                 href={`/tournaments/${tournamentId}?tab=matches`}
                 onClick={(e) => handleNavClick(e, "matches")}
-                className="px-3 py-2 hover:bg-green-800 rounded transition-colors whitespace-nowrap text-sm font-medium"
+                className="px-3 py-2 hover:bg-green-800 transition-colors whitespace-nowrap text-sm font-medium"
               >
                 {t("tournament.nav.days") || "PÄIVÄT"}
               </I18nLink>
@@ -219,10 +219,7 @@ export function TournamentSecondaryNav({
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button
-                    className={cn(
-                      "flex items-center px-3 py-2 hover:bg-green-800 transition-colors whitespace-nowrap text-sm font-medium",
-                      activeTab === "divisions" && "bg-green-800"
-                    )}
+                    className="flex items-center px-3 py-2 hover:bg-green-800 transition-colors whitespace-nowrap text-sm font-medium"
                     onMouseEnter={() => setHoveredItem("divisions")}
                     onMouseLeave={() => setHoveredItem(null)}
                   >

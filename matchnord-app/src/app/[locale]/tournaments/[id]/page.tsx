@@ -16,6 +16,7 @@ import {
 import { BracketVisualization } from "@/components/tournament/bracket-visualization";
 import { FinalStandings } from "@/components/tournament/final-standings";
 import { MatchesTable } from "@/components/tournament/matches-table";
+import { StandingsTable } from "@/components/tournament/standings-table";
 import { TournamentLayout } from "@/components/tournament/tournament-layout";
 import {
   usePublicTournament,
@@ -694,30 +695,44 @@ export default function TournamentDetailPage() {
                   // Show group matches full width when group is selected
                   <div>
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-                      <div className="mb-6">
-                        <h2 className="text-2xl font-bold text-gray-900">
-                          {selectedGroup.name}
-                        </h2>
-                        {selectedGroup.division && (
-                          <div className="mt-2 space-y-1">
-                            <div>
-                              <p className="text-sm font-medium text-gray-500">
-                                {t("tournament.divisions")}
-                              </p>
-                              <p className="text-gray-900">
-                                {selectedGroup.division.name}
-                              </p>
-                            </div>
-                            {selectedGroup.division.level && (
+                      {/* Two-column layout: Group details on left, Standings on right */}
+                      <div className="flex flex-col lg:flex-row gap-6 mb-6">
+                        {/* Left column: Group details */}
+                        <div className="flex-1">
+                          <h2 className="text-2xl font-bold text-gray-900">
+                            {selectedGroup.name}
+                          </h2>
+                          {selectedGroup.division && (
+                            <div className="mt-2 space-y-1">
                               <div>
                                 <p className="text-sm font-medium text-gray-500">
-                                  Level
+                                  {t("tournament.divisions")}
                                 </p>
                                 <p className="text-gray-900">
-                                  {selectedGroup.division.level}
+                                  {selectedGroup.division.name}
                                 </p>
                               </div>
-                            )}
+                              {selectedGroup.division.level && (
+                                <div>
+                                  <p className="text-sm font-medium text-gray-500">
+                                    Level
+                                  </p>
+                                  <p className="text-gray-900">
+                                    {selectedGroup.division.level}
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                        {/* Right column: Standings */}
+                        {selectedGroup && matches && (
+                          <div className="flex-1 lg:max-w-2xl">
+                            <StandingsTable
+                              group={selectedGroup}
+                              matches={matches}
+                              fullWidth={false}
+                            />
                           </div>
                         )}
                       </div>
@@ -743,7 +758,31 @@ export default function TournamentDetailPage() {
                         )}
                       </div>
                     </div>
-                    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden -mx-4 sm:-mx-6 lg:-mx-8">
+                    {/* Standings for all groups in this division */}
+                    {selectedDivision &&
+                      groups &&
+                      matches &&
+                      groups.filter((group) => group.divisionId === divisionId)
+                        .length > 0 && (
+                        <div className="mb-6 space-y-6">
+                          {groups
+                            .filter((group) => group.divisionId === divisionId)
+                            .map((group) => (
+                              <div key={group.id}>
+                                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-2">
+                                  <h3 className="text-lg font-semibold text-gray-900">
+                                    {group.name}
+                                  </h3>
+                                </div>
+                                <StandingsTable
+                                  group={group}
+                                  matches={matches}
+                                />
+                              </div>
+                            ))}
+                        </div>
+                      )}
+                    <div className="bg-white border border-gray-200 overflow-hidden -mx-4 sm:-mx-6 lg:-mx-8">
                       <div className="px-6 py-4 border-b border-gray-200">
                         <h3 className="text-lg font-semibold text-gray-900">
                           {t("tournament.tabs.teams")}
@@ -932,7 +971,7 @@ export default function TournamentDetailPage() {
                 ) : (
                   // Show all teams list when no team or group is selected
                   <div>
-                    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden -mx-4 sm:-mx-6 lg:-mx-8">
+                    <div className="bg-white border border-gray-200 overflow-hidden -mx-4 sm:-mx-6 lg:-mx-8">
                       <div className="px-6 py-4 border-b border-gray-200">
                         <h3 className="text-lg font-semibold text-gray-900">
                           {t("tournament.tabs.teams")}
