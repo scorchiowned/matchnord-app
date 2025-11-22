@@ -101,7 +101,9 @@ export default function TournamentDetailPage() {
       ) {
         const params = new URLSearchParams(searchParams.toString());
         params.set("tab", "matches");
-        router.replace(`${window.location.pathname}?${params.toString()}`);
+        // Construct path without locale prefix - router will add it automatically
+        const pathWithoutLocale = `/tournaments/${tournamentId}`;
+        router.replace(`${pathWithoutLocale}?${params.toString()}`);
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -136,9 +138,11 @@ export default function TournamentDetailPage() {
       params.set("tab", value);
     }
     const queryString = params.toString();
+    // Construct path without locale prefix - router will add it automatically
+    const pathWithoutLocale = `/tournaments/${tournamentId}`;
     const newUrl = queryString
-      ? `${window.location.pathname}?${queryString}`
-      : window.location.pathname;
+      ? `${pathWithoutLocale}?${queryString}`
+      : pathWithoutLocale;
     router.replace(newUrl, { scroll: false });
   };
 
@@ -1079,9 +1083,7 @@ export default function TournamentDetailPage() {
 
             {activeTab === "matches" && (
               <>
-                {matchId ? // Don't show matches table when a specific match is selected
-                // Match details are shown above in the detail views section
-                null : divisionId && selectedDivision ? (
+                {matchId ? null : divisionId && selectedDivision ? ( // Match details are shown above in the detail views section // Don't show matches table when a specific match is selected
                   // Show division details when division is selected
                   <div>
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">

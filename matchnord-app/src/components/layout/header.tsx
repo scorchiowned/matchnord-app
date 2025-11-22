@@ -12,7 +12,6 @@ export default function Header() {
   const t = useTranslations();
 
   const navigation = [
-    { name: t('navigation.home'), href: "/" },
     { name: t('navigation.tournaments'), href: "/tournaments" },
     { name: t('navigation.about'), href: "/about" },
   ];
@@ -46,10 +45,6 @@ export default function Header() {
           <div className="flex items-center space-x-4">
             <LanguageSwitcher />
 
-            <Link href="/tournaments">
-              <Button className="hidden sm:inline-flex">{t('navigation.tournaments')}</Button>
-            </Link>
-
             {/* Mobile menu button */}
             <Button
               variant="ghost"
@@ -80,11 +75,6 @@ export default function Header() {
                   {item.name}
                 </Link>
               ))}
-              <div className="px-4 pt-4 border-t border-gray-200">
-                <Link href="/tournaments">
-                  <Button className="w-full">{t('navigation.tournaments')}</Button>
-                </Link>
-              </div>
             </nav>
           </div>
         )}

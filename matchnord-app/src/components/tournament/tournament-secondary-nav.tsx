@@ -122,14 +122,6 @@ export function TournamentSecondaryNav({
               {t("tournament.nav.finals") || "FINAALIT"}
             </I18nLink> */}
 
-            <I18nLink
-              href={`/tournaments/${tournamentId}?tab=teams`}
-              onClick={(e) => handleNavClick(e, "teams")}
-              className="px-3 py-2 hover:bg-green-800 rounded transition-colors whitespace-nowrap text-sm font-medium"
-            >
-              {t("tournament.nav.registered") || "ILMOITTAUTUNEET"}
-            </I18nLink>
-
             {venues.length > 0 ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
