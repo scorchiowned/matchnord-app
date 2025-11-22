@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Link as I18nLink } from "@/i18n/routing";
+import { Link as I18nLink, useRouter } from "@/i18n/routing";
 import { useTranslations } from "next-intl";
 import { Home, ChevronDown, Facebook, Instagram } from "lucide-react";
 import {
@@ -33,6 +33,7 @@ export function TournamentSecondaryNav({
   activeDivisionId,
   tournament,
 }: TournamentSecondaryNavProps) {
+  const router = useRouter();
   const t = useTranslations();
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
 
@@ -155,7 +156,7 @@ export function TournamentSecondaryNav({
                   {venues.map((venue) => (
                     <I18nLink
                       key={venue.id}
-                      href={`/tournaments/${tournamentId}/venues/${venue.id}`}
+                      href={`/tournaments/${tournamentId}?tab=venues&venue=${venue.id}`}
                     >
                       <DropdownMenuItem className="cursor-pointer hover:bg-green-800 text-white focus:bg-green-800 rounded-none">
                         {venue.name}
@@ -201,10 +202,14 @@ export function TournamentSecondaryNav({
                         onClick={(e) => {
                           e.preventDefault();
                           onTabChange("matches");
-                          const url = new URL(window.location.href);
-                          url.searchParams.set("tab", "matches");
-                          url.searchParams.set("date", dateString);
-                          window.history.pushState({}, "", url.toString());
+                          // Navigate with date parameter, clearing other filters
+                          const params = new URLSearchParams();
+                          params.set("tab", "matches");
+                          params.set("date", dateString);
+                          // Use router from next-intl which handles locale prefixes
+                          router.push(
+                            `/tournaments/${tournamentId}?${params.toString()}`
+                          );
                         }}
                       >
                         <DropdownMenuItem className="cursor-pointer hover:bg-green-800 text-white focus:bg-green-800 rounded-none">
@@ -258,7 +263,7 @@ export function TournamentSecondaryNav({
                         groupDivisions.map((division) => (
                           <I18nLink
                             key={division.id}
-                            href={`/tournaments/${tournamentId}/divisions/${division.id}`}
+                            href={`/tournaments/${tournamentId}?tab=matches&division=${division.id}`}
                           >
                             <DropdownMenuItem
                               className={cn(

@@ -147,7 +147,7 @@ export function MatchesTable({
                 <td className="px-6 py-4">
                   {match.homeTeam?.id ? (
                     <I18nLink
-                      href={`/tournaments/${tournamentId}/teams/${match.homeTeam.id}/matches`}
+                      href={`/tournaments/${tournamentId}?tab=teams&team=${match.homeTeam.id}`}
                       className="flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline"
                     >
                       {(() => {
@@ -179,7 +179,7 @@ export function MatchesTable({
                 <td className="px-6 py-4">
                   {match.awayTeam?.id ? (
                     <I18nLink
-                      href={`/tournaments/${tournamentId}/teams/${match.awayTeam.id}/matches`}
+                      href={`/tournaments/${tournamentId}?tab=teams&team=${match.awayTeam.id}`}
                       className="flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline"
                     >
                       {(() => {
@@ -207,14 +207,14 @@ export function MatchesTable({
                   <td className="px-6 py-4">
                     {match.group?.id ? (
                       <I18nLink
-                        href={`/tournaments/${tournamentId}/groups/${match.group.id}`}
+                        href={`/tournaments/${tournamentId}?tab=matches&group=${match.group.id}`}
                         className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
                       >
                         {match.group.name}
                       </I18nLink>
                     ) : match.groupId ? (
                       <I18nLink
-                        href={`/tournaments/${tournamentId}/groups/${match.groupId}`}
+                        href={`/tournaments/${tournamentId}?tab=matches&group=${match.groupId}`}
                         className="text-sm text-gray-500 hover:text-blue-800 hover:underline"
                       >
                         View Group
@@ -228,14 +228,14 @@ export function MatchesTable({
                   <td className="px-6 py-4">
                     {match.division?.id ? (
                       <I18nLink
-                        href={`/tournaments/${tournamentId}/divisions/${match.division.id}`}
+                        href={`/tournaments/${tournamentId}?tab=matches&division=${match.division.id}`}
                         className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
                       >
                         {match.division.name}
                       </I18nLink>
                     ) : match.group?.divisionId ? (
                       <I18nLink
-                        href={`/tournaments/${tournamentId}/divisions/${match.group.divisionId}`}
+                        href={`/tournaments/${tournamentId}?tab=matches&division=${match.group.divisionId}`}
                         className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
                       >
                         View Division
@@ -273,7 +273,7 @@ export function MatchesTable({
                 </td>
                 <td className="px-6 py-4 text-right">
                   <I18nLink
-                    href={`/tournaments/${tournamentId}/matches/${match.id}`}
+                    href={`/tournaments/${tournamentId}?tab=matches&match=${match.id}`}
                     className="text-blue-600 hover:text-blue-800 text-sm font-medium"
                   >
                     View

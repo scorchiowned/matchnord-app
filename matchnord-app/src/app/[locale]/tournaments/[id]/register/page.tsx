@@ -20,6 +20,7 @@ import { Link as I18nLink } from "@/i18n/routing";
 import { useTranslations } from "next-intl";
 import { ClubSelector } from "@/components/ClubSelector";
 import { TeamLogoUpload } from "@/components/TeamLogoUpload";
+import { TournamentLayout } from "@/components/tournament/tournament-layout";
 
 // Types for the registration data
 interface RegistrationInfo {
@@ -319,8 +320,8 @@ export default function TournamentRegistrationPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto px-4">
+    <TournamentLayout tournamentId={tournamentId} activeTab="register">
+      <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Tournament Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
@@ -824,6 +825,6 @@ export default function TournamentRegistrationPage() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </TournamentLayout>
   );
 }
