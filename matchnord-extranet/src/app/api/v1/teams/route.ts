@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { PermissionManager } from '@/lib/permissions';
 
 export async function GET() {
   try {
@@ -10,50 +11,33 @@ export async function GET() {
 
     const where: Record<string, unknown> = {};
 
-    // Apply role-based filtering
+    // Apply permission-based filtering
     if (session?.user) {
       const user = session.user as any;
 
       if (user.role === 'ADMIN') {
         // Admins can see all teams - no additional filtering
-      } else if (user.role === 'TEAM_MANAGER') {
-        // Team managers can only see teams from tournaments they created or are assigned to manage
+      } else {
+        // Users can see teams from tournaments they created or have any assignment to
         where.tournament = {
           OR: [
-            { createdById: user.id }, // Tournaments they created
+            { createdById: user.id }, // Tournaments they created (owners)
             {
               assignments: {
                 some: {
                   userId: user.id,
-                  role: { in: ['MANAGER', 'ADMIN'] },
+                  isActive: true,
+                  // User has any permission
+                  OR: [
+                    { canConfigure: true },
+                    { canManageScores: true },
+                    { isReferee: true },
+                  ],
                 },
               },
             },
           ],
         };
-      } else if (user.role === 'TOURNAMENT_ADMIN') {
-        // Tournament admins can only see teams from tournaments they're assigned to
-        where.tournament = {
-          assignments: {
-            some: {
-              userId: user.id,
-              role: { in: ['ADMIN', 'MANAGER'] },
-            },
-          },
-        };
-      } else if (user.role === 'REFEREE') {
-        // Referees can only see teams from tournaments where they have match assignments
-        where.tournament = {
-          assignments: {
-            some: {
-              userId: user.id,
-              role: 'REFEREE',
-            },
-          },
-        };
-      } else {
-        // Unknown role - return empty results
-        where.id = 'nonexistent';
       }
     } else {
       // No session - return empty results
@@ -143,13 +127,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check permissions: Admin, Team Manager (if they created the tournament), or Tournament Admin/Manager
-    const hasPermission =
-      user.role === 'ADMIN' ||
-      tournament.createdById === user.id ||
-      tournament.assignments.some(
-        (assignment) =>
-          assignment.role === 'ADMIN' || assignment.role === 'MANAGER'
+    // Check permissions: User must have canConfigure permission
+    const hasPermission = await PermissionManager.canConfigureTournament(
+      user.id,
+      body.tournamentId
       );
 
     if (!hasPermission) {

@@ -333,8 +333,8 @@ test.describe('Email System E2E Tests', () => {
     // Step 1: Create invitation
     const invitation = await setupTestInvitation({
       email: 'accepttest@example.com',
-      role: 'REFEREE',
       inviterId: 'test-inviter-id',
+      isReferee: true,
     });
 
     // Step 2: Navigate to invitation acceptance page

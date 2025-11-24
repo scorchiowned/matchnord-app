@@ -1,7 +1,7 @@
 'use client';
 
 import { useLocale, useTranslations } from 'next-intl';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter, usePathname } from '@/i18n/routing';
 import {
   Select,
   SelectContent,
@@ -43,33 +43,17 @@ export function LanguageSwitcher() {
     // Save language preference to localStorage
     localStorage.setItem(LANGUAGE_STORAGE_KEY, newLocale);
 
-    // Remove current locale from pathname if it exists
-    const segments = pathname.split('/');
-    const currentLocaleInPath = locales.includes(segments[1] as Locale);
-
-    let newPath: string;
-    if (currentLocaleInPath) {
-      // Replace current locale with new one
-      if (newLocale === 'fi') {
-        // For Finnish (default), remove the locale prefix
-        newPath = '/' + segments.slice(2).join('/');
-      } else {
-        // Replace with new locale
-        segments[1] = newLocale;
-        newPath = segments.join('/');
-      }
-    } else {
-      // No locale in path, add new locale (unless it's Finnish)
-      if (newLocale === 'fi') {
-        newPath = pathname;
-      } else {
-        newPath = `/${newLocale}${pathname}`;
-      }
-    }
-
-    // Clean up double slashes
-    newPath = newPath.replace(/\/+/g, '/');
-    if (newPath === '') newPath = '/';
+    // Get the pathname without the locale prefix
+    const segments = pathname.split('/').filter(Boolean);
+    const currentLocaleInPath = segments.length > 0 && locales.includes(segments[0] as Locale);
+    
+    // Remove locale from segments if present
+    const pathWithoutLocale = currentLocaleInPath 
+      ? '/' + segments.slice(1).join('/')
+      : pathname;
+    
+    // Construct new path with new locale (always include locale prefix per routing config)
+    const newPath = `/${newLocale}${pathWithoutLocale === '/' ? '' : pathWithoutLocale}`;
 
     router.push(newPath);
     setCurrentLocale(newLocale);
@@ -134,33 +118,17 @@ export function LanguageSwitcherCompact() {
     // Save language preference to localStorage
     localStorage.setItem(LANGUAGE_STORAGE_KEY, newLocale);
 
-    // Remove current locale from pathname if it exists
-    const segments = pathname.split('/');
-    const currentLocaleInPath = locales.includes(segments[1] as Locale);
-
-    let newPath: string;
-    if (currentLocaleInPath) {
-      // Replace current locale with new one
-      if (newLocale === 'fi') {
-        // For Finnish (default), remove the locale prefix
-        newPath = '/' + segments.slice(2).join('/');
-      } else {
-        // Replace with new locale
-        segments[1] = newLocale;
-        newPath = segments.join('/');
-      }
-    } else {
-      // No locale in path, add new locale (unless it's Finnish)
-      if (newLocale === 'fi') {
-        newPath = pathname;
-      } else {
-        newPath = `/${newLocale}${pathname}`;
-      }
-    }
-
-    // Clean up double slashes
-    newPath = newPath.replace(/\/+/g, '/');
-    if (newPath === '') newPath = '/';
+    // Get the pathname without the locale prefix
+    const segments = pathname.split('/').filter(Boolean);
+    const currentLocaleInPath = segments.length > 0 && locales.includes(segments[0] as Locale);
+    
+    // Remove locale from segments if present
+    const pathWithoutLocale = currentLocaleInPath 
+      ? '/' + segments.slice(1).join('/')
+      : pathname;
+    
+    // Construct new path with new locale (always include locale prefix per routing config)
+    const newPath = `/${newLocale}${pathWithoutLocale === '/' ? '' : pathWithoutLocale}`;
 
     router.push(newPath);
     setCurrentLocale(newLocale);

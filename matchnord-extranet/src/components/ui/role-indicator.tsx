@@ -12,11 +12,9 @@ interface RoleIndicatorProps {
   size?: 'sm' | 'md' | 'lg';
 }
 
-const roleIcons = {
+const roleIcons: Record<UserRole, typeof Shield> = {
   ADMIN: Shield,
-  TEAM_MANAGER: Users,
-  TOURNAMENT_ADMIN: Trophy,
-  REFEREE: UserCheck,
+  USER: Users, // Default icon for USER role
 };
 
 export function RoleIndicator({
@@ -34,7 +32,7 @@ export function RoleIndicator({
   const role = user.role as UserRole;
   const roleName = RoleDisplay.getRoleName(role);
   const roleColor = RoleDisplay.getRoleColor(role);
-  const IconComponent = roleIcons[role];
+  const IconComponent = roleIcons[role] || Users; // Fallback to Users icon if role not found
 
   const sizeClasses = {
     sm: 'text-xs px-2 py-1',

@@ -91,7 +91,7 @@ async function main() {
     create: {
       name: 'Team Manager',
       email: 'manager@test.com',
-      role: 'TEAM_MANAGER',
+      role: 'USER',
     },
   });
 
@@ -101,7 +101,7 @@ async function main() {
     create: {
       name: 'Tournament Admin',
       email: 'tournament@test.com',
-      role: 'TOURNAMENT_ADMIN',
+      role: 'USER',
     },
   });
 
@@ -111,7 +111,7 @@ async function main() {
     create: {
       name: 'Test Referee',
       email: 'referee@test.com',
-      role: 'REFEREE',
+      role: 'USER',
     },
   });
 
@@ -796,6 +796,7 @@ async function main() {
     db.match.create({
       data: {
         tournamentId: tournament.id,
+        divisionId: divisions[0]!.id,
         groupId: groups[0]!.id,
         homeTeamId: teams[0]!.id,
         awayTeamId: teams[1]!.id,
@@ -809,6 +810,7 @@ async function main() {
     db.match.create({
       data: {
         tournamentId: tournament.id,
+        divisionId: divisions[0]!.id,
         groupId: groups[0]!.id,
         homeTeamId: teams[2]!.id,
         awayTeamId: teams[0]!.id,
@@ -822,6 +824,7 @@ async function main() {
     db.match.create({
       data: {
         tournamentId: tournament.id,
+        divisionId: divisions[0]!.id,
         groupId: groups[0]!.id,
         homeTeamId: teams[1]!.id,
         awayTeamId: teams[2]!.id,
@@ -835,6 +838,7 @@ async function main() {
     db.match.create({
       data: {
         tournamentId: tournament.id,
+        divisionId: divisions[0]!.id,
         groupId: groups[1]!.id,
         homeTeamId: teams[3]!.id,
         awayTeamId: teams[4]!.id,
@@ -848,6 +852,7 @@ async function main() {
     db.match.create({
       data: {
         tournamentId: tournament.id,
+        divisionId: divisions[0]!.id,
         groupId: groups[1]!.id,
         homeTeamId: teams[5]!.id,
         awayTeamId: teams[3]!.id,
@@ -1024,7 +1029,9 @@ async function main() {
       create: {
         userId: teamManagerUser.id,
         tournamentId: tournament.id,
-        role: 'MANAGER',
+        canConfigure: true,
+        canManageScores: true,
+        isReferee: false,
         assignedBy: adminUser.id,
         permissions: {
           canEditTournament: true,
@@ -1046,7 +1053,9 @@ async function main() {
       create: {
         userId: tournamentAdminUser.id,
         tournamentId: tournament.id,
-        role: 'ADMIN',
+        canConfigure: true,
+        canManageScores: true,
+        isReferee: false,
         assignedBy: adminUser.id,
         permissions: {
           canUpdateResults: true,
@@ -1068,7 +1077,9 @@ async function main() {
       create: {
         userId: refereeUser.id,
         tournamentId: tournament.id,
-        role: 'REFEREE',
+        canConfigure: false,
+        canManageScores: false,
+        isReferee: true,
         assignedBy: adminUser.id,
         permissions: {
           canOfficiateMatches: true,
@@ -1339,6 +1350,7 @@ async function main() {
     db.match.create({
       data: {
         tournamentId: fcKasiysiTournament.id,
+        divisionId: fcKasiysiDivisions[0]!.id,
         groupId: fcKasiysiGroups[0]!.id,
         homeTeamId: eliteTeams[0]!.id,
         awayTeamId: eliteTeams[1]!.id,
@@ -1352,6 +1364,7 @@ async function main() {
     db.match.create({
       data: {
         tournamentId: fcKasiysiTournament.id,
+        divisionId: fcKasiysiDivisions[0]!.id,
         groupId: fcKasiysiGroups[0]!.id,
         homeTeamId: eliteTeams[2]!.id,
         awayTeamId: eliteTeams[3]!.id,
@@ -1366,6 +1379,7 @@ async function main() {
     db.match.create({
       data: {
         tournamentId: fcKasiysiTournament.id,
+        divisionId: fcKasiysiDivisions[1]!.id,
         groupId: fcKasiysiGroups[2]!.id,
         homeTeamId: competitiveTeams[0]!.id,
         awayTeamId: competitiveTeams[1]!.id,
@@ -1379,6 +1393,7 @@ async function main() {
     db.match.create({
       data: {
         tournamentId: fcKasiysiTournament.id,
+        divisionId: fcKasiysiDivisions[1]!.id,
         groupId: fcKasiysiGroups[2]!.id,
         homeTeamId: competitiveTeams[2]!.id,
         awayTeamId: competitiveTeams[3]!.id,

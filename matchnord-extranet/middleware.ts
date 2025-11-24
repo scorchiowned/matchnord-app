@@ -51,7 +51,7 @@ export const config = {
     // Match locale-prefixed paths only
     '/(fi|en|sv|no|da)/:path*',
     // Match the old non-localized routes to redirect them
-    '/(tournaments|teams|matches|venues|profile|results|live)/:path*',
+    '/(tournaments|teams|matches|venues|profile|results|live|auth)/:path*',
     // Match API routes for CORS handling
     '/api/:path*',
   ],

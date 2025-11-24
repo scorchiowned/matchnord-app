@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { PermissionManager } from '@/lib/permissions';
 
 async function updateDivisionMatchesEndTime(
   divisionId: string,
@@ -104,19 +105,11 @@ export async function GET(
       );
     }
 
-    // Check permissions
-    const canViewDivision =
-      user.role === 'ADMIN' ||
-      user.role === 'TEAM_MANAGER' ||
-      division.tournament.createdById === user.id ||
-      (await db.tournamentAssignment.findFirst({
-        where: {
-          tournamentId: division.tournament.id,
-          userId: user.id,
-          isActive: true,
-          role: { in: ['ADMIN', 'MANAGER', 'TEAM_MANAGER'] },
-        },
-      }));
+    // Check permissions - user must have access to tournament
+    const canViewDivision = await PermissionManager.canAccessTournament(
+      user.id,
+      division.tournament.id
+    );
 
     if (!canViewDivision) {
       return NextResponse.json(
@@ -181,18 +174,11 @@ export async function PUT(
       );
     }
 
-    // Check permissions
-    const canEditDivision =
-      user.role === 'ADMIN' ||
-      division.tournament.createdById === user.id ||
-      (await db.tournamentAssignment.findFirst({
-        where: {
-          tournamentId: division.tournament.id,
-          userId: user.id,
-          isActive: true,
-          role: { in: ['ADMIN', 'MANAGER'] },
-        },
-      }));
+    // Check permissions - user must have canConfigure permission
+    const canEditDivision = await PermissionManager.canConfigureTournament(
+      user.id,
+      division.tournament.id
+    );
 
     if (!canEditDivision) {
       return NextResponse.json(
@@ -327,18 +313,11 @@ export async function DELETE(
       );
     }
 
-    // Check permissions
-    const canDeleteDivision =
-      user.role === 'ADMIN' ||
-      division.tournament.createdById === user.id ||
-      (await db.tournamentAssignment.findFirst({
-        where: {
-          tournamentId: division.tournament.id,
-          userId: user.id,
-          isActive: true,
-          role: { in: ['ADMIN', 'MANAGER'] },
-        },
-      }));
+    // Check permissions - user must have canConfigure permission
+    const canDeleteDivision = await PermissionManager.canConfigureTournament(
+      user.id,
+      division.tournament.id
+    );
 
     if (!canDeleteDivision) {
       return NextResponse.json(

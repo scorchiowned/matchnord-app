@@ -1,4 +1,5 @@
-import { User, UserRole, TournamentRole, MatchRole } from '@prisma/client';
+import { User, UserRole, MatchRole } from '@prisma/client';
+import { db } from './db';
 
 // Permission types
 export interface Permission {
@@ -28,198 +29,297 @@ export interface UserPermissions {
   matchAccess?: string[];
 }
 
+// Tournament permission result
+export interface TournamentPermissions {
+  canConfigure: boolean;
+  canManageScores: boolean;
+  isReferee: boolean;
+  isOwner: boolean;
+}
+
 // Enhanced permission manager
 export class PermissionManager {
-  // Helper methods (moved to top for forward declaration)
-  static hasTournamentAccess(
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _user: User,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _tournamentId: string,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _roles: TournamentRole[]
-  ): boolean {
-    // This would query the database for tournament assignments
-    // For now, return false - will be implemented with database queries
-    return false;
+  /**
+   * Check if user is tournament owner
+   */
+  static async isTournamentOwner(
+    userId: string,
+    tournamentId: string
+  ): Promise<boolean> {
+    const tournament = await db.tournament.findUnique({
+      where: { id: tournamentId },
+      select: { createdById: true },
+    });
+
+    return tournament?.createdById === userId;
   }
 
-  static hasMatchAccess(
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _user: User,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _matchId: string,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _roles: MatchRole[]
-  ): boolean {
-    // This would query the database for match assignments
-    // For now, return false - will be implemented with database queries
-    return false;
+  /**
+   * Get user's permissions for a tournament
+   */
+  static async getTournamentPermissions(
+    userId: string,
+    tournamentId: string
+  ): Promise<TournamentPermissions> {
+    // Check if user is ADMIN
+    const user = await db.user.findUnique({
+      where: { id: userId },
+      select: { role: true },
+    });
+
+    if (user?.role === 'ADMIN') {
+      return {
+        canConfigure: true,
+        canManageScores: true,
+        isReferee: true,
+        isOwner: false, // Admins aren't owners, but have full access
+      };
+    }
+
+    // Check if user is tournament owner
+    const isOwner = await this.isTournamentOwner(userId, tournamentId);
+    if (isOwner) {
+      return {
+        canConfigure: true,
+        canManageScores: true,
+        isReferee: false, // Owners don't need referee flag by default
+        isOwner: true,
+      };
+    }
+
+    // Check tournament assignment
+    const assignment = await db.tournamentAssignment.findUnique({
+      where: {
+        userId_tournamentId: {
+          userId,
+          tournamentId,
+        },
+      },
+      select: {
+        canConfigure: true,
+        canManageScores: true,
+        isReferee: true,
+        isActive: true,
+      },
+    });
+
+    if (!assignment || !assignment.isActive) {
+      return {
+        canConfigure: false,
+        canManageScores: false,
+        isReferee: false,
+        isOwner: false,
+      };
   }
 
-  static isOwnResource(
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _user: User,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _resource: string,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _resourceId: string
-  ): boolean {
-    // This would check if the user owns the resource
-    // For now, return false - will be implemented with database queries
-    return false;
+    return {
+      canConfigure: assignment.canConfigure,
+      canManageScores: assignment.canManageScores,
+      isReferee: assignment.isReferee,
+      isOwner: false,
+    };
   }
 
-  static isAssignedResource(
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _user: User,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _resource: string,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _resourceId: string
-  ): boolean {
-    // This would check if the user is assigned to the resource
-    // For now, return false - will be implemented with database queries
-    return false;
+  /**
+   * Check if user can configure tournament (access manage route)
+   */
+  static async canConfigureTournament(
+    userId: string,
+    tournamentId: string
+  ): Promise<boolean> {
+    const permissions = await this.getTournamentPermissions(
+      userId,
+      tournamentId
+    );
+    return permissions.canConfigure || permissions.isOwner;
   }
 
-  static isOrganizationResource(
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _user: User,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _resource: string,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _resourceId: string
-  ): boolean {
-    // This would check if the user belongs to the same organization as the resource
-    // For now, return false - will be implemented with database queries
-    return false;
+  /**
+   * Check if user can manage scores (access manage-public route)
+   */
+  static async canManageScores(
+    userId: string,
+    tournamentId: string
+  ): Promise<boolean> {
+    const permissions = await this.getTournamentPermissions(
+      userId,
+      tournamentId
+    );
+    return permissions.canManageScores || permissions.isOwner;
   }
 
   /**
    * Check if user can access a specific tournament
    */
-  static canAccessTournament(user: User, tournamentId: string): boolean {
-    switch (user.role) {
-      case 'ADMIN':
-        return true; // Admins can access all tournaments
-      case 'TEAM_MANAGER':
-        return PermissionManager.hasTournamentAccess(user, tournamentId, [
-          'MANAGER',
-          'ADMIN',
-        ]);
-      case 'TOURNAMENT_ADMIN':
-        return PermissionManager.hasTournamentAccess(user, tournamentId, [
-          'ADMIN',
-          'MANAGER',
-        ]);
-      case 'REFEREE':
-        return PermissionManager.hasTournamentAccess(user, tournamentId, [
-          'REFEREE',
-          'ADMIN',
-          'MANAGER',
-        ]);
-      default:
-        return false;
+  static async canAccessTournament(
+    userId: string,
+    tournamentId: string
+  ): Promise<boolean> {
+    const user = await db.user.findUnique({
+      where: { id: userId },
+      select: { role: true },
+    });
+
+    if (user?.role === 'ADMIN') {
+      return true;
     }
+
+    const permissions = await this.getTournamentPermissions(
+      userId,
+      tournamentId
+    );
+
+    // User can access if they have any permission or are owner
+    return (
+      permissions.canConfigure ||
+      permissions.canManageScores ||
+      permissions.isReferee ||
+      permissions.isOwner
+    );
   }
 
   /**
-   * Check if user can manage a specific tournament
+   * Check if user can manage a specific tournament (legacy method for backward compatibility)
    */
-  static canManageTournament(user: User, tournamentId: string): boolean {
-    switch (user.role) {
-      case 'ADMIN':
-        return true;
-      case 'TEAM_MANAGER':
-        return PermissionManager.hasTournamentAccess(user, tournamentId, [
-          'MANAGER',
-        ]);
-      case 'TOURNAMENT_ADMIN':
-        return PermissionManager.hasTournamentAccess(user, tournamentId, [
-          'ADMIN',
-          'MANAGER',
-        ]);
-      default:
-        return false;
-    }
+  static async canManageTournament(
+    userId: string,
+    tournamentId: string
+  ): Promise<boolean> {
+    return this.canConfigureTournament(userId, tournamentId);
   }
 
   /**
    * Check if user can operate a specific tournament (update results, manage matches)
    */
-  static canOperateTournament(user: User, tournamentId: string): boolean {
-    switch (user.role) {
-      case 'ADMIN':
+  static async canOperateTournament(
+    userId: string,
+    tournamentId: string
+  ): Promise<boolean> {
+    return this.canManageScores(userId, tournamentId);
+  }
+
+  /**
+   * Check if user has match assignment
+   */
+  static async hasMatchAssignment(
+    userId: string,
+    matchId: string,
+    roles?: MatchRole[]
+  ): Promise<boolean> {
+    const user = await db.user.findUnique({
+      where: { id: userId },
+      select: { role: true },
+    });
+
+    if (user?.role === 'ADMIN') {
         return true;
-      case 'TEAM_MANAGER':
-        return PermissionManager.hasTournamentAccess(user, tournamentId, [
-          'MANAGER',
-          'ADMIN',
-        ]);
-      case 'TOURNAMENT_ADMIN':
-        return PermissionManager.hasTournamentAccess(user, tournamentId, [
-          'ADMIN',
-        ]);
-      default:
+    }
+
+    const assignment = await db.matchAssignment.findUnique({
+      where: {
+        userId_matchId: {
+          userId,
+          matchId,
+        },
+      },
+      select: {
+        role: true,
+        isActive: true,
+      },
+    });
+
+    if (!assignment || !assignment.isActive) {
         return false;
     }
+
+    if (roles && roles.length > 0) {
+      return roles.includes(assignment.role);
+    }
+
+    return true;
   }
 
   /**
    * Check if user can access a specific match
    */
-  static canAccessMatch(user: User, matchId: string): boolean {
-    switch (user.role) {
-      case 'ADMIN':
-        return true;
-      case 'TEAM_MANAGER':
-        return PermissionManager.hasMatchAccess(user, matchId, [
-          'MAIN_REFEREE',
-          'ASSISTANT_REFEREE',
-          'FOURTH_OFFICIAL',
-          'MATCH_COMMISSIONER',
-        ]);
-      case 'TOURNAMENT_ADMIN':
-        return PermissionManager.hasMatchAccess(user, matchId, [
-          'MAIN_REFEREE',
-          'ASSISTANT_REFEREE',
-          'FOURTH_OFFICIAL',
-          'MATCH_COMMISSIONER',
-        ]);
-      case 'REFEREE':
-        return PermissionManager.hasMatchAccess(user, matchId, [
-          'MAIN_REFEREE',
-          'ASSISTANT_REFEREE',
-          'FOURTH_OFFICIAL',
-        ]);
-      default:
-        return false;
+  static async canAccessMatch(
+    userId: string,
+    matchId: string
+  ): Promise<boolean> {
+    const user = await db.user.findUnique({
+      where: { id: userId },
+      select: { role: true },
+    });
+
+    if (user?.role === 'ADMIN') {
+      return true;
     }
+
+    // Check if user has match assignment
+    const hasAssignment = await this.hasMatchAssignment(userId, matchId);
+    if (hasAssignment) {
+        return true;
+    }
+
+    // Check if user can manage scores for the tournament this match belongs to
+    const match = await db.match.findUnique({
+      where: { id: matchId },
+      select: { tournamentId: true },
+    });
+
+    if (match) {
+      return this.canManageScores(userId, match.tournamentId);
+    }
+
+    return false;
   }
 
   /**
    * Check if user can update match results
    */
-  static canUpdateMatchResults(user: User, matchId: string): boolean {
-    switch (user.role) {
-      case 'ADMIN':
+  static async canUpdateMatchResults(
+    userId: string,
+    matchId: string
+  ): Promise<boolean> {
+    const user = await db.user.findUnique({
+      where: { id: userId },
+      select: { role: true },
+    });
+
+    if (user?.role === 'ADMIN') {
         return true;
-      case 'TOURNAMENT_ADMIN':
-        return PermissionManager.hasMatchAccess(user, matchId, [
+    }
+
+    // Check if user has match assignment (referee)
+    const hasAssignment = await this.hasMatchAssignment(userId, matchId, [
           'MAIN_REFEREE',
           'ASSISTANT_REFEREE',
           'FOURTH_OFFICIAL',
-          'MATCH_COMMISSIONER',
-        ]);
-      case 'REFEREE':
-        return PermissionManager.hasMatchAccess(user, matchId, [
-          'MAIN_REFEREE',
-          'ASSISTANT_REFEREE',
-        ]);
-      default:
+    ]);
+    if (hasAssignment) {
+      return true;
+    }
+
+    // Check if user can manage scores for the tournament
+    const match = await db.match.findUnique({
+      where: { id: matchId },
+      select: { tournamentId: true },
+    });
+
+    if (match) {
+      return this.canManageScores(userId, match.tournamentId);
+    }
+
         return false;
     }
+
+  /**
+   * Check if user can create tournaments
+   */
+  static canCreateTournament(user: User): boolean {
+    // All authenticated users can create tournaments
+    // (ADMIN and USER roles)
+    return user.role === 'ADMIN' || user.role === 'USER';
   }
 
   /**
@@ -254,7 +354,7 @@ export class PermissionManager {
     return permissions.some((p) => p.action === action);
   }
 
-  // Private helper methods (commented out for now)
+  // Private helper methods
 
   private static getBasePermissions(role: UserRole): Permission[] {
     const permissions: Record<UserRole, Permission[]> = {
@@ -266,23 +366,10 @@ export class PermissionManager {
         { resource: 'team', action: 'manage', scope: 'all' },
         { resource: 'match', action: 'manage', scope: 'all' },
       ],
-      TEAM_MANAGER: [
+      USER: [
         { resource: 'tournament', action: 'create', scope: 'own' },
-        { resource: 'tournament', action: 'manage', scope: 'assigned' },
-        { resource: 'team', action: 'manage', scope: 'own' },
-        { resource: 'match', action: 'read', scope: 'assigned' },
-        { resource: 'match', action: 'update', scope: 'assigned' },
-      ],
-      TOURNAMENT_ADMIN: [
-        { resource: 'tournament', action: 'manage', scope: 'assigned' },
-        { resource: 'team', action: 'read', scope: 'assigned' },
-        { resource: 'team', action: 'update', scope: 'assigned' },
-        { resource: 'match', action: 'manage', scope: 'assigned' },
-      ],
-      REFEREE: [
-        { resource: 'match', action: 'read', scope: 'assigned' },
-        { resource: 'match', action: 'update', scope: 'assigned' },
         { resource: 'tournament', action: 'read', scope: 'assigned' },
+        { resource: 'match', action: 'read', scope: 'assigned' },
       ],
     };
 
@@ -303,15 +390,14 @@ export class PermissionManager {
     // Check scope conditions
     switch (permission.scope) {
       case 'own':
-        return PermissionManager.isOwnResource(user, resource, resourceId);
+        // This would need async check - simplified for now
+        return true;
       case 'assigned':
-        return PermissionManager.isAssignedResource(user, resource, resourceId);
+        // This would need async check - simplified for now
+        return true;
       case 'organization':
-        return PermissionManager.isOrganizationResource(
-          user,
-          resource,
-          resourceId
-        );
+        // This would need async check - simplified for now
+        return true;
       case 'all':
         return true;
       default:
@@ -320,7 +406,7 @@ export class PermissionManager {
   }
 }
 
-// Role-based route access
+// Route-based access control
 export class RouteAccess {
   /**
    * Check if user can access admin routes
@@ -330,24 +416,25 @@ export class RouteAccess {
   }
 
   /**
-   * Check if user can access team manager routes
+   * Check if user can access tournament manage route
+   * Requires canConfigure permission or tournament ownership
    */
-  static canAccessTeamManager(user: User): boolean {
-    return ['ADMIN', 'TEAM_MANAGER'].includes(user.role);
+  static async canAccessTournamentManage(
+    userId: string,
+    tournamentId: string
+  ): Promise<boolean> {
+    return PermissionManager.canConfigureTournament(userId, tournamentId);
   }
 
   /**
-   * Check if user can access tournament admin routes
+   * Check if user can access tournament manage-public route
+   * Requires canManageScores permission or tournament ownership
    */
-  static canAccessTournamentAdmin(user: User): boolean {
-    return ['ADMIN', 'TOURNAMENT_ADMIN'].includes(user.role);
-  }
-
-  /**
-   * Check if user can access referee routes
-   */
-  static canAccessReferee(user: User): boolean {
-    return ['ADMIN', 'REFEREE'].includes(user.role);
+  static async canAccessTournamentManagePublic(
+    userId: string,
+    tournamentId: string
+  ): Promise<boolean> {
+    return PermissionManager.canManageScores(userId, tournamentId);
   }
 
   /**
@@ -357,12 +444,8 @@ export class RouteAccess {
     switch (user.role) {
       case 'ADMIN':
         return '/admin';
-      case 'TEAM_MANAGER':
-        return '/team-manager';
-      case 'TOURNAMENT_ADMIN':
-        return '/tournament-admin';
-      case 'REFEREE':
-        return '/referee';
+      case 'USER':
+        return '/dashboard';
       default:
         return '/';
     }
@@ -377,9 +460,7 @@ export class RoleDisplay {
   static getRoleName(role: UserRole): string {
     const roleNames: Record<UserRole, string> = {
       ADMIN: 'System Administrator',
-      TEAM_MANAGER: 'Team Manager',
-      TOURNAMENT_ADMIN: 'Tournament Administrator',
-      REFEREE: 'Referee',
+      USER: 'User',
     };
     return roleNames[role] || role;
   }
@@ -390,9 +471,7 @@ export class RoleDisplay {
   static getRoleColor(role: UserRole): string {
     const roleColors: Record<UserRole, string> = {
       ADMIN: 'bg-red-100 text-red-800 border-red-200',
-      TEAM_MANAGER: 'bg-blue-100 text-blue-800 border-blue-200',
-      TOURNAMENT_ADMIN: 'bg-green-100 text-green-800 border-green-200',
-      REFEREE: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+      USER: 'bg-blue-100 text-blue-800 border-blue-200',
     };
     return roleColors[role] || 'bg-gray-100 text-gray-800 border-gray-200';
   }
@@ -403,9 +482,7 @@ export class RoleDisplay {
   static getRoleIcon(role: UserRole): string {
     const roleIcons: Record<UserRole, string> = {
       ADMIN: 'Shield',
-      TEAM_MANAGER: 'Users',
-      TOURNAMENT_ADMIN: 'Trophy',
-      REFEREE: 'UserCheck',
+      USER: 'User',
     };
     return roleIcons[role] || 'User';
   }

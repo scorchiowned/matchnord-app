@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { UpdateScoreInput } from '@/server/contracts/match';
+import { PermissionManager } from '@/lib/permissions';
 import { z } from 'zod';
 
 export async function PUT(
@@ -54,18 +55,11 @@ export async function PUT(
       return NextResponse.json({ error: 'Match not found' }, { status: 404 });
     }
 
-    // Check permissions - allow ADMIN, tournament creator, or assigned MANAGER
-    const canEditMatch =
-      user.role === 'ADMIN' ||
-      match.tournament.createdById === user.id ||
-      (await db.tournamentAssignment.findFirst({
-        where: {
-          tournamentId: match.tournament.id,
-          userId: user.id,
-          isActive: true,
-          role: { in: ['ADMIN', 'MANAGER'] },
-        },
-      }));
+    // Check permissions - user must have canManageScores or be assigned to match
+    const canEditMatch = await PermissionManager.canUpdateMatchResults(
+      user.id,
+      matchId
+    );
 
     if (!canEditMatch) {
       return NextResponse.json(

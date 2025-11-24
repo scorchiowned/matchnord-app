@@ -77,10 +77,12 @@ export async function setupTestUser(userData: {
 
 export async function setupTestInvitation(invitationData: {
   email: string;
-  role: string;
   inviterId: string;
   tournamentId?: string;
   teamId?: string;
+  canConfigure?: boolean;
+  canManageScores?: boolean;
+  isReferee?: boolean;
 }): Promise<TestInvitation> {
   const token = randomBytes(32).toString('hex');
   const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
@@ -88,10 +90,12 @@ export async function setupTestInvitation(invitationData: {
   const invitation = await db.userInvitation.create({
     data: {
       email: invitationData.email,
-      role: invitationData.role as any,
       inviterId: invitationData.inviterId,
       tournamentId: invitationData.tournamentId || null,
       teamId: invitationData.teamId || null,
+      canConfigure: invitationData.canConfigure || false,
+      canManageScores: invitationData.canManageScores || false,
+      isReferee: invitationData.isReferee || false,
       token,
       expires,
       status: 'PENDING',
@@ -101,7 +105,7 @@ export async function setupTestInvitation(invitationData: {
   return {
     id: invitation.id,
     email: invitation.email,
-    role: invitation.role,
+    role: 'USER', // Legacy field for compatibility
     token: invitation.token,
     status: invitation.status,
     inviterId: invitation.inviterId,
@@ -190,16 +194,7 @@ export async function cleanupTestData(): Promise<void> {
     },
   });
 
-  // Clean up registrations
-  await db.registration.deleteMany({
-    where: {
-      manager: {
-        email: {
-          in: ['teammanager@example.com'],
-        },
-      },
-    },
-  });
+  // Note: registration model removed - no cleanup needed
 }
 
 export async function getTestUser(email: string): Promise<TestUser | null> {
@@ -231,7 +226,7 @@ export async function getTestInvitations(
   return invitations.map((invitation) => ({
     id: invitation.id,
     email: invitation.email,
-    role: invitation.role,
+    role: 'USER', // Legacy field - invitations no longer have role
     token: invitation.token,
     status: invitation.status,
     inviterId: invitation.inviterId,
@@ -241,17 +236,6 @@ export async function getTestInvitations(
 export async function getTestRegistrations(
   managerEmail: string
 ): Promise<any[]> {
-  const registrations = await db.registration.findMany({
-    where: {
-      manager: {
-        email: managerEmail,
-      },
-    },
-    include: {
-      tournament: true,
-      division: true,
-    },
-  });
-
-  return registrations;
+  // Note: registration model removed - return empty array
+  return [];
 }

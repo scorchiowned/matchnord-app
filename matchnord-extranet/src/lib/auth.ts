@@ -28,11 +28,12 @@ export const authOptions: NextAuthOptions = {
         }
 
         // For development, allow login with test emails
+        // Note: Roles are now USER by default (except admin), permissions assigned per tournament
         const testUsers = [
           { email: 'admin@test.com', role: 'ADMIN' },
-          { email: 'manager@test.com', role: 'TEAM_MANAGER' },
-          { email: 'tournament@test.com', role: 'TOURNAMENT_ADMIN' },
-          { email: 'referee@test.com', role: 'REFEREE' },
+          { email: 'manager@test.com', role: 'USER' },
+          { email: 'tournament@test.com', role: 'USER' },
+          { email: 'referee@test.com', role: 'USER' },
         ];
 
         const testUser = testUsers.find(

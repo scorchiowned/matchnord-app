@@ -9,9 +9,8 @@ const RegisterInput = z.object({
   name: z.string().min(1, 'Name is required'),
   email: z.string().email('Invalid email address'),
   password: z.string().min(8, 'Password must be at least 8 characters'),
-  role: z
-    .enum(['TEAM_MANAGER', 'TOURNAMENT_MANAGER', 'REFEREE'])
-    .default('TEAM_MANAGER'),
+  invitationToken: z.string().optional(), // Optional invitation token to auto-accept
+  // Role removed - all users are USER by default, permissions assigned per tournament
 });
 
 export async function POST(request: NextRequest) {
@@ -36,9 +35,9 @@ export async function POST(request: NextRequest) {
       data: {
         name: input.name,
         email: input.email,
-        role: input.role,
+        role: 'USER', // All new users are USER role by default
         emailVerified: null, // Not verified yet
-        isActive: input.role === 'TEAM_MANAGER' ? false : true, // Team managers need approval
+        isActive: true, // Users are active by default
       },
     });
 
@@ -65,7 +64,7 @@ export async function POST(request: NextRequest) {
         userName: user.name!,
         email: user.email!,
         verificationUrl,
-        role: user.role as 'TEAM_MANAGER' | 'TOURNAMENT_MANAGER' | 'REFEREE',
+        role: 'USER', // All users are USER role
       });
 
       console.log('✅ Welcome and verification email sent successfully');
@@ -74,9 +73,71 @@ export async function POST(request: NextRequest) {
       // Don't fail registration if email fails, but log the error
     }
 
+    // If invitation token is provided, try to accept the invitation automatically
+    let invitationAccepted = false;
+    if (input.invitationToken) {
+      try {
+        const invitation = await db.userInvitation.findUnique({
+          where: { token: input.invitationToken },
+        });
+
+        if (
+          invitation &&
+          invitation.email === user.email &&
+          invitation.status === 'PENDING' &&
+          new Date() <= invitation.expires
+        ) {
+          // Create tournament assignment if tournamentId exists
+          if (invitation.tournamentId) {
+            await db.tournamentAssignment.upsert({
+              where: {
+                userId_tournamentId: {
+                  userId: user.id,
+                  tournamentId: invitation.tournamentId,
+                },
+              },
+              update: {
+                canConfigure: invitation.canConfigure,
+                canManageScores: invitation.canManageScores,
+                isReferee: invitation.isReferee,
+                isActive: true,
+                assignedBy: invitation.inviterId,
+              },
+              create: {
+                userId: user.id,
+                tournamentId: invitation.tournamentId,
+                canConfigure: invitation.canConfigure,
+                canManageScores: invitation.canManageScores,
+                isReferee: invitation.isReferee,
+                assignedBy: invitation.inviterId,
+                isActive: true,
+              },
+            });
+          }
+
+          // Mark invitation as accepted
+          await db.userInvitation.update({
+            where: { id: invitation.id },
+            data: {
+              status: 'ACCEPTED',
+              acceptedAt: new Date(),
+              invitedUserId: user.id,
+            },
+          });
+
+          invitationAccepted = true;
+          console.log('✅ Invitation accepted automatically during registration');
+        }
+      } catch (invitationError) {
+        console.error('❌ Failed to accept invitation during registration:', invitationError);
+        // Don't fail registration if invitation acceptance fails
+      }
+    }
+
     return NextResponse.json({
-      message:
-        'Registration successful. Please check your email to verify your account.',
+      message: invitationAccepted
+        ? 'Registration successful and invitation accepted! Please check your email to verify your account.'
+        : 'Registration successful. Please check your email to verify your account.',
       user: {
         id: user.id,
         email: user.email,
@@ -85,6 +146,7 @@ export async function POST(request: NextRequest) {
         emailVerified: user.emailVerified,
         isActive: user.isActive,
       },
+      invitationAccepted,
     });
   } catch (error) {
     console.error('Registration error:', error);

@@ -46,45 +46,31 @@ export async function GET(request: NextRequest) {
 
     const where: Record<string, unknown> = {};
 
-    // Apply role-based filtering
+    // Apply permission-based filtering
     if (session?.user) {
       const user = session.user as any; // Type assertion for role
 
       if (user.role === 'ADMIN') {
         // Admins can see all tournaments - no additional filtering
-      } else if (user.role === 'TEAM_MANAGER') {
-        // Team managers can only see tournaments they created or are assigned to manage
+      } else {
+        // Users can see tournaments they created or have any assignment to
         where.OR = [
-          { createdById: user.id }, // Tournaments they created
+          { createdById: user.id }, // Tournaments they created (owners)
           {
             assignments: {
               some: {
                 userId: user.id,
-                role: { in: ['MANAGER', 'ADMIN'] },
+                isActive: true,
+                // User has any permission (canConfigure, canManageScores, or isReferee)
+                OR: [
+                  { canConfigure: true },
+                  { canManageScores: true },
+                  { isReferee: true },
+                ],
               },
             },
           },
         ];
-      } else if (user.role === 'TOURNAMENT_ADMIN') {
-        // Tournament admins can only see tournaments they're assigned to
-        where.assignments = {
-          some: {
-            userId: user.id,
-            role: { in: ['ADMIN', 'MANAGER'] },
-          },
-        };
-      } else if (user.role === 'REFEREE') {
-        // Referees can only see tournaments where they have match assignments
-        // For now, we'll use tournament assignments since we can't easily query match assignments
-        where.assignments = {
-          some: {
-            userId: user.id,
-            role: 'REFEREE',
-          },
-        };
-      } else {
-        // Unknown role - return empty results
-        where.id = 'nonexistent';
       }
     } else {
       // No session - return empty results
@@ -176,7 +162,9 @@ export async function GET(request: NextRequest) {
           select: {
             id: true,
             userId: true,
-            role: true,
+            canConfigure: true,
+            canManageScores: true,
+            isReferee: true,
             permissions: true,
           },
         },
@@ -263,7 +251,7 @@ export async function POST(request: NextRequest) {
         data: {
           email: sessionUser.email,
           name: sessionUser.name || sessionUser.email,
-          role: 'TEAM_MANAGER', // Default role for new users
+          role: 'USER', // Default role for new users
         },
       });
     }
@@ -277,8 +265,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user has permission to create tournaments
-    // Only ADMIN and TEAM_MANAGER roles can create tournaments
-    if (user.role !== 'ADMIN' && user.role !== 'TEAM_MANAGER') {
+    // All authenticated users (USER and ADMIN) can create tournaments
+    if (user.role !== 'ADMIN' && user.role !== 'USER') {
       return NextResponse.json(
         { error: 'Insufficient permissions to create tournaments' },
         { status: 403 }

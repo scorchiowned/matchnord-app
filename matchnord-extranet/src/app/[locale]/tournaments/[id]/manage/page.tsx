@@ -28,6 +28,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { Link } from '@/i18n/routing';
+import { api } from '@/lib/api';
 import { TeamManagement } from '@/components/tournament/team-management';
 import { VenuesManagement } from '@/components/tournament/venues-management';
 import { DivisionsManagement } from '@/components/tournament/divisions-management';
@@ -35,6 +36,7 @@ import { GroupsManagement } from '@/components/tournament/groups-management';
 import { MatchesManagementSimple } from '@/components/tournament/matches-management-simple';
 import { MatchScheduling } from '@/components/tournament/match-scheduling';
 import { TournamentInfoEditor } from '@/components/tournament/tournament-info-editor';
+import { UserInvitations } from '@/components/tournament/user-invitations';
 
 interface Tournament {
   id: string;
@@ -125,6 +127,7 @@ export default function TournamentManagePage() {
   const validTabs = useMemo(
     () => [
       'overview',
+      'users',
       'teams',
       'venues',
       'divisions',
@@ -410,12 +413,30 @@ export default function TournamentManagePage() {
   }, [tournamentId, refreshCounts]);
 
   // Check if user has permission to manage this tournament
-  const canManage =
-    user &&
-    tournament &&
-    (user.role === 'ADMIN' ||
-      (user.role === 'TEAM_MANAGER' && tournament.organization.id) ||
-      (user.role === 'TOURNAMENT_ADMIN' && tournament.organization.id));
+  const [canManage, setCanManage] = useState<boolean>(false);
+  const [permissionsLoading, setPermissionsLoading] = useState(true);
+
+  useEffect(() => {
+    const checkPermissions = async () => {
+      if (!user || !tournamentId) {
+        setCanManage(false);
+        setPermissionsLoading(false);
+        return;
+      }
+
+      try {
+        const permissions = await api.tournaments.getPermissions(tournamentId);
+        setCanManage(permissions.canConfigure || permissions.isOwner);
+      } catch (error) {
+        console.error('Error checking permissions:', error);
+        setCanManage(false);
+      } finally {
+        setPermissionsLoading(false);
+      }
+    };
+
+    checkPermissions();
+  }, [user, tournamentId]);
 
   if (!session) {
     return (
@@ -452,6 +473,21 @@ export default function TournamentManagePage() {
                   {t('tournament.backToTournaments')}
                 </Link>
               </Button>
+            </CardContent>
+          </Card>
+        </main>
+      </div>
+    );
+  }
+
+  if (permissionsLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <MainNavigation />
+        <main className="container mx-auto py-6">
+          <Card>
+            <CardContent className="py-12 text-center">
+              <p className="text-muted-foreground">Loading...</p>
             </CardContent>
           </Card>
         </main>
@@ -591,6 +627,7 @@ export default function TournamentManagePage() {
               <TabsTrigger value="overview">
                 {t('tournament.tabs.overview')}
               </TabsTrigger>
+              <TabsTrigger value="users">Users</TabsTrigger>
               <TabsTrigger value="teams">{t('tournament.teams')}</TabsTrigger>
               <TabsTrigger value="venues">{t('tournament.venues')}</TabsTrigger>
               <TabsTrigger value="divisions">
@@ -806,6 +843,10 @@ export default function TournamentManagePage() {
                   </Card>
                 </div>
               </div>
+            </TabsContent>
+
+            <TabsContent value="users">
+              <UserInvitations tournamentId={tournamentId} />
             </TabsContent>
 
             <TabsContent value="teams">

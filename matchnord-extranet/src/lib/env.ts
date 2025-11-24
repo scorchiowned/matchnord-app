@@ -43,10 +43,16 @@ function parseEnv(): Env {
       error.errors.forEach((err) => {
         console.error(`  ${err.path.join('.')}: ${err.message}`);
       });
-      process.exit(1);
+      // Only call process.exit in Node.js environment (server-side)
+      if (typeof process !== 'undefined' && typeof process.exit === 'function') {
+        process.exit(1);
+      }
+      // In browser, throw error instead
+      throw new Error('Invalid environment variables. Check console for details.');
     }
     throw error;
   }
 }
 
-export const env = parseEnv();
+// Only parse env on server-side
+export const env = typeof window === 'undefined' ? parseEnv() : ({} as Env);

@@ -66,6 +66,7 @@ export const api = {
     getById: (id: string) => fetchApi(`/tournaments/${id}`),
     getPublic: (id: string) => fetchApi(`/tournaments/${id}/public`),
     getManage: (id: string) => fetchApi(`/tournaments/${id}/manage`),
+    getPermissions: (id: string) => fetchApi(`/tournaments/${id}/permissions`),
     update: (id: string, data: any) =>
       fetchApi(`/tournaments/${id}/manage`, {
         method: 'PUT',

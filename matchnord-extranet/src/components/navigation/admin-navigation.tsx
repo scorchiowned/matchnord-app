@@ -24,7 +24,7 @@ export function AdminNavigation() {
   };
 
   const handleSignOut = () => {
-    signOut();
+    signOut({ callbackUrl: '/', redirect: true });
   };
 
   return (

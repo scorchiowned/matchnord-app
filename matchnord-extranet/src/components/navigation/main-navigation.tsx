@@ -154,7 +154,9 @@ export function MainNavigation() {
                     </>
                   )}
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => signOut()}>
+                  <DropdownMenuItem
+                    onClick={() => signOut({ callbackUrl: '/', redirect: true })}
+                  >
                     <LogOut className="mr-2 h-4 w-4" />
                     {t('auth.signOut')}
                   </DropdownMenuItem>
@@ -291,7 +293,7 @@ export function MainNavigation() {
                     <Button
                       variant="outline"
                       className="w-full"
-                      onClick={() => signOut()}
+                      onClick={() => signOut({ callbackUrl: '/', redirect: true })}
                     >
                       {t('auth.signOut')}
                     </Button>

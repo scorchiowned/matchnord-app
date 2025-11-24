@@ -45,12 +45,11 @@ export async function POST(
       );
     }
 
-    // Check permissions
-    const hasPermission =
-      session.user.role === 'ADMIN' ||
-      session.user.role === 'TEAM_MANAGER' ||
-      division.tournament.assignments.some((assignment) =>
-        ['MANAGER', 'ADMIN'].includes(assignment.role)
+    // Check permissions - user must have canConfigure permission
+    const { PermissionManager } = await import('@/lib/permissions');
+    const hasPermission = await PermissionManager.canConfigureTournament(
+      (session.user as any).id,
+      division.tournament.id
       );
 
     if (!hasPermission) {

@@ -74,8 +74,11 @@ interface TeamManagerApprovalData extends BaseEmailData {
 interface UserInvitationData extends BaseEmailData {
   invitedName: string;
   inviterName: string;
-  role: 'TEAM_MANAGER' | 'TOURNAMENT_MANAGER' | 'REFEREE';
   tournamentName?: string;
+  tournamentId?: string;
+  canConfigure?: boolean;
+  canManageScores?: boolean;
+  isReferee?: boolean;
   teamName?: string;
   invitationUrl: string;
 }
@@ -260,13 +263,24 @@ export class EmailService {
 
   // User invitation email
   async sendUserInvitation(data: UserInvitationData) {
-    const roleText =
-      data.role === 'TEAM_MANAGER'
-        ? 'Team Manager'
-        : data.role === 'TOURNAMENT_MANAGER'
-          ? 'Tournament Manager'
-          : 'Referee';
-    const subject = `You're Invited to Join as ${roleText} - Tournament System`;
+    // Build permission description
+    const permissions: string[] = [];
+    if (data.canConfigure) {
+      permissions.push('configure tournament settings');
+    }
+    if (data.canManageScores) {
+      permissions.push('manage match scores');
+    }
+    if (data.isReferee) {
+      permissions.push('officiate matches');
+    }
+    const permissionText = permissions.length > 0
+      ? ` with permissions to ${permissions.join(', ')}`
+      : '';
+
+    const subject = data.tournamentName
+      ? `You're Invited to Help Manage ${data.tournamentName}`
+      : `You're Invited to Join Tournament System`;
     const html = this.generateUserInvitationHTML(data);
 
     return this.sendEmail({
@@ -712,12 +726,23 @@ export class EmailService {
   }
 
   private generateUserInvitationHTML(data: UserInvitationData): string {
-    const roleText =
-      data.role === 'TEAM_MANAGER'
-        ? 'Team Manager'
-        : data.role === 'TOURNAMENT_MANAGER'
-          ? 'Tournament Manager'
-          : 'Referee';
+    // Build permission description
+    const permissions: string[] = [];
+    if (data.canConfigure) {
+      permissions.push('configure tournament settings');
+    }
+    if (data.canManageScores) {
+      permissions.push('manage match scores');
+    }
+    if (data.isReferee) {
+      permissions.push('officiate matches');
+    }
+    const permissionText = permissions.length > 0
+      ? ` with permissions to ${permissions.join(', ')}`
+      : '';
+    const roleText = data.tournamentName
+      ? `help manage ${data.tournamentName}${permissionText}`
+      : 'join our tournament system';
 
     return `
       <!DOCTYPE html>
@@ -739,20 +764,26 @@ export class EmailService {
         <body>
           <div class="header">
             <h1>🎯 You're Invited!</h1>
-            <p style="margin: 0; opacity: 0.9;">Join as ${roleText} in our tournament system</p>
+            <p style="margin: 0; opacity: 0.9;">${data.tournamentName ? `Help manage ${data.tournamentName}` : 'Join our tournament system'}</p>
           </div>
           <div class="content">
             <div class="invitation-box">
               <h3>Hello ${data.invitedName}! 👋</h3>
-              <p><strong>${data.inviterName}</strong> has invited you to join our tournament management system as a <strong>${roleText}</strong>.</p>
+              <p><strong>${data.inviterName}</strong> has invited you to help manage${data.tournamentName ? ` <strong>${data.tournamentName}</strong>` : ' a tournament'}.</p>
             </div>
             
             <div class="details-box">
               <h4>📋 Invitation Details:</h4>
-              <p><strong>Role:</strong> ${roleText}</p>
               ${data.tournamentName ? `<p><strong>Tournament:</strong> ${data.tournamentName}</p>` : ''}
               ${data.teamName ? `<p><strong>Team:</strong> ${data.teamName}</p>` : ''}
               <p><strong>Invited by:</strong> ${data.inviterName}</p>
+              <p><strong>Permissions:</strong></p>
+              <ul style="margin-left: 20px; margin-top: 10px;">
+                ${data.canConfigure ? '<li>✓ Configure tournament settings</li>' : ''}
+                ${data.canManageScores ? '<li>✓ Manage match scores</li>' : ''}
+                ${data.isReferee ? '<li>✓ Officiate matches</li>' : ''}
+                ${!data.canConfigure && !data.canManageScores && !data.isReferee ? '<li>View tournament (no management permissions)</li>' : ''}
+              </ul>
             </div>
             
             <div style="text-align: center;">
@@ -760,35 +791,13 @@ export class EmailService {
             </div>
             
             <div class="invitation-box">
-              <h4>🚀 What you'll be able to do as ${roleText}:</h4>
-              ${
-                data.role === 'TEAM_MANAGER'
-                  ? `
-                  <ul>
-                    <li>Create and manage tournaments</li>
-                    <li>Register teams for tournaments</li>
-                    <li>Schedule matches and manage venues</li>
-                    <li>Track results and standings</li>
+              <h4>🚀 What you'll be able to do:</h4>
+              <ul>
+                ${data.canConfigure ? '<li>Configure tournament settings, divisions, and venues</li>' : ''}
+                ${data.canManageScores ? '<li>Update match scores and events</li>' : ''}
+                ${data.isReferee ? '<li>Officiate matches assigned to you</li>' : ''}
+                ${data.tournamentName ? '<li>View tournament information and schedules</li>' : ''}
                   </ul>
-                  `
-                  : data.role === 'TOURNAMENT_MANAGER'
-                    ? `
-                  <ul>
-                    <li>Manage specific tournaments</li>
-                    <li>Approve team registrations</li>
-                    <li>Schedule matches and venues</li>
-                    <li>Update tournament information</li>
-                  </ul>
-                  `
-                    : `
-                  <ul>
-                    <li>Officiate matches</li>
-                    <li>Update match results</li>
-                    <li>Access match schedules</li>
-                    <li>Communicate with teams</li>
-                  </ul>
-                  `
-              }
             </div>
             
             <p>If you have any questions about this invitation, please contact ${data.inviterName} or our support team.</p>

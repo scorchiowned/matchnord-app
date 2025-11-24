@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { PermissionManager } from '@/lib/permissions';
 
 export async function GET(
   request: NextRequest,
@@ -39,12 +40,10 @@ export async function GET(
       );
     }
 
-    // Check permissions
-    const hasPermission =
-      session.user.role === 'ADMIN' ||
-      session.user.role === 'TEAM_MANAGER' ||
-      tournament.assignments.some((assignment) =>
-        ['MANAGER', 'ADMIN', 'TEAM_MANAGER'].includes(assignment.role)
+    // Check permissions - user must have canConfigure permission
+    const hasPermission = await PermissionManager.canConfigureTournament(
+      (session.user as any).id,
+      tournamentId
       );
 
     if (!hasPermission) {
@@ -115,12 +114,10 @@ export async function POST(
       );
     }
 
-    // Check permissions
-    const hasPermission =
-      session.user.role === 'ADMIN' ||
-      session.user.role === 'TEAM_MANAGER' ||
-      tournament.assignments.some((assignment) =>
-        ['MANAGER', 'ADMIN', 'TEAM_MANAGER'].includes(assignment.role)
+    // Check permissions - user must have canConfigure permission
+    const hasPermission = await PermissionManager.canConfigureTournament(
+      (session.user as any).id,
+      tournamentId
       );
 
     if (!hasPermission) {

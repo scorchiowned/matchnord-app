@@ -52,26 +52,42 @@ export default function PublicTournamentManagementPage() {
 
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [canManageScores, setCanManageScores] = useState<boolean>(false);
+  const [permissionsLoading, setPermissionsLoading] = useState(true);
   const [selectedDivision, setSelectedDivision] = useState<string>('all');
   const [selectedVenue, setSelectedVenue] = useState<string>('all');
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
 
-  // Load tournament data
+  // Check permissions and load tournament data
   useEffect(() => {
-    const loadTournament = async () => {
+    const loadData = async () => {
+      if (!session?.user) {
+        setIsLoading(false);
+        setPermissionsLoading(false);
+        return;
+      }
+
       try {
         setIsLoading(true);
+        setPermissionsLoading(true);
+
+        // Check permissions first
+        const permissions = await api.tournaments.getPermissions(tournamentId);
+        setCanManageScores(permissions.canManageScores || permissions.isOwner);
+
+        // Load tournament data
         const data = await api.tournaments.getManage(tournamentId);
         setTournament(data as Tournament);
       } catch (error) {
         console.error('Error loading tournament:', error);
       } finally {
         setIsLoading(false);
+        setPermissionsLoading(false);
       }
     };
 
-    loadTournament();
-  }, [tournamentId]);
+    loadData();
+  }, [tournamentId, session]);
 
   // Poll for updates every 10 seconds
   useEffect(() => {
@@ -82,12 +98,46 @@ export default function PublicTournamentManagementPage() {
     return () => clearInterval(interval);
   }, []);
 
-  if (isLoading) {
+  if (isLoading || permissionsLoading) {
     return (
       <div className="min-h-screen bg-background">
         <MainNavigation />
         <div className="container mx-auto py-6">
           <div className="text-center">Loading...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!session) {
+    return (
+      <div className="min-h-screen bg-background">
+        <MainNavigation />
+        <div className="container mx-auto py-6">
+          <Card>
+            <CardContent className="py-12 text-center">
+              <p className="text-muted-foreground">
+                Please log in to access this page
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  if (!canManageScores) {
+    return (
+      <div className="min-h-screen bg-background">
+        <MainNavigation />
+        <div className="container mx-auto py-6">
+          <Card>
+            <CardContent className="py-12 text-center">
+              <p className="text-muted-foreground">
+                You do not have permission to manage scores for this tournament
+              </p>
+            </CardContent>
+          </Card>
         </div>
       </div>
     );

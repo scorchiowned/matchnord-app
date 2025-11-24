@@ -44,11 +44,11 @@ model User {
   email         String?   @unique
   emailVerified DateTime?
   image         String?
-  role          UserRole  @default(REFEREE)
+  role          UserRole  @default(USER)
   phone         String?
   // Account status
-  isActive      Boolean   @default(false)  // For team manager approval
-  approvedAt    DateTime? // When admin approved the account
+  isActive      Boolean   @default(true)  // Users are active by default
+  approvedAt    DateTime? // When admin approved the account (if needed)
   approvedBy    String?   // Admin who approved the account
   // Email verification
   emailVerificationTokens EmailVerificationToken[]
@@ -57,13 +57,13 @@ model User {
   receivedInvitations UserInvitation[] @relation("InvitedUser")
   accounts      Account[]
   sessions      Session[]
-  // Organization relationships
+  // Organization relationships (deprecated - kept for backward compatibility)
   organizations UserOrganization[]
-  // Tournament management
+  // Tournament management (via createdById on Tournament - kept for relation)
   managedTournaments Tournament[]
-  // Team management
+  // Team management (via managerId on Team - kept for relation)
   managedTeams Team[]
-  // Role-based assignments
+  // Permission-based assignments
   tournamentAssignments TournamentAssignment[]
   matchAssignments MatchAssignment[]
   scoreLogs       MatchScoreLog[]
@@ -72,11 +72,8 @@ model User {
 }
 
 enum UserRole {
+  USER
   ADMIN
-  TEAM_MANAGER
-  TOURNAMENT_ADMIN
-  TOURNAMENT_MANAGER
-  REFEREE
 }
 
 model VerificationToken {
@@ -108,9 +105,13 @@ model UserInvitation {
   invitedUser   User?    @relation("InvitedUser", fields: [invitedUserId], references: [id], onDelete: Cascade)
   invitedUserId String?
   email         String
-  role          UserRole
-  // Optional context
+  // Tournament context (required for tournament invitations)
   tournamentId  String?
+  // Permission flags for tournament access
+  canConfigure  Boolean  @default(false)  // Can manage tournament settings
+  canManageScores Boolean @default(false)  // Can manage match scores
+  isReferee     Boolean  @default(false)   // Can be assigned as referee
+  // Optional context
   teamId        String?
   // Invitation status
   status        InvitationStatus @default(PENDING)
@@ -697,21 +698,25 @@ model Club {
   @@index([countryId])
 }
 
-// Role-based assignment models
+// Permission-based assignment models
 model TournamentAssignment {
-  id           String         @id @default(cuid())
-  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId       String
-  tournament   Tournament     @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
-  tournamentId String
-  role         TournamentRole
-  permissions  Json?          // Granular permissions for this tournament
-  assignedBy   String?        // User ID who assigned this role
-  assignedAt   DateTime       @default(now())
-  expiresAt    DateTime?      // Optional expiration date
-  isActive     Boolean        @default(true)
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
+  id             String         @id @default(cuid())
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId         String
+  tournament     Tournament     @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  tournamentId   String
+  // Permission flags
+  canConfigure   Boolean        @default(false)  // Can manage tournament settings, divisions, venues, etc.
+  canManageScores Boolean       @default(false)  // Can manage match scores, events, results
+  isReferee      Boolean        @default(false)  // Can be assigned to matches as referee
+  // Additional metadata
+  permissions    Json?          // Granular permissions for future extensibility
+  assignedBy     String?        // User ID who assigned these permissions
+  assignedAt     DateTime       @default(now())
+  expiresAt      DateTime?      // Optional expiration date
+  isActive       Boolean        @default(true)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
 
   @@unique([userId, tournamentId])
 }
@@ -732,12 +737,7 @@ model MatchAssignment {
   @@unique([userId, matchId])
 }
 
-enum TournamentRole {
-  MANAGER      // Can manage tournament setup and configuration
-  ADMIN        // Can manage tournament operations and results
-  REFEREE      // Can officiate matches in this tournament
-  VIEWER       // Can view tournament data
-}
+// TournamentRole enum removed - using permission booleans instead
 
 enum MatchRole {
   MAIN_REFEREE

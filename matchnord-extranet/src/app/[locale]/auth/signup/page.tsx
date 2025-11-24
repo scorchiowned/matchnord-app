@@ -1,8 +1,10 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter } from '@/i18n/routing';
+import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { signIn } from 'next-auth/react';
 import { Link as LocalizedLink } from '@/i18n/routing';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,28 +16,40 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { ArrowLeft, Mail, Chrome, User, Lock } from 'lucide-react';
 
-export default function SignUpPage() {
+function SignUpContent() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
     confirmPassword: '',
-    role: 'TEAM_MANAGER' as 'TEAM_MANAGER' | 'TOURNAMENT_MANAGER' | 'REFEREE',
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
-  const router = useRouter();
+  const [invitationEmail, setInvitationEmail] = useState<string | null>(null);
   const t = useTranslations('auth');
+
+  // Fetch invitation details if token is present
+  useEffect(() => {
+    const invitationToken = searchParams.get('invitationToken');
+    if (invitationToken) {
+      fetch(`/api/v1/invitations/${invitationToken}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.email) {
+            setInvitationEmail(data.email);
+            setFormData((prev) => ({ ...prev, email: data.email }));
+          }
+        })
+        .catch((err) => {
+          console.error('Failed to fetch invitation:', err);
+        });
+    }
+  }, [searchParams]);
 
   const handleEmailSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,6 +71,9 @@ export default function SignUpPage() {
       return;
     }
 
+    const invitationToken = searchParams.get('invitationToken');
+    const callbackUrl = searchParams.get('callbackUrl');
+
     try {
       const response = await fetch('/api/auth/register', {
         method: 'POST',
@@ -67,7 +84,7 @@ export default function SignUpPage() {
           name: formData.name,
           email: formData.email,
           password: formData.password,
-          role: formData.role,
+          invitationToken: invitationToken || undefined,
         }),
       });
 
@@ -81,10 +98,16 @@ export default function SignUpPage() {
       setSuccess(true);
       setError('');
 
-      // Redirect to verification request page after a longer delay to show success message
+      // Redirect based on whether invitation was accepted
       setTimeout(() => {
-        router.push('/auth/verify-request');
-      }, 3000);
+        if (data.invitationAccepted && callbackUrl) {
+          // If invitation was accepted, redirect back to invitation page to sign in
+          router.push(callbackUrl);
+        } else {
+          // Otherwise, go to verification request page
+          router.push('/auth/verify-request');
+        }
+      }, 2000);
     } catch (error) {
       console.error('Registration error:', error);
       setError(error instanceof Error ? error.message : 'Registration failed');
@@ -112,12 +135,6 @@ export default function SignUpPage() {
     });
   };
 
-  const handleRoleChange = (value: string) => {
-    setFormData({
-      ...formData,
-      role: value as 'TEAM_MANAGER' | 'TOURNAMENT_MANAGER' | 'REFEREE',
-    });
-  };
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
@@ -143,6 +160,17 @@ export default function SignUpPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Invitation Notice */}
+            {invitationEmail && (
+              <div className="rounded-lg bg-blue-50 p-4 text-blue-800">
+                <p className="text-sm">
+                  You're registering to accept an invitation for{' '}
+                  <strong>{invitationEmail}</strong>. After registration, you'll
+                  be able to access the tournament.
+                </p>
+              </div>
+            )}
+
             {/* Success Message */}
             {success && (
               <div className="rounded-lg bg-green-50 p-4 text-green-800">
@@ -186,7 +214,8 @@ export default function SignUpPage() {
                   value={formData.email}
                   onChange={handleInputChange}
                   required
-                  disabled={isLoading}
+                  disabled={isLoading || !!invitationEmail}
+                  readOnly={!!invitationEmail}
                 />
               </div>
 
@@ -216,26 +245,6 @@ export default function SignUpPage() {
                   required
                   disabled={isLoading}
                 />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="role">Role</Label>
-                <Select
-                  value={formData.role}
-                  onValueChange={handleRoleChange}
-                  disabled={isLoading}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select your role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="TEAM_MANAGER">Team Manager</SelectItem>
-                    <SelectItem value="TOURNAMENT_MANAGER">
-                      Tournament Manager
-                    </SelectItem>
-                    <SelectItem value="REFEREE">Referee</SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
 
               <Button type="submit" className="w-full" disabled={isLoading}>
@@ -288,5 +297,19 @@ export default function SignUpPage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+export default function SignUpPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center">
+          <div>Loading...</div>
+        </div>
+      }
+    >
+      <SignUpContent />
+    </Suspense>
   );
 }

@@ -7,6 +7,7 @@ import {
   getTournamentVisibility,
   filterTournamentData,
 } from '@/lib/tournament/visibility';
+import { PermissionManager } from '@/lib/permissions';
 
 export async function GET(
   request: NextRequest,
@@ -212,23 +213,16 @@ export async function PATCH(
       );
     }
 
-    // Check permissions
+    // Check permissions - user must have canConfigure permission
     const user = session.user as any;
-    const canEdit =
-      user.role === 'ADMIN' ||
-      existingTournament.createdById === user.id ||
-      (await db.tournamentAssignment.findFirst({
-        where: {
-          tournamentId: tournamentId,
-          userId: user.id,
-          role: { in: ['ADMIN', 'MANAGER'] },
-          isActive: true,
-        },
-      }));
+    const canEdit = await PermissionManager.canConfigureTournament(
+      user.id,
+      tournamentId
+    );
 
     if (!canEdit) {
       return NextResponse.json(
-        { error: 'Insufficient permissions' },
+        { error: 'Insufficient permissions to configure tournament' },
         { status: 403 }
       );
     }

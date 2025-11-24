@@ -117,13 +117,12 @@ export default function PublicTournamentPage({
   const t = useTranslations();
   const { data: session } = useSession();
   const user = session?.user;
-  // const currentRole = user?.role;
   const isAdmin = user?.role === 'ADMIN';
-  const isTeamManager = user?.role === 'TEAM_MANAGER';
-  const isUser = user?.role === 'REFEREE'; // REFEREE is the basic user role now
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('groups');
+  const [canManage, setCanManage] = useState(false);
+  const [canManageScores, setCanManageScores] = useState(false);
 
   // Load tournament data from API
   useEffect(() => {
@@ -142,6 +141,36 @@ export default function PublicTournamentPage({
 
     loadTournament();
   }, [params.id]);
+
+  // Check if user has permission to manage this tournament
+  useEffect(() => {
+    const checkPermissions = async () => {
+      if (!user || !params.id) {
+        setCanManage(false);
+        setCanManageScores(false);
+        return;
+      }
+
+      // Admins can always manage
+      if (isAdmin) {
+        setCanManage(true);
+        setCanManageScores(true);
+        return;
+      }
+
+      try {
+        const permissions = await api.tournaments.getPermissions(params.id);
+        setCanManage(permissions.canConfigure || false);
+        setCanManageScores(permissions.canManageScores || false);
+      } catch (error) {
+        console.error('Error checking permissions:', error);
+        setCanManage(false);
+        setCanManageScores(false);
+      }
+    };
+
+    checkPermissions();
+  }, [user, params.id, isAdmin]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -238,9 +267,9 @@ export default function PublicTournamentPage({
               </div>
             </div>
 
-            {/* Role-based actions */}
+            {/* Permission-based actions */}
             <div className="flex items-center space-x-2">
-              {(isAdmin || isTeamManager) && (
+              {canManage && (
                 <Button asChild>
                   <Link href={`/tournaments/${params.id}/manage`}>
                     <Settings className="mr-2 h-4 w-4" />
@@ -248,10 +277,12 @@ export default function PublicTournamentPage({
                   </Link>
                 </Button>
               )}
-              {isUser && (
-                <Button variant="outline">
-                  <Trophy className="mr-2 h-4 w-4" />
-                  {t('tournament.registerTeam')}
+              {!canManage && canManageScores && (
+                <Button variant="outline" asChild>
+                  <Link href={`/tournaments/${params.id}/manage-public`}>
+                    <Target className="mr-2 h-4 w-4" />
+                    Manage Scores
+                  </Link>
                 </Button>
               )}
             </div>
@@ -705,8 +736,8 @@ export default function PublicTournamentPage({
                       </div>
                     )}
 
-                    {/* Role-based additional info */}
-                    {(isAdmin || isTeamManager) && (
+                    {/* Permission-based additional info */}
+                    {canManage && (
                       <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-3">
                         <h4 className="mb-2 font-medium text-blue-900">
                           {t('tournament.managementInfo')}

@@ -374,7 +374,7 @@ export function TournamentInfoEditor({
               </div>
               <div className="space-y-1">
                 <Label htmlFor="status" className="text-sm font-medium">
-                  {t('tournament.status')} *
+                  Status *
                 </Label>
                 <Select
                   value={formData.status}
@@ -422,7 +422,7 @@ export function TournamentInfoEditor({
               </div>
               <div className="space-y-1">
                 <Label className="text-sm font-medium text-muted-foreground">
-                  {t('tournament.status')}
+                  Status
                 </Label>
                 <p className="text-sm">
                   {
