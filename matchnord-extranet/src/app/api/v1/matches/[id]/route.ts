@@ -3,6 +3,113 @@ import { db } from '@/lib/db';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const matchId = params.id;
+
+    if (!matchId) {
+      return NextResponse.json(
+        { error: 'Match ID is required' },
+        { status: 400 }
+      );
+    }
+
+    const match = await db.match.findUnique({
+      where: { id: matchId },
+      include: {
+        homeTeam: {
+          select: {
+            id: true,
+            name: true,
+            shortName: true,
+          },
+        },
+        awayTeam: {
+          select: {
+            id: true,
+            name: true,
+            shortName: true,
+          },
+        },
+        venue: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        pitch: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        group: {
+          select: {
+            id: true,
+            name: true,
+            division: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+        scoreLogs: {
+          include: {
+            updatedBy: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+          take: 10, // Get last 10 log entries
+        },
+        events: {
+          include: {
+            team: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+            player: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+              },
+            },
+          },
+          orderBy: {
+            minute: 'asc',
+          },
+        },
+      },
+    });
+
+    if (!match) {
+      return NextResponse.json({ error: 'Match not found' }, { status: 404 });
+    }
+
+    return NextResponse.json(match);
+  } catch (error) {
+    console.error('Error fetching match:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
 export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }

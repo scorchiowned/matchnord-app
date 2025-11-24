@@ -11,6 +11,7 @@ export const MatchStatus = z.enum([
   'LIVE',
   'FINISHED',
   'CANCELLED',
+  'POSTPONED',
 ]);
 export const EventType = z.enum([
   'GOAL',

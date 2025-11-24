@@ -32,6 +32,31 @@ export const api = {
       return fetchApi(`/matches?${searchParams.toString()}`);
     },
     getById: (id: string) => fetchApi(`/matches/${id}`),
+    updateScore: (id: string, homeScore: number, awayScore: number) =>
+      fetchApi(`/matches/${id}/score`, {
+        method: 'PUT',
+        body: JSON.stringify({ homeScore, awayScore }),
+      }),
+    updateStatus: (id: string, status: string) =>
+      fetchApi(`/matches/${id}/status`, {
+        method: 'PUT',
+        body: JSON.stringify({ status }),
+      }),
+    getEvents: (id: string) => fetchApi(`/matches/${id}/events`),
+    createEvent: (id: string, data: any) =>
+      fetchApi(`/matches/${id}/events`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    updateEvent: (matchId: string, eventId: string, data: any) =>
+      fetchApi(`/matches/${matchId}/events/${eventId}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }),
+    deleteEvent: (matchId: string, eventId: string) =>
+      fetchApi(`/matches/${matchId}/events/${eventId}`, {
+        method: 'DELETE',
+      }),
   },
   tournaments: {
     getAll: (params?: Record<string, string>) => {

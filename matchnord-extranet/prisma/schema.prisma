@@ -66,6 +66,7 @@ model User {
   // Role-based assignments
   tournamentAssignments TournamentAssignment[]
   matchAssignments MatchAssignment[]
+  scoreLogs       MatchScoreLog[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
@@ -446,6 +447,7 @@ model Match {
   // Events and assignments
   events       MatchEvent[]
   assignments  MatchAssignment[]
+  scoreLogs    MatchScoreLog[]
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 }
@@ -478,6 +480,19 @@ enum EventType {
   CARD_YELLOW
   CARD_RED
   SUBSTITUTION
+}
+
+model MatchScoreLog {
+  id         String   @id @default(cuid())
+  match      Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  matchId    String
+  homeScore  Int
+  awayScore  Int
+  updatedBy  User     @relation(fields: [updatedById], references: [id])
+  updatedById String
+  createdAt  DateTime @default(now())
+
+  @@index([matchId])
 }
 
 model Standing {
