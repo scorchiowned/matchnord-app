@@ -40,6 +40,9 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  experimental: {
+    externalDir: true,
+  },
   /* config options here */
 };
 

@@ -7,12 +7,15 @@ import { Toaster } from 'sonner';
 import type { Metadata } from 'next';
 // @ts-ignore
 import '../../styles/globals.css';
+import { createThemeCss, matchnordExtranetTemplate } from '@matchnord/theme';
 
 const roboto = Roboto({
   subsets: ['latin'],
   weight: ['400', '700'],
   variable: '--font-roboto',
 });
+
+const themeCss = createThemeCss(matchnordExtranetTemplate);
 
 export const metadata: Metadata = {
   title: 'Tournament Management System',
@@ -40,6 +43,12 @@ export default async function LocaleLayout({
 
   return (
     <html lang={locale}>
+      <head>
+        <style
+          data-theme="matchnord-extranet"
+          dangerouslySetInnerHTML={{ __html: themeCss }}
+        />
+      </head>
       <body className={`${roboto.variable} font-style`}>
         <NextIntlClientProvider locale={locale} messages={messages}>
           <AuthProvider>{children}</AuthProvider>

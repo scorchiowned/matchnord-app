@@ -30,6 +30,7 @@ const nextConfig = {
   },
   experimental: {
     serverComponentsExternalPackages: ['@prisma/client', 'bcryptjs'],
+    externalDir: true,
   },
   async headers() {
     return [

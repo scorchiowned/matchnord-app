@@ -21,7 +21,9 @@
     ],
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@matchnord/theme": ["../packages/theme/src/index.ts"],
+      "@matchnord/theme/*": ["../packages/theme/src/*"]
     },
     "noUncheckedIndexedAccess": true,
     "noImplicitReturns": true,
