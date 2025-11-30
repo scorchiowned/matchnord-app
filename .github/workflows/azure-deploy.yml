@@ -7,7 +7,6 @@ on:
 
 env:
   AZURE_WEBAPP_NAME: matchnord
-  AZURE_WEBAPP_PACKAGE_PATH: 'matchnord-extranet'
   NODE_VERSION: '18'
 
 jobs:
@@ -34,6 +33,26 @@ jobs:
         working-directory: matchnord-extranet
         run: npm run prisma:generate
 
+      - name: Validate required secrets
+        run: |
+          if [ -z "${{ secrets.DATABASE_URL }}" ]; then
+            echo "❌ Error: DATABASE_URL secret is not set"
+            exit 1
+          fi
+          if [ -z "${{ secrets.NEXTAUTH_SECRET }}" ]; then
+            echo "❌ Error: NEXTAUTH_SECRET secret is not set"
+            exit 1
+          fi
+          if [ -z "${{ secrets.NEXTAUTH_URL }}" ]; then
+            echo "❌ Error: NEXTAUTH_URL secret is not set"
+            exit 1
+          fi
+          if [ -z "${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}" ]; then
+            echo "❌ Error: AZURE_WEBAPP_PUBLISH_PROFILE secret is not set"
+            exit 1
+          fi
+          echo "✅ All required secrets are set"
+
       - name: Build application
         working-directory: matchnord-extranet
         env:
@@ -45,12 +64,28 @@ jobs:
           AZURE_STORAGE_CONTAINER_NAME: ${{ secrets.AZURE_STORAGE_CONTAINER_NAME }}
         run: npm run build
 
+      - name: Create deployment package
+        working-directory: matchnord-extranet
+        run: |
+          mkdir -p deploy-package
+          # Copy standalone output
+          cp -r .next/standalone/* deploy-package/
+          # Copy static files
+          cp -r .next/static deploy-package/.next/static
+          # Copy public folder
+          cp -r public deploy-package/
+          # Copy Prisma files for migrations
+          cp -r prisma deploy-package/
+          # Copy package.json for runtime
+          cp package.json deploy-package/
+          cp package-lock.json deploy-package/ 2>/dev/null || true
+
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
           app-name: ${{ env.AZURE_WEBAPP_NAME }}
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-          package: ${{ env.AZURE_WEBAPP_PACKAGE_PATH }}
+          package: matchnord-extranet/deploy-package
 
       - name: Run database migrations and seed
         working-directory: matchnord-extranet

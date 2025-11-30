@@ -9,7 +9,6 @@ on:
 
 env:
   AZURE_WEBAPP_NAME: matchnord-app
-  AZURE_WEBAPP_PACKAGE_PATH: "matchnord-app"
   NODE_VERSION: "20"
 
 jobs:
@@ -32,15 +31,36 @@ jobs:
         working-directory: matchnord-app
         run: npm ci
 
+      - name: Validate required secrets
+        run: |
+          if [ -z "${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_FRONTEND }}" ]; then
+            echo "❌ Error: AZURE_WEBAPP_PUBLISH_PROFILE_FRONTEND secret is not set"
+            exit 1
+          fi
+          echo "✅ All required secrets are set"
+
       - name: Build application
         working-directory: matchnord-app
         env:
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL || 'https://matchnord.azurewebsites.net' }}
         run: npm run build
 
+      - name: Create deployment package
+        working-directory: matchnord-app
+        run: |
+          mkdir -p deploy-package
+          # Copy standalone output
+          cp -r .next/standalone/* deploy-package/
+          # Copy static files
+          cp -r .next/static deploy-package/.next/static
+          # Copy public folder
+          cp -r public deploy-package/
+          # Create .env.production
+          echo "NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL || 'https://matchnord.azurewebsites.net' }}" > deploy-package/.env.production
+
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
           app-name: ${{ env.AZURE_WEBAPP_NAME }}
-          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-          package: ${{ env.AZURE_WEBAPP_PACKAGE_PATH }}
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_FRONTEND }}
+          package: matchnord-app/deploy-package
