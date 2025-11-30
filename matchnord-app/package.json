@@ -6,7 +6,9 @@
     "dev": "next dev -p 3001",
     "build": "next build",
     "start": "next start -p 3001",
-    "lint": "eslint"
+    "lint": "eslint",
+    "deploy": "./deploy-now.sh",
+    "deploy:now": "./deploy-now.sh"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

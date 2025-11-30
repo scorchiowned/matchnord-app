@@ -5,7 +5,7 @@ const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
 const nextConfig: NextConfig = {
   output: "standalone",
-  outputFileTracingRoot: "/Users/markusanttila/Projects/Personal/tournament_software/matchnord-app",
+  outputFileTracingRoot: process.cwd(),
   eslint: {
     ignoreDuringBuilds: true,
   },
@@ -29,14 +29,17 @@ const nextConfig: NextConfig = {
     ],
   },
   async rewrites() {
+    // Use production API URL if set, otherwise use localhost for development
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+    
     return [
       {
         source: '/api/v1/:path*',
-        destination: 'http://localhost:3000/api/v1/:path*',
+        destination: `${apiUrl}/api/v1/:path*`,
       },
       {
         source: '/api/tournaments/:path*',
-        destination: 'http://localhost:3000/api/tournaments/:path*',
+        destination: `${apiUrl}/api/tournaments/:path*`,
       },
     ];
   },

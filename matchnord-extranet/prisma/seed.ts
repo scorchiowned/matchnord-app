@@ -115,11 +115,46 @@ async function main() {
     },
   });
 
-  console.log(`👤 Created users:
+  console.log(`👤 Created test users:
     - Admin: ${adminUser.email} (${adminUser.role})
     - Team Manager: ${teamManagerUser.email} (${teamManagerUser.role})
     - Tournament Admin: ${tournamentAdminUser.email} (${tournamentAdminUser.role})
     - Referee: ${refereeUser.email} (${refereeUser.role})`);
+
+  // Create production users (idempotent - will only create if they don't exist)
+  const productionAdmin = await db.user.upsert({
+    where: { email: 'markus.anttila@hotmail.com' },
+    update: {
+      // Only update role if user exists but has wrong role
+      role: 'ADMIN',
+    },
+    create: {
+      name: 'Markus Anttila',
+      email: 'markus.anttila@hotmail.com',
+      role: 'ADMIN',
+      isActive: true,
+      emailVerified: new Date(), // Pre-verified for production admin
+    },
+  });
+
+  const productionUser = await db.user.upsert({
+    where: { email: 'susanna.saarikko@gmail.com' },
+    update: {
+      // Only update role if user exists but has wrong role
+      role: 'USER',
+    },
+    create: {
+      name: 'Susanna Saarikko',
+      email: 'susanna.saarikko@gmail.com',
+      role: 'USER',
+      isActive: true,
+      emailVerified: new Date(), // Pre-verified for production user
+    },
+  });
+
+  console.log(`👤 Production users:
+    - ${productionAdmin.name}: ${productionAdmin.email} (${productionAdmin.role})
+    - ${productionUser.name}: ${productionUser.email} (${productionUser.role})`);
 
   // Create organizations
   const org = await db.organization.upsert({

@@ -33,6 +33,10 @@ echo "✅ Environment configured"
 echo "🗄️ Running database migrations..."
 npx prisma migrate deploy
 
+# Seed database (creates/updates production users if they don't exist)
+echo "🌱 Seeding database (ensuring production users exist)..."
+npm run prisma:seed
+
 # Build the application
 echo "🏗️ Building application..."
 npm run build

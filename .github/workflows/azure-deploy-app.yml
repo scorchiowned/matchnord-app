@@ -1,0 +1,47 @@
+name: Deploy matchnord-app to Azure
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'matchnord-app/**'
+  workflow_dispatch:
+
+env:
+  AZURE_WEBAPP_NAME: matchnord-app
+  AZURE_WEBAPP_PACKAGE_PATH: 'matchnord-app'
+  NODE_VERSION: '20'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: matchnord-app/package-lock.json
+
+      - name: Install dependencies
+        working-directory: matchnord-app
+        run: npm ci
+
+      - name: Build application
+        working-directory: matchnord-app
+        env:
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL || 'https://matchnord.azurewebsites.net' }}
+        run: npm run build
+
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ env.AZURE_WEBAPP_NAME }}
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          package: ${{ env.AZURE_WEBAPP_PACKAGE_PATH }}
+
