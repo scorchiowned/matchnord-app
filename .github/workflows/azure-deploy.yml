@@ -35,27 +35,10 @@ jobs:
 
       - name: Validate required secrets
         run: |
-          DB_URL="${{ secrets.DATABASE_URL }}"
-          AUTH_SECRET="${{ secrets.NEXTAUTH_SECRET }}"
-          AUTH_URL="${{ secrets.NEXTAUTH_URL }}"
-          PUBLISH_PROFILE="${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}"
-
-          if [ -z "${DB_URL}" ]; then
-            echo "❌ Error: DATABASE_URL secret is not set"
-            exit 1
-          fi
-          if [ -z "${AUTH_SECRET}" ]; then
-            echo "❌ Error: NEXTAUTH_SECRET secret is not set"
-            exit 1
-          fi
-          if [ -z "${AUTH_URL}" ]; then
-            echo "❌ Error: NEXTAUTH_URL secret is not set"
-            exit 1
-          fi
-          if [ -z "${PUBLISH_PROFILE}" ]; then
-            echo "❌ Error: AZURE_WEBAPP_PUBLISH_PROFILE secret is not set"
-            exit 1
-          fi
+          test -n "${{ secrets.DATABASE_URL }}" || { echo "❌ Error: DATABASE_URL secret is not set"; exit 1; }
+          test -n "${{ secrets.NEXTAUTH_SECRET }}" || { echo "❌ Error: NEXTAUTH_SECRET secret is not set"; exit 1; }
+          test -n "${{ secrets.NEXTAUTH_URL }}" || { echo "❌ Error: NEXTAUTH_URL secret is not set"; exit 1; }
+          test -n "${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}" || { echo "❌ Error: AZURE_WEBAPP_PUBLISH_PROFILE secret is not set"; exit 1; }
           echo "✅ All required secrets are set"
 
       - name: Build application

@@ -33,10 +33,7 @@ jobs:
 
       - name: Validate required secrets
         run: |
-          if [ -z "${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_FRONTEND }}" ]; then
-            echo "❌ Error: AZURE_WEBAPP_PUBLISH_PROFILE_FRONTEND secret is not set"
-            exit 1
-          fi
+          test -n "${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_FRONTEND }}" || { echo "❌ Error: AZURE_WEBAPP_PUBLISH_PROFILE_FRONTEND secret is not set"; exit 1; }
           echo "✅ All required secrets are set"
 
       - name: Build application
