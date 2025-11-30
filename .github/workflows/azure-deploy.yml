@@ -76,6 +76,8 @@ jobs:
           cp .next/build-manifest.json deploy-package/.next/build-manifest.json 2>/dev/null || echo "build-manifest.json not found"
           cp .next/app-build-manifest.json deploy-package/.next/app-build-manifest.json 2>/dev/null || echo "app-build-manifest.json not found"
           cp .next/react-loadable-manifest.json deploy-package/.next/react-loadable-manifest.json 2>/dev/null || echo "react-loadable-manifest.json not found"
+          # Copy middleware file (required for routing)
+          cp middleware.ts deploy-package/middleware.ts 2>/dev/null || echo "middleware.ts not found"
           # Copy public folder if it exists
           [ -d "public" ] && cp -r public deploy-package/ || echo "No public directory found, skipping"
           # Copy Prisma files for migrations
