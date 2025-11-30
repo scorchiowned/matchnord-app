@@ -63,8 +63,15 @@ jobs:
           # Create .next directory and copy necessary files
           mkdir -p deploy-package/.next
           cp -r .next/static deploy-package/.next/static
-          # Copy BUILD_ID file (required by Next.js)
-          cp .next/BUILD_ID deploy-package/.next/BUILD_ID 2>/dev/null || echo "BUILD_ID not found, will be created at runtime"
+          # Copy all manifest files required by Next.js standalone
+          cp .next/BUILD_ID deploy-package/.next/BUILD_ID 2>/dev/null || echo "BUILD_ID not found"
+          cp .next/routes-manifest.json deploy-package/.next/routes-manifest.json 2>/dev/null || echo "routes-manifest.json not found"
+          cp .next/prerender-manifest.json deploy-package/.next/prerender-manifest.json 2>/dev/null || echo "prerender-manifest.json not found"
+          cp .next/prerender-manifest.js deploy-package/.next/prerender-manifest.js 2>/dev/null || echo "prerender-manifest.js not found"
+          cp .next/images-manifest.json deploy-package/.next/images-manifest.json 2>/dev/null || echo "images-manifest.json not found"
+          cp .next/build-manifest.json deploy-package/.next/build-manifest.json 2>/dev/null || echo "build-manifest.json not found"
+          cp .next/app-build-manifest.json deploy-package/.next/app-build-manifest.json 2>/dev/null || echo "app-build-manifest.json not found"
+          cp .next/react-loadable-manifest.json deploy-package/.next/react-loadable-manifest.json 2>/dev/null || echo "react-loadable-manifest.json not found"
           # Copy public folder if it exists
           [ -d "public" ] && cp -r public deploy-package/ || echo "No public directory found, skipping"
           # Copy Prisma files for migrations
