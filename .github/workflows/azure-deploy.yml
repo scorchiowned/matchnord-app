@@ -63,8 +63,8 @@ jobs:
           # Create .next directory and copy static files
           mkdir -p deploy-package/.next
           cp -r .next/static deploy-package/.next/static
-          # Copy public folder
-          cp -r public deploy-package/
+          # Copy public folder if it exists
+          [ -d "public" ] && cp -r public deploy-package/ || echo "No public directory found, skipping"
           # Copy Prisma files for migrations
           cp -r prisma deploy-package/
           # Copy package.json for runtime
