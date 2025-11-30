@@ -94,6 +94,12 @@ jobs:
           if [ ! -f "deploy-package/.next/BUILD_ID" ]; then
             echo "⚠️ Warning: BUILD_ID not found, but continuing..."
           fi
+          # Verify pages-manifest.json exists
+          if [ ! -f "deploy-package/.next/server/pages-manifest.json" ]; then
+            echo "❌ Error: pages-manifest.json not found in deploy-package/.next/server/"
+            exit 1
+          fi
+          echo "✅ Verified pages-manifest.json exists"
           # Create zip file for deployment
           cd deploy-package
           zip -r ../deploy-package.zip . -x "*.DS_Store"
