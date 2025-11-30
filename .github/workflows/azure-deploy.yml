@@ -67,8 +67,10 @@ jobs:
           [ -d "public" ] && cp -r public deploy-package/ || echo "No public directory found, skipping"
           # Copy Prisma files for migrations
           cp -r prisma deploy-package/
-          # Copy package.json for runtime
+          # Copy package.json and update start script for standalone
           cp package.json deploy-package/
+          # Update start script to use node server.js for standalone output
+          node -e "const fs=require('fs'); const pkg=JSON.parse(fs.readFileSync('deploy-package/package.json')); pkg.scripts.start='node server.js'; fs.writeFileSync('deploy-package/package.json', JSON.stringify(pkg, null, 2));"
           cp package-lock.json deploy-package/ 2>/dev/null || true
           # Verify server.js exists
           if [ ! -f "deploy-package/server.js" ]; then
