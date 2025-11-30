@@ -3,8 +3,6 @@ name: Deploy matchnord-app to Azure
 on:
   push:
     branches: [main]
-    paths:
-      - "matchnord-app/**"
   workflow_dispatch:
 
 env:
@@ -48,16 +46,29 @@ jobs:
           mkdir -p deploy-package
           # Copy standalone output
           cp -r .next/standalone/* deploy-package/
-          # Copy static files
+          # Create .next directory and copy static files
+          mkdir -p deploy-package/.next
           cp -r .next/static deploy-package/.next/static
           # Copy public folder
           cp -r public deploy-package/
           # Create .env.production
           echo "NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL || 'https://matchnord.azurewebsites.net' }}" > deploy-package/.env.production
+          # Verify server.js exists
+          if [ ! -f "deploy-package/server.js" ]; then
+            echo "❌ Error: server.js not found in deploy-package"
+            exit 1
+          fi
+          # Create zip file for deployment
+          cd deploy-package
+          zip -r ../deploy-package.zip . -x "*.DS_Store"
+          cd ..
+          echo "✅ Deployment package created successfully"
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
           app-name: ${{ env.AZURE_WEBAPP_NAME }}
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_FRONTEND }}
-          package: matchnord-app/deploy-package
+          package: matchnord-app/deploy-package.zip
+          type: zip
+          restart: true
