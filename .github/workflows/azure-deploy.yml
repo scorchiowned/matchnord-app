@@ -63,6 +63,8 @@ jobs:
           # Create .next directory and copy necessary files
           mkdir -p deploy-package/.next
           cp -r .next/static deploy-package/.next/static
+          # Copy entire server directory (contains pages-manifest.json and other required files)
+          cp -r .next/server deploy-package/.next/server
           # Copy all manifest files required by Next.js standalone
           cp .next/BUILD_ID deploy-package/.next/BUILD_ID 2>/dev/null || echo "BUILD_ID not found"
           cp .next/routes-manifest.json deploy-package/.next/routes-manifest.json 2>/dev/null || echo "routes-manifest.json not found"
