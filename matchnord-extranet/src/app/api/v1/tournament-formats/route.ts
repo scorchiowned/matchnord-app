@@ -7,6 +7,8 @@ import {
   getFormatTemplate
 } from '@/lib/tournament/format-configuration';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * GET /api/v1/tournament-formats
  * Get available tournament format templates

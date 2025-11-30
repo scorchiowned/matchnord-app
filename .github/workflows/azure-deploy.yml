@@ -7,7 +7,7 @@ on:
 
 env:
   AZURE_WEBAPP_NAME: matchnord
-  NODE_VERSION: '18'
+  NODE_VERSION: "18"
 
 jobs:
   build-and-deploy:
@@ -22,7 +22,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          cache: "npm"
           cache-dependency-path: matchnord-extranet/package-lock.json
 
       - name: Install dependencies
@@ -35,19 +35,24 @@ jobs:
 
       - name: Validate required secrets
         run: |
-          if [ -z "${{ secrets.DATABASE_URL }}" ]; then
+          DB_URL="${{ secrets.DATABASE_URL }}"
+          AUTH_SECRET="${{ secrets.NEXTAUTH_SECRET }}"
+          AUTH_URL="${{ secrets.NEXTAUTH_URL }}"
+          PUBLISH_PROFILE="${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}"
+
+          if [ -z "${DB_URL}" ]; then
             echo "❌ Error: DATABASE_URL secret is not set"
             exit 1
           fi
-          if [ -z "${{ secrets.NEXTAUTH_SECRET }}" ]; then
+          if [ -z "${AUTH_SECRET}" ]; then
             echo "❌ Error: NEXTAUTH_SECRET secret is not set"
             exit 1
           fi
-          if [ -z "${{ secrets.NEXTAUTH_URL }}" ]; then
+          if [ -z "${AUTH_URL}" ]; then
             echo "❌ Error: NEXTAUTH_URL secret is not set"
             exit 1
           fi
-          if [ -z "${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}" ]; then
+          if [ -z "${PUBLISH_PROFILE}" ]; then
             echo "❌ Error: AZURE_WEBAPP_PUBLISH_PROFILE secret is not set"
             exit 1
           fi
