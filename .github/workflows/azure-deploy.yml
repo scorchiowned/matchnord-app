@@ -7,7 +7,7 @@ on:
 
 env:
   AZURE_WEBAPP_NAME: matchnord
-  AZURE_WEBAPP_PACKAGE_PATH: '.'
+  AZURE_WEBAPP_PACKAGE_PATH: 'matchnord-extranet'
   NODE_VERSION: '18'
 
 jobs:
@@ -24,14 +24,18 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
+          cache-dependency-path: matchnord-extranet/package-lock.json
 
       - name: Install dependencies
+        working-directory: matchnord-extranet
         run: npm ci
 
       - name: Generate Prisma client
+        working-directory: matchnord-extranet
         run: npm run prisma:generate
 
       - name: Build application
+        working-directory: matchnord-extranet
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
@@ -48,8 +52,10 @@ jobs:
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
           package: ${{ env.AZURE_WEBAPP_PACKAGE_PATH }}
 
-      - name: Run database migrations
+      - name: Run database migrations and seed
+        working-directory: matchnord-extranet
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
           npx prisma migrate deploy || echo "No migrations to run"
+          npm run prisma:seed || echo "Seed completed or skipped"
