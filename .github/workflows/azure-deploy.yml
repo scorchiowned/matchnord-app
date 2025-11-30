@@ -60,7 +60,8 @@ jobs:
           mkdir -p deploy-package
           # Copy standalone output
           cp -r .next/standalone/* deploy-package/
-          # Copy static files
+          # Create .next directory and copy static files
+          mkdir -p deploy-package/.next
           cp -r .next/static deploy-package/.next/static
           # Copy public folder
           cp -r public deploy-package/
