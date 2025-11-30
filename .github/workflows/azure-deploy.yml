@@ -60,10 +60,12 @@ jobs:
           mkdir -p deploy-package
           # Copy standalone output (contains server.js and node_modules)
           cp -r .next/standalone/* deploy-package/
-          # Create .next directory and copy necessary files
+          # Ensure .next directory exists and copy necessary files
           mkdir -p deploy-package/.next
           cp -r .next/static deploy-package/.next/static
-          # Copy entire server directory (contains pages-manifest.json and other required files)
+          # Copy entire server directory from source (overwrites standalone's .next/server if it exists)
+          # This ensures we have the complete server directory with all manifest files
+          rm -rf deploy-package/.next/server
           cp -r .next/server deploy-package/.next/server
           # Copy all manifest files required by Next.js standalone
           cp .next/BUILD_ID deploy-package/.next/BUILD_ID 2>/dev/null || echo "BUILD_ID not found"
