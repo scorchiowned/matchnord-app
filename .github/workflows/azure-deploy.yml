@@ -58,7 +58,7 @@ jobs:
         working-directory: matchnord-extranet
         run: |
           mkdir -p deploy-package
-          # Copy standalone output
+          # Copy standalone output (contains server.js and node_modules)
           cp -r .next/standalone/* deploy-package/
           # Create .next directory and copy static files
           mkdir -p deploy-package/.next
@@ -70,6 +70,12 @@ jobs:
           # Copy package.json for runtime
           cp package.json deploy-package/
           cp package-lock.json deploy-package/ 2>/dev/null || true
+          # Verify server.js exists
+          if [ ! -f "deploy-package/server.js" ]; then
+            echo "❌ Error: server.js not found in deploy-package"
+            exit 1
+          fi
+          echo "✅ Deployment package created successfully"
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
@@ -77,6 +83,7 @@ jobs:
           app-name: ${{ env.AZURE_WEBAPP_NAME }}
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
           package: matchnord-extranet/deploy-package
+          type: zip
 
       - name: Run database migrations and seed
         working-directory: matchnord-extranet
