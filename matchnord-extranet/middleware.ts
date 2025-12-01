@@ -55,5 +55,7 @@ export const config = {
      * - files with extensions (e.g., .png, .jpg, etc.)
      */
     '/((?!api|_next/static|_next/image|favicon.ico|.*\\..*).*)',
+    // Also match root path
+    '/',
   ],
 };
