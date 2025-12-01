@@ -1,0 +1,747 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  role          UserRole  @default(USER)
+  phone         String?
+  // Account status
+  isActive      Boolean   @default(true)  // Users are active by default
+  approvedAt    DateTime? // When admin approved the account (if needed)
+  approvedBy    String?   // Admin who approved the account
+  // Email verification
+  emailVerificationTokens EmailVerificationToken[]
+  // Invitations
+  sentInvitations UserInvitation[] @relation("InviterUser")
+  receivedInvitations UserInvitation[] @relation("InvitedUser")
+  accounts      Account[]
+  sessions      Session[]
+  // Organization relationships (deprecated - kept for backward compatibility)
+  organizations UserOrganization[]
+  // Tournament management (via createdById on Tournament - kept for relation)
+  managedTournaments Tournament[]
+  // Team management (via managerId on Team - kept for relation)
+  managedTeams Team[]
+  // Permission-based assignments
+  tournamentAssignments TournamentAssignment[]
+  matchAssignments MatchAssignment[]
+  scoreLogs       MatchScoreLog[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+model VerificationToken {
+  identifier String
+  token      String  @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model EmailVerificationToken {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  token     String   @unique
+  expires   DateTime
+  used      Boolean  @default(false)
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, token])
+}
+
+model UserInvitation {
+  id            String   @id @default(cuid())
+  inviter       User     @relation("InviterUser", fields: [inviterId], references: [id], onDelete: Cascade)
+  inviterId     String
+  invitedUser   User?    @relation("InvitedUser", fields: [invitedUserId], references: [id], onDelete: Cascade)
+  invitedUserId String?
+  email         String
+  // Tournament context (required for tournament invitations)
+  tournamentId  String?
+  // Permission flags for tournament access
+  canConfigure  Boolean  @default(false)  // Can manage tournament settings
+  canManageScores Boolean @default(false)  // Can manage match scores
+  isReferee     Boolean  @default(false)   // Can be assigned as referee
+  // Optional context
+  teamId        String?
+  // Invitation status
+  status        InvitationStatus @default(PENDING)
+  token         String   @unique
+  expires       DateTime
+  acceptedAt    DateTime?
+  rejectedAt    DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([email, token])
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  EXPIRED
+}
+
+model Organization {
+  id          String       @id @default(cuid())
+  name        String
+  slug        String       @unique
+  description String?
+  logo        String?
+  website     String?
+  email       String?
+  phone       String?
+  address     String?
+  city        String?
+  country     Country      @relation(fields: [countryId], references: [id])
+  countryId   String
+  // Relationships
+  users       UserOrganization[]
+  tournaments Tournament[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model UserOrganization {
+  id             String       @id @default(cuid())
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId         String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId String
+  role           OrganizationRole @default(MEMBER)
+  invitedBy      String?
+  invitedAt      DateTime?
+  joinedAt       DateTime     @default(now())
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([userId, organizationId])
+}
+
+enum OrganizationRole {
+  OWNER
+  ADMIN
+  MANAGER
+  MEMBER
+}
+
+model Tournament {
+  id             String         @id @default(cuid())
+  slug           String         @unique
+  organization   Organization   @relation(fields: [organizationId], references: [id])
+  organizationId String
+  createdBy      User           @relation(fields: [createdById], references: [id])
+  createdById    String
+  name           String
+  description    String?
+  season         String
+  startDate      DateTime
+  endDate        DateTime
+  // Location information
+  country        Country        @relation(fields: [countryId], references: [id])
+  countryId      String
+  city           String?
+  address        String?
+  latitude       Float?
+  longitude      Float?
+  // Tournament status and settings
+  status         TournamentStatus @default(DRAFT)
+  publishedAt    DateTime?
+  // Contact information
+  contactEmail   String?
+  contactPhone   String?
+  // Registration information
+  registrationInfo String? @db.Text // Rich text content for registration form
+  // Media
+  logo           String?
+  heroImage      String?
+  // Registration settings
+  registrationDeadline DateTime?
+  autoAcceptTeams Boolean       @default(false)
+  allowWaitlist  Boolean        @default(true)
+  maxTeams       Int?
+  // Lock management
+  isLocked       Boolean        @default(false)
+  lockedAt       DateTime?
+  lockedBy       String?
+  // Publication settings
+  infoPublished  Boolean        @default(false)
+  teamsPublished Boolean        @default(false)
+  schedulePublished Boolean        @default(false)
+  // Tournament settings
+  divisions      Division[]
+  venues         Venue[]
+  teams          Team[]
+  matches        Match[]
+  scheduleSlots  ScheduleSlot[]
+  rules          Rule[]
+  announcements  Announcement[]
+  documents      Document[]
+  fees           Fee[]
+  payments       Payment[]
+  // Role-based assignments
+  assignments    TournamentAssignment[]
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+}
+
+enum TournamentStatus {
+  DRAFT
+  PUBLISHED
+  CANCELLED
+}
+
+model Division {
+  id           String     @id @default(cuid())
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  tournamentId String
+  name         String
+  description  String?
+  // Age group and format
+  birthYear    Int?       // Birth year for age group (e.g., 2015, 2016, 2017)
+  format       String?    // e.g., "5v5", "7v7", "8v8", "11v11"
+  level        DivisionLevel @default(COMPETITIVE)
+  // Capacity settings
+  minTeams     Int        @default(4)
+  maxTeams     Int        @default(16)
+  currentTeams Int        @default(0)
+  // Match settings
+  matchDuration Int       @default(90)  // Match duration in minutes
+  breakDuration Int       @default(15)  // Break between matches in minutes
+  assignmentType AssignmentType @default(AUTO) // Auto or manual match assignment
+  // Fee settings
+  fees         Fee[]
+  groups       Group[]
+  teams        Team[]
+  matches      Match[]
+  // Format configuration
+  metadata     Json?      // Tournament format configuration
+  // Lock management
+  isLocked     Boolean    @default(false)
+  lockedAt     DateTime?
+  lockedBy     String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+enum DivisionLevel {
+  ELITE
+  COMPETITIVE
+  CHALLENGE
+  RECREATIONAL
+}
+
+enum AssignmentType {
+  AUTO
+  MANUAL
+}
+
+model Group {
+  id         String     @id @default(cuid())
+  division   Division   @relation(fields: [divisionId], references: [id], onDelete: Cascade)
+  divisionId String
+  name       String
+  teams      Team[]     @relation("GroupTeams")
+  matches    Match[]
+  standings  Standing[]
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+}
+
+model Team {
+  id           String       @id @default(cuid())
+  tournament   Tournament   @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  tournamentId String
+  manager      User?        @relation(fields: [managerId], references: [id])
+  managerId    String?
+  name         String
+  shortName    String?
+  logo         String?      // Team logo URL
+  // Team details
+  club         String?
+  clubRef      Club?        @relation(fields: [clubId], references: [id])
+  clubId       String?
+  city         String?
+  country      Country      @relation(fields: [countryId], references: [id])
+  countryId    String
+  level        String?
+  
+  // Registration status and workflow
+  status       TeamStatus   @default(PENDING)
+  isWaitlisted Boolean      @default(false)
+  submittedAt  DateTime     @default(now())
+  approvedAt   DateTime?
+  rejectedAt   DateTime?
+  notes        String?
+  
+  // Contact person details (from registration)
+  contactFirstName String?
+  contactLastName  String?
+  contactEmail     String?
+  contactPhone     String?
+  contactAddress   String?
+  contactPostalCode String?
+  contactCity      String?
+  
+  // Billing address (optional - if different from contact)
+  billingName      String?
+  billingAddress   String?
+  billingPostalCode String?
+  billingCity      String?
+  billingEmail     String?
+  
+  // Division assignment
+  division     Division?    @relation(fields: [divisionId], references: [id])
+  divisionId   String?
+  
+  // Team relationships
+  players      Player[]
+  groups       Group[]      @relation("GroupTeams")
+  homeMatches  Match[]      @relation("HomeTeam")
+  awayMatches  Match[]      @relation("AwayTeam")
+  standings    Standing[]
+  events       MatchEvent[]
+  payments     Payment[]
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+}
+
+model Player {
+  id          String       @id @default(cuid())
+  team        Team?        @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  teamId      String?
+  firstName   String
+  lastName    String
+  birthDate   DateTime?
+  jerseyNumber Int?
+  position    String?
+  events      MatchEvent[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model Venue {
+  id            String          @id @default(cuid())
+  tournament    Tournament      @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  tournamentId  String
+  name          String
+  streetName    String?
+  postalCode    String?
+  city          String?
+  country       Country         @relation(fields: [countryId], references: [id])
+  countryId     String
+  capacity      Int?
+  // Venue details
+  description   String?
+  facilities    String?
+  parking       String?
+  accessibility String?
+  // Coordinates
+  xCoordinate   Float?          // X coordinate (longitude)
+  yCoordinate   Float?          // Y coordinate (latitude)
+  // Relationships
+  pitches       Pitch[]
+  matches       Match[]
+  scheduleSlots ScheduleSlot[]
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+}
+
+model Pitch {
+  id          String   @id @default(cuid())
+  venue       Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  venueId     String
+  name        String
+  number      String?
+  // Pitch details
+  surface     String?  // e.g., "artificial_turf", "natural_grass", "indoor"
+  size        String?  // e.g., "full_size", "half_size", "indoor"
+  description String?
+  // Availability
+  isAvailable Boolean  @default(true)
+  // Relationships
+  matches     Match[]
+  scheduleSlots ScheduleSlot[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Match {
+  id           String       @id @default(cuid())
+  tournament   Tournament   @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  tournamentId String
+  division     Division     @relation(fields: [divisionId], references: [id], onDelete: Cascade)
+  divisionId   String
+  group        Group        @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  groupId      String
+  homeTeam     Team?        @relation("HomeTeam", fields: [homeTeamId], references: [id])
+  homeTeamId   String?
+  awayTeam     Team?        @relation("AwayTeam", fields: [awayTeamId], references: [id])
+  awayTeamId   String?
+  venue        Venue?       @relation(fields: [venueId], references: [id])
+  venueId      String?
+  pitch        Pitch?       @relation(fields: [pitchId], references: [id])
+  pitchId      String?
+  startTime    DateTime?
+  endTime      DateTime?
+  status       MatchStatus  @default(SCHEDULED)
+  homeScore    Int          @default(0)
+  awayScore    Int          @default(0)
+  // Match details
+  matchNumber  String?      // Match number for easier scheduling (e.g., "M1", "Match 1", "1")
+  referee      String?
+  notes        String?
+  // Assignment and scheduling
+  assignmentType AssignmentType @default(AUTO)
+  scheduledAt    DateTime?
+  scheduledBy    String?        // User ID who scheduled this match
+  // Events and assignments
+  events       MatchEvent[]
+  assignments  MatchAssignment[]
+  scoreLogs    MatchScoreLog[]
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+}
+
+enum MatchStatus {
+  SCHEDULED
+  LIVE
+  FINISHED
+  CANCELLED
+  POSTPONED
+}
+
+model MatchEvent {
+  id       String    @id @default(cuid())
+  match    Match     @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  matchId  String
+  minute   Int
+  type     EventType
+  team     Team?     @relation(fields: [teamId], references: [id])
+  teamId   String?
+  player   Player?   @relation(fields: [playerId], references: [id])
+  playerId String?
+  createdAt DateTime @default(now())
+}
+
+enum EventType {
+  GOAL
+  PENALTY_GOAL
+  OWN_GOAL
+  CARD_YELLOW
+  CARD_RED
+  SUBSTITUTION
+}
+
+model MatchScoreLog {
+  id         String   @id @default(cuid())
+  match      Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  matchId    String
+  homeScore  Int
+  awayScore  Int
+  updatedBy  User     @relation(fields: [updatedById], references: [id])
+  updatedById String
+  createdAt  DateTime @default(now())
+
+  @@index([matchId])
+}
+
+model Standing {
+  id       String @id @default(cuid())
+  team     Team   @relation(fields: [teamId], references: [id])
+  teamId   String
+  group    Group  @relation(fields: [groupId], references: [id])
+  groupId  String
+  played   Int    @default(0)
+  won      Int    @default(0)
+  drawn    Int    @default(0)
+  lost     Int    @default(0)
+  goalsFor Int    @default(0)
+  goalsAgainst Int @default(0)
+  goalDifference Int @default(0)
+  points   Int    @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([teamId, groupId])
+}
+
+model Official {
+  id        String   @id @default(cuid())
+  firstName String
+  lastName  String
+  email     String?  @unique
+  phone     String?
+  type      OfficialType
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum OfficialType {
+  REFEREE
+  ASSISTANT_REFEREE
+  FOURTH_OFFICIAL
+}
+
+
+enum TeamStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+  WAITLISTED
+}
+
+model ScheduleSlot {
+  id           String     @id @default(cuid())
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  tournamentId String
+  venue        Venue      @relation(fields: [venueId], references: [id])
+  venueId      String
+  pitch        Pitch?     @relation(fields: [pitchId], references: [id])
+  pitchId      String?
+  startTime    DateTime
+  endTime      DateTime
+  isAvailable  Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+// New models for tournament creation wizard
+
+model Rule {
+  id           String     @id @default(cuid())
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  tournamentId String
+  title        String
+  content      String     @db.Text
+  order        Int        @default(0)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+model Document {
+  id           String     @id @default(cuid())
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  tournamentId String
+  name         String
+  description  String?
+  fileUrl      String
+  fileType     String
+  fileSize     Int
+  isPublic     Boolean    @default(false)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+model Announcement {
+  id           String     @id @default(cuid())
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  tournamentId String
+  title        String
+  content      String     @db.Text
+  publishedAt  DateTime?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+model Fee {
+  id           String     @id @default(cuid())
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  tournamentId String
+  division     Division?  @relation(fields: [divisionId], references: [id])
+  divisionId   String?
+  name         String
+  description  String?
+  amount       Float
+  currency     String     @default("EUR")
+  type         FeeType    @default(REGISTRATION)
+  isRequired   Boolean    @default(true)
+  isActive     Boolean    @default(true)
+  // Payment relationships
+  payments     Payment[]
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+enum FeeType {
+  REGISTRATION
+  EXTRA
+  LATE_FEE
+  DISCOUNT
+}
+
+model Payment {
+  id             String        @id @default(cuid())
+  tournament     Tournament    @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  tournamentId   String
+  team           Team?         @relation(fields: [teamId], references: [id])
+  teamId         String?
+  fee            Fee?          @relation(fields: [feeId], references: [id])
+  feeId          String?
+  amount         Float
+  currency       String        @default("EUR")
+  status         PaymentStatus @default(PENDING)
+  method         PaymentMethod?
+  // Payment provider details
+  provider       String?
+  providerId     String?
+  providerData   String?       @db.Text
+  // Timestamps
+  paidAt         DateTime?
+  refundedAt     DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CARD
+  BANK_TRANSFER
+  INVOICE
+  CASH
+}
+
+// New Country model
+model Country {
+  id          String       @id @default(cuid())
+  name        String       @unique
+  code        String       @unique // ISO 3166-1 alpha-2 code (e.g., "FI", "SE", "NO")
+  flag        String?      // Flag emoji or image URL
+  phoneCode   String?      // International calling code (e.g., "+358")
+  currency    String?      // Currency code (e.g., "EUR")
+  timezone    String?      // Primary timezone (e.g., "Europe/Helsinki")
+  // Relationships
+  organizations Organization[]
+  teams       Team[]
+  venues      Venue[]
+  tournaments Tournament[]
+  clubs       Club[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model Club {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  shortName   String?   // Abbreviation (e.g., "HJK", "AIK")
+  logo        String?   // Logo image URL
+  city        String?
+  country     Country   @relation(fields: [countryId], references: [id])
+  countryId   String
+  website     String?   // Club website URL
+  description String?   @db.Text
+  foundedYear Int?      // Year the club was founded
+  // Relationships
+  teams       Team[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([name])
+  @@index([countryId])
+}
+
+// Permission-based assignment models
+model TournamentAssignment {
+  id             String         @id @default(cuid())
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId         String
+  tournament     Tournament     @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  tournamentId   String
+  // Permission flags
+  canConfigure   Boolean        @default(false)  // Can manage tournament settings, divisions, venues, etc.
+  canManageScores Boolean       @default(false)  // Can manage match scores, events, results
+  isReferee      Boolean        @default(false)  // Can be assigned to matches as referee
+  // Additional metadata
+  permissions    Json?          // Granular permissions for future extensibility
+  assignedBy     String?        // User ID who assigned these permissions
+  assignedAt     DateTime       @default(now())
+  expiresAt      DateTime?      // Optional expiration date
+  isActive       Boolean        @default(true)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@unique([userId, tournamentId])
+}
+
+model MatchAssignment {
+  id         String     @id @default(cuid())
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     String
+  match      Match      @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  matchId    String
+  role       MatchRole
+  assignedBy String?    // User ID who assigned this role
+  assignedAt DateTime   @default(now())
+  isActive   Boolean    @default(true)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  @@unique([userId, matchId])
+}
+
+// TournamentRole enum removed - using permission booleans instead
+
+enum MatchRole {
+  MAIN_REFEREE
+  ASSISTANT_REFEREE
+  FOURTH_OFFICIAL
+  MATCH_COMMISSIONER
+}
