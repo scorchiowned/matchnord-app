@@ -118,13 +118,6 @@ jobs:
           type: zip
           restart: true
 
-      - name: Configure Azure App Service startup command
-        uses: azure/webapps-deploy@v3
-        with:
-          app-name: ${{ env.AZURE_WEBAPP_NAME }}
-          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-          startup-command: 'node server.js'
-
       - name: Run database migrations and seed
         working-directory: matchnord-extranet
         env:
