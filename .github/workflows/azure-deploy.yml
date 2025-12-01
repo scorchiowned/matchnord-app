@@ -102,6 +102,17 @@ jobs:
             exit 1
           fi
           echo "✅ Verified pages-manifest.json exists"
+          # Check middleware-manifest.json
+          if [ -f "deploy-package/.next/server/middleware-manifest.json" ]; then
+            MIDDLEWARE_CONTENT=$(cat deploy-package/.next/server/middleware-manifest.json)
+            if echo "$MIDDLEWARE_CONTENT" | grep -q '"middleware":{}'; then
+              echo "⚠️ Warning: middleware-manifest.json is empty - middleware may not be detected"
+            else
+              echo "✅ Middleware manifest found and populated"
+            fi
+          else
+            echo "⚠️ Warning: middleware-manifest.json not found"
+          fi
           # Create zip file for deployment
           cd deploy-package
           zip -r ../deploy-package.zip . -x "*.DS_Store"
