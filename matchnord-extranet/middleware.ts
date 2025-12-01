@@ -44,15 +44,16 @@ export default function middleware(request: NextRequest) {
 }
 
 export const config = {
-  // Match only internationalized pathnames and API routes
+  // Match all paths except static files and Next.js internals
   matcher: [
-    // Match the root path
-    '/',
-    // Match locale-prefixed paths only
-    '/(fi|en|sv|no|da)/:path*',
-    // Match the old non-localized routes to redirect them
-    '/(tournaments|teams|matches|venues|profile|results|live|auth)/:path*',
-    // Match API routes for CORS handling
-    '/api/:path*',
+    /*
+     * Match all request paths except for the ones starting with:
+     * - api (API routes)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - files with extensions (e.g., .png, .jpg, etc.)
+     */
+    '/((?!api|_next/static|_next/image|favicon.ico|.*\\..*).*)',
   ],
 };
