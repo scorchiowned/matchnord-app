@@ -1,20 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
 
-// Fix for default markers in react-leaflet
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl:
-    'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-  iconUrl:
-    'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-  shadowUrl:
-    'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-});
+// Lazy load leaflet components to avoid SSR issues
+let MapContainer: any;
+let TileLayer: any;
+let Marker: any;
+let Popup: any;
+let useMapHook: any;
 
 interface MapInternalProps {
   center: [number, number];
@@ -27,9 +20,11 @@ interface MapInternalProps {
 function MapUpdater({
   center,
   zoom,
+  useMap,
 }: {
   center: [number, number];
   zoom?: number;
+  useMap: any;
 }) {
   const map = useMap();
 
@@ -49,12 +44,41 @@ export default function MapInternal({
   children,
 }: MapInternalProps) {
   const [isMounted, setIsMounted] = useState(false);
+  const [componentsLoaded, setComponentsLoaded] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
+    
+    // Only load leaflet on client side
+    if (typeof window !== 'undefined') {
+      Promise.all([
+        import('react-leaflet'),
+        import('leaflet'),
+        import('leaflet/dist/leaflet.css'),
+      ]).then(([reactLeaflet, L, _]) => {
+        MapContainer = reactLeaflet.MapContainer;
+        TileLayer = reactLeaflet.TileLayer;
+        Marker = reactLeaflet.Marker;
+        Popup = reactLeaflet.Popup;
+        useMapHook = reactLeaflet.useMap;
+
+        // Fix for default markers in react-leaflet
+        delete (L.default.Icon.Default.prototype as any)._getIconUrl;
+        L.default.Icon.Default.mergeOptions({
+          iconRetinaUrl:
+            'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+          iconUrl:
+            'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+          shadowUrl:
+            'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+        });
+
+        setComponentsLoaded(true);
+      });
+    }
   }, []);
 
-  if (!isMounted) {
+  if (!isMounted || !componentsLoaded || !MapContainer) {
     return (
       <div
         className="flex items-center justify-center rounded-lg bg-gray-100"
@@ -72,7 +96,7 @@ export default function MapInternal({
       style={{ height: '100%', width: '100%' }}
       scrollWheelZoom={true}
     >
-      <MapUpdater center={center} zoom={zoom} />
+      <MapUpdater center={center} zoom={zoom} useMap={useMapHook} />
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -96,11 +120,26 @@ export function DraggableMarker({
 }: DraggableMarkerProps) {
   const [markerPosition, setMarkerPosition] =
     useState<[number, number]>(position);
+  const [MarkerComponent, setMarkerComponent] = useState<any>(null);
+  const [PopupComponent, setPopupComponent] = useState<any>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      import('react-leaflet').then((mod) => {
+        setMarkerComponent(() => mod.Marker);
+        setPopupComponent(() => mod.Popup);
+      });
+    }
+  }, []);
 
   // Update marker position when prop changes
   useEffect(() => {
     setMarkerPosition(position);
   }, [position]);
+
+  if (!MarkerComponent) {
+    return null;
+  }
 
   const eventHandlers = {
     dragend: (e: any) => {
@@ -112,23 +151,43 @@ export function DraggableMarker({
   };
 
   return (
-    <Marker
+    <MarkerComponent
       key={`marker-${position[0]}-${position[1]}`}
       position={markerPosition}
       draggable={true}
       eventHandlers={eventHandlers}
     >
-      {popup && <Popup>{popup}</Popup>}
-    </Marker>
+      {popup && PopupComponent && <PopupComponent>{popup}</PopupComponent>}
+    </MarkerComponent>
   );
 }
 
 // Static marker component for public display
 interface StaticMarkerProps {
   position: [number, number];
-  popup?: string;
+  popup?: React.ReactNode;
 }
 
 export function StaticMarker({ position, popup }: StaticMarkerProps) {
-  return <Marker position={position}>{popup && <Popup>{popup}</Popup>}</Marker>;
+  const [MarkerComponent, setMarkerComponent] = useState<any>(null);
+  const [PopupComponent, setPopupComponent] = useState<any>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      import('react-leaflet').then((mod) => {
+        setMarkerComponent(() => mod.Marker);
+        setPopupComponent(() => mod.Popup);
+      });
+    }
+  }, []);
+
+  if (!MarkerComponent) {
+    return null;
+  }
+
+  return (
+    <MarkerComponent position={position}>
+      {popup && PopupComponent && <PopupComponent>{popup}</PopupComponent>}
+    </MarkerComponent>
+  );
 }
