@@ -63,3 +63,6 @@ jspm_packages/
 
 # Temporary files
 temp_root_files/
+
+# Large deployment packages
+*.zip
