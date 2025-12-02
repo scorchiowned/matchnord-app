@@ -1,3 +1,5 @@
+"use client";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Trophy, Users, Globe, Zap, Smartphone, BarChart3 } from "lucide-react";
 import { useTranslations } from 'next-intl';
