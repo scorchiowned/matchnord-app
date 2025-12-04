@@ -13,7 +13,6 @@ const nextConfig = {
   env: {
     _next_intl_trailing_slash: 'false',
   },
-  output: 'standalone',
   images: {
     remotePatterns: [
       {
