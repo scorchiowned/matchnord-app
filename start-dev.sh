@@ -48,7 +48,7 @@ echo ""
 echo "📍 Services:"
 echo "   • Database:     http://localhost:5434"
 echo "   • Extranet:     http://localhost:3000"
-echo "   • Public App:   http://localhost:3001"
+echo "   • Public App:   http://localhost:8080"
 echo ""
 echo "Press Ctrl+C to stop all services"
 

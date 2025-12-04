@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "next dev -p 3001",
     "build": "next build",
-    "start": "next start -p 3001",
+    "start": "next start",
+    "startAzure": "./node_modules/next/dist/bin/next start",
     "lint": "eslint",
     "deploy": "./deploy-now.sh",
     "deploy:now": "./deploy-now.sh"

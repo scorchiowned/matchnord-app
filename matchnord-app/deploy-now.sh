@@ -12,6 +12,13 @@ RESOURCE_GROUP="matchnord-rg"
 WEBAPP_NAME="matchnord-app"  # Change this if your Azure Web App has a different name
 API_URL="https://matchnord.azurewebsites.net"  # URL of the matchnord-extranet API
 
+echo ""
+echo "📋 Deployment Configuration:"
+echo "   Target Web App: ${WEBAPP_NAME}"
+echo "   Target URL: https://${WEBAPP_NAME}.azurewebsites.net"
+echo "   Backend API: ${API_URL}"
+echo ""
+
 # Check if Azure CLI is logged in
 echo "🔐 Checking Azure CLI authentication..."
 if ! az account show &> /dev/null; then
@@ -25,31 +32,46 @@ echo "🔧 Setting up production environment..."
 export NEXT_PUBLIC_API_URL="$API_URL"
 
 echo "✅ Environment configured"
-echo "   API URL: $NEXT_PUBLIC_API_URL"
+echo "   Deployment Target: https://${WEBAPP_NAME}.azurewebsites.net"
+echo "   Backend API URL: $NEXT_PUBLIC_API_URL"
 
 # Build the application
 echo "🏗️ Building application..."
 npm run build
+
+# Verify standalone output exists
+if [ ! -d ".next/standalone" ]; then
+    echo "❌ Standalone output not found. Make sure next.config.ts has 'output: \"standalone\"'"
+    exit 1
+fi
 
 # Create deployment package
 echo "📦 Creating deployment package..."
 rm -rf deploy-temp
 mkdir deploy-temp
 
-# Copy necessary files
-cp -r .next deploy-temp/
-cp -r public deploy-temp/
-cp -r src deploy-temp/
-cp package.json deploy-temp/
-cp package-lock.json deploy-temp/ 2>/dev/null || true
-cp next.config.ts deploy-temp/
-cp tailwind.config.ts deploy-temp/
-cp tsconfig.json deploy-temp/
-cp postcss.config.mjs deploy-temp/ 2>/dev/null || true
+# Copy standalone output (includes all necessary dependencies)
+echo "📋 Copying standalone build..."
+cp -r .next/standalone/* deploy-temp/
+cp -r .next/standalone/.[!.]* deploy-temp/ 2>/dev/null || true
+
+# Copy static files (standalone output needs these at the root level)
+echo "📋 Copying static files..."
+if [ -d ".next/static" ]; then
+    mkdir -p deploy-temp/.next
+    cp -r .next/static deploy-temp/.next/static
+fi
+
+# Copy public folder if it exists
+if [ -d "public" ]; then
+    cp -r public deploy-temp/public
+fi
 
 # Create .env.production with our variables
 cat > deploy-temp/.env.production << EOF
 NEXT_PUBLIC_API_URL="$API_URL"
+PORT=8080
+HOSTNAME="0.0.0.0"
 EOF
 
 # Create zip file
@@ -64,6 +86,28 @@ if az webapp deployment source config-zip \
     --name $WEBAPP_NAME \
     --src deploy-package.zip; then
     echo "✅ Deployment successful!"
+    
+    # Configure Azure App Service to use the standalone server
+    echo "⚙️ Configuring Azure App Service..."
+    # For Linux App Service, set startup command via app settings
+    az webapp config set \
+        --resource-group $RESOURCE_GROUP \
+        --name $WEBAPP_NAME \
+        --startup-file "node server.js" \
+        --always-on true \
+        --output none
+    
+    # Set environment variables
+    echo "🔧 Setting environment variables..."
+    az webapp config appsettings set \
+        --resource-group $RESOURCE_GROUP \
+        --name $WEBAPP_NAME \
+        --settings \
+        NEXT_PUBLIC_API_URL="$API_URL" \
+        PORT=8080 \
+        HOSTNAME="0.0.0.0" \
+        NODE_ENV=production \
+        --output none
     
     # Clean up deployment files
     echo "🧹 Cleaning up deployment files..."
