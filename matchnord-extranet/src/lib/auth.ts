@@ -1,10 +1,9 @@
 import { NextAuthOptions } from 'next-auth';
 import { PrismaAdapter } from '@auth/prisma-adapter';
-import GoogleProvider from 'next-auth/providers/google';
-import EmailProvider from 'next-auth/providers/email';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { db } from './db';
 import { env } from './env';
+import bcrypt from 'bcryptjs';
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(db) as NextAuthOptions['adapter'],
@@ -12,7 +11,7 @@ export const authOptions: NextAuthOptions = {
     strategy: 'jwt',
   },
   providers: [
-    // Development credentials provider for testing
+    // Email/password credentials provider
     CredentialsProvider({
       name: 'credentials',
       credentials: {
@@ -20,79 +19,62 @@ export const authOptions: NextAuthOptions = {
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
-        console.log('Credentials received:', credentials);
-
-        if (!credentials?.email) {
-          console.log('No email provided');
+        if (!credentials?.email || !credentials?.password) {
           return null;
         }
 
-        // For development, allow login with test emails
-        // Note: Roles are now USER by default (except admin), permissions assigned per tournament
-        const testUsers = [
-          { email: 'admin@test.com', role: 'ADMIN' },
-          { email: 'manager@test.com', role: 'USER' },
-          { email: 'tournament@test.com', role: 'USER' },
-          { email: 'referee@test.com', role: 'USER' },
-        ];
+        // Look up user by email
+        const user = await db.user.findUnique({
+          where: { email: credentials.email },
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            role: true,
+            password: true,
+            emailVerified: true,
+            isActive: true,
+          },
+        });
 
-        const testUser = testUsers.find(
-          (user) => user.email === credentials.email
-        );
-
-        console.log('Test user found:', testUser);
-
-        if (testUser) {
-          // Look up the actual user from the database to get the correct ID
-          const dbUser = await db.user.findUnique({
-            where: { email: testUser.email },
-            select: { id: true, email: true, name: true, role: true },
-          });
-
-          if (dbUser) {
-            const user = {
-              id: dbUser.id,
-              email: dbUser.email,
-              name: dbUser.name || testUser.email.split('@')[0],
-              role: dbUser.role,
-            };
-            console.log('Returning user:', user);
-            return user;
-          }
+        if (!user) {
+          return null;
         }
 
-        console.log('No matching test user found');
-        return null;
+        // Check if user has a password (required for email/password auth)
+        if (!user.password) {
+          return null;
+        }
+
+        // Check if user is active
+        if (!user.isActive) {
+          return null;
+        }
+
+        // Check if email is verified
+        if (!user.emailVerified) {
+          return null;
+        }
+
+        // Verify password
+        const isPasswordValid = await bcrypt.compare(
+          credentials.password,
+          user.password
+        );
+
+        if (!isPasswordValid) {
+          return null;
+        }
+
+        // Return user object (without password)
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+        };
       },
     }),
-    // Only enable email provider if email configuration is available
-    ...(env.EMAIL_SERVER_HOST &&
-    env.EMAIL_SERVER_PORT &&
-    env.EMAIL_SERVER_USER &&
-    env.EMAIL_SERVER_PASSWORD
-      ? [
-          EmailProvider({
-            server: {
-              host: env.EMAIL_SERVER_HOST,
-              port: env.EMAIL_SERVER_PORT,
-              auth: {
-                user: env.EMAIL_SERVER_USER,
-                pass: env.EMAIL_SERVER_PASSWORD,
-              },
-            },
-            from: env.EMAIL_FROM || 'noreply@localhost',
-          }),
-        ]
-      : []),
-    // Only enable Google provider if credentials are available
-    ...(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET
-      ? [
-          GoogleProvider({
-            clientId: env.GOOGLE_CLIENT_ID,
-            clientSecret: env.GOOGLE_CLIENT_SECRET,
-          }),
-        ]
-      : []),
   ],
   callbacks: {
     session: ({ session, token }) => {

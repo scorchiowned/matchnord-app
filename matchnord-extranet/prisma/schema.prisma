@@ -46,6 +46,7 @@ model User {
   image         String?
   role          UserRole  @default(USER)
   phone         String?
+  password      String?   @db.Text // Hashed password for email/password authentication
   // Account status
   isActive      Boolean   @default(true)  // Users are active by default
   approvedAt    DateTime? // When admin approved the account (if needed)

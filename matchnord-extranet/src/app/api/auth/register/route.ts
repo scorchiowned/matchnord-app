@@ -4,6 +4,7 @@ import { emailService } from '@/lib/email';
 import { env } from '@/lib/env';
 import { randomBytes } from 'crypto';
 import { z } from 'zod';
+import bcrypt from 'bcryptjs';
 
 const RegisterInput = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -30,11 +31,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Hash password before storing
+    const hashedPassword = await bcrypt.hash(input.password, 10);
+
     // Create user with unverified email
     const user = await db.user.create({
       data: {
         name: input.name,
         email: input.email,
+        password: hashedPassword,
         role: 'USER', // All new users are USER role by default
         emailVerified: null, // Not verified yet
         isActive: true, // Users are active by default
@@ -126,10 +131,15 @@ export async function POST(request: NextRequest) {
           });
 
           invitationAccepted = true;
-          console.log('✅ Invitation accepted automatically during registration');
+          console.log(
+            '✅ Invitation accepted automatically during registration'
+          );
         }
       } catch (invitationError) {
-        console.error('❌ Failed to accept invitation during registration:', invitationError);
+        console.error(
+          '❌ Failed to accept invitation during registration:',
+          invitationError
+        );
         // Don't fail registration if invitation acceptance fails
       }
     }

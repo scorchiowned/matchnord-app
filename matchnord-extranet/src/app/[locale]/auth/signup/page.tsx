@@ -16,7 +16,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, Mail, Chrome, User, Lock } from 'lucide-react';
+import { ArrowLeft, Mail, User, Lock } from 'lucide-react';
 
 function SignUpContent() {
   const searchParams = useSearchParams();
@@ -116,25 +116,12 @@ function SignUpContent() {
     }
   };
 
-  const handleGoogleSignUp = async () => {
-    setIsLoading(true);
-    setError('');
-
-    try {
-      await signIn('google', { callbackUrl: '/' });
-    } catch (error) {
-      setError(t('googleSignUpError'));
-      setIsLoading(false);
-    }
-  };
-
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
     });
   };
-
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
@@ -252,29 +239,6 @@ function SignUpContent() {
                 {isLoading ? 'Creating Account...' : 'Create Account'}
               </Button>
             </form>
-
-            {/* Divider */}
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">
-                  {t('orContinueWith')}
-                </span>
-              </div>
-            </div>
-
-            {/* Google Sign Up */}
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={handleGoogleSignUp}
-              disabled={isLoading}
-            >
-              <Chrome className="mr-2 h-4 w-4" />
-              {isLoading ? t('creatingAccount') : t('signUpWithGoogle')}
-            </Button>
 
             {/* Error Message */}
             {error && (

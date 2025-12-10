@@ -15,7 +15,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, Mail, Chrome } from 'lucide-react';
+import { ArrowLeft, Mail } from 'lucide-react';
 
 export default function SignInPage() {
   const [email, setEmail] = useState('');
@@ -24,30 +24,6 @@ export default function SignInPage() {
   const [error, setError] = useState('');
   const router = useRouter();
   const t = useTranslations('auth');
-
-  // const handleEmailSignIn = async (e: React.FormEvent) => {
-  //   e.preventDefault();
-  //   setIsLoading(true);
-  //   setError('');
-
-  //   try {
-  //     const result = await signIn('email', {
-  //       email,
-  //       redirect: false,
-  //     });
-
-  //     if (result?.error) {
-  //       setError(t('signInError'));
-  //     } else {
-  //       // Email sent successfully
-  //       router.push('/auth/verify-request');
-  //     }
-  //   } catch (error) {
-  //     setError(t('unexpectedError'));
-  //   } finally {
-  //     setIsLoading(false);
-  //   }
-  // };
 
   const handleCredentialsSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,18 +47,6 @@ export default function SignInPage() {
     } catch (error) {
       setError(t('unexpectedError'));
     } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleGoogleSignIn = async () => {
-    setIsLoading(true);
-    setError('');
-
-    try {
-      await signIn('google', { callbackUrl: '/' });
-    } catch (error) {
-      setError(t('googleSignInError'));
       setIsLoading(false);
     }
   };
@@ -149,29 +113,6 @@ export default function SignInPage() {
                 {isLoading ? t('signingIn') : t('signIn')}
               </Button>
             </form>
-
-            {/* Divider */}
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">
-                  {t('orContinueWith')}
-                </span>
-              </div>
-            </div>
-
-            {/* Google Sign In */}
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={handleGoogleSignIn}
-              disabled={isLoading}
-            >
-              <Chrome className="mr-2 h-4 w-4" />
-              {isLoading ? t('signingIn') : t('signInWithGoogle')}
-            </Button>
 
             {/* Error Message */}
             {error && (
