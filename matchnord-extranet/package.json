@@ -24,6 +24,8 @@
         "deploy:quick": "./deploy-simple.sh",
         "deploy:now": "./deploy-now.sh",
         "prisma:seed": "npx tsx prisma/seed.ts",
+        "prisma:seed:clubs": "npx tsx prisma/seed-clubs.ts",
+        "copy:clubs:prod": "npx tsx scripts/copy-clubs-to-production.ts",
         "format": "prettier --write .",
         "format:check": "prettier --check .",
         "db:up": "docker-compose up -d postgres",
