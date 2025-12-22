@@ -88,9 +88,37 @@ jobs:
           # Copy middleware if it exists
           [ -f middleware.ts ] && cp middleware.ts deploy-temp/ || true
           
-          # Copy startup script
-          cp start.sh deploy-temp/ 2>/dev/null || true
-          chmod +x deploy-temp/start.sh
+          # Copy startup script (critical for Azure startup)
+          if [ -f "start.sh" ]; then
+            cp start.sh deploy-temp/start.sh
+            # Ensure Linux line endings (remove Windows CRLF)
+            sed -i 's/\r$//' deploy-temp/start.sh 2>/dev/null || sed -i.bak 's/\r$//' deploy-temp/start.sh || tr -d '\r' < start.sh > deploy-temp/start.sh || true
+            # Ensure it's executable
+            chmod +x deploy-temp/start.sh
+            echo "✅ Startup script (start.sh) copied and made executable"
+          else
+            echo "❌ ERROR: start.sh not found in repository!"
+            exit 1
+          fi
+          
+          # Verify startup script exists and has correct format
+          if [ -f "deploy-temp/start.sh" ]; then
+            echo "✅ Verified: start.sh exists in deployment package"
+            ls -la deploy-temp/start.sh
+            # Check if it's executable
+            if [ -x "deploy-temp/start.sh" ]; then
+              echo "✅ Verified: start.sh is executable"
+            else
+              echo "⚠️  Warning: start.sh is not executable, fixing..."
+              chmod +x deploy-temp/start.sh
+            fi
+            # Show first few lines to verify content
+            echo "First 5 lines of start.sh:"
+            head -5 deploy-temp/start.sh
+          else
+            echo "❌ ERROR: start.sh not found in deployment package!"
+            exit 1
+          fi
           
           echo "✅ Files copied to deployment package"
 
@@ -128,6 +156,16 @@ jobs:
           NODE_ENV=production
           EOF
 
+      - name: Verify startup script in package
+        run: |
+          if [ ! -f "deploy-temp/start.sh" ]; then
+            echo "❌ ERROR: start.sh not found in deploy-temp!"
+            exit 1
+          fi
+          echo "✅ Verified: start.sh exists and is executable"
+          ls -la deploy-temp/start.sh
+          file deploy-temp/start.sh
+
       - name: Create deployment zip
         run: |
           cd deploy-temp
@@ -135,6 +173,14 @@ jobs:
           cd ..
           echo "📦 Deployment package created: deploy-package.zip"
           echo "📊 Package size: $(du -h deploy-package.zip | cut -f1)"
+          
+          # Verify start.sh is in the zip
+          if unzip -l deploy-package.zip | grep -q "start.sh"; then
+            echo "✅ Verified: start.sh is included in deployment zip"
+          else
+            echo "❌ ERROR: start.sh not found in deployment zip!"
+            exit 1
+          fi
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
@@ -149,11 +195,12 @@ jobs:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
         if: ${{ secrets.AZURE_CREDENTIALS != '' }}
 
-      - name: Set Azure environment variables
+      - name: Set Azure environment variables and startup command
         uses: azure/CLI@v2
         if: ${{ secrets.AZURE_CREDENTIALS != '' }}
         with:
           inlineScript: |
+            # Set environment variables
             az webapp config appsettings set \
               --resource-group ${{ env.RESOURCE_GROUP }} \
               --name ${{ env.AZURE_WEBAPP_NAME }} \
@@ -166,6 +213,24 @@ jobs:
               AZURE_STORAGE_CONTAINER_NAME="${{ secrets.AZURE_STORAGE_CONTAINER_NAME }}" \
               NODE_ENV=production \
               --output none
+            
+            # Set startup command
+            az webapp config set \
+              --resource-group ${{ env.RESOURCE_GROUP }} \
+              --name ${{ env.AZURE_WEBAPP_NAME }} \
+              --startup-file "./start.sh" \
+              --output none
+            
+            echo "✅ Startup command set to: ./start.sh"
+      
+      - name: Warning about startup command
+        if: ${{ secrets.AZURE_CREDENTIALS == '' }}
+        run: |
+          echo "⚠️  WARNING: AZURE_CREDENTIALS not set, startup command not configured automatically"
+          echo "   Please set the startup command manually in Azure Portal:"
+          echo "   1. Go to Azure Portal → Your Web App → Configuration → General settings"
+          echo "   2. Set 'Startup Command' to: ./start.sh"
+          echo "   Or set AZURE_CREDENTIALS secret to configure automatically"
 
       - name: Run database migrations (optional)
         env:
