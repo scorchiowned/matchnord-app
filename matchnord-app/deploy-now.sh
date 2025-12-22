@@ -39,10 +39,13 @@ echo "   Backend API URL: $NEXT_PUBLIC_API_URL"
 echo "🏗️ Building application..."
 npm run build
 
-# Verify standalone output exists
-if [ ! -d ".next/standalone" ]; then
-    echo "❌ Standalone output not found. Make sure next.config.ts has 'output: \"standalone\"'"
-    exit 1
+# Check if standalone output exists
+USE_STANDALONE=false
+if [ -d ".next/standalone" ]; then
+    USE_STANDALONE=true
+    echo "✅ Standalone build detected"
+else
+    echo "ℹ️  Non-standalone build detected (will use npm start)"
 fi
 
 # Create deployment package
@@ -50,21 +53,51 @@ echo "📦 Creating deployment package..."
 rm -rf deploy-temp
 mkdir deploy-temp
 
-# Copy standalone output (includes all necessary dependencies)
-echo "📋 Copying standalone build..."
-cp -r .next/standalone/* deploy-temp/
-cp -r .next/standalone/.[!.]* deploy-temp/ 2>/dev/null || true
-
-# Copy static files (standalone output needs these at the root level)
-echo "📋 Copying static files..."
-if [ -d ".next/static" ]; then
-    mkdir -p deploy-temp/.next
-    cp -r .next/static deploy-temp/.next/static
-fi
-
-# Copy public folder if it exists
-if [ -d "public" ]; then
-    cp -r public deploy-temp/public
+if [ "$USE_STANDALONE" = true ]; then
+    # Copy standalone output (includes all necessary dependencies)
+    echo "📋 Copying standalone build..."
+    cp -r .next/standalone/* deploy-temp/
+    cp -r .next/standalone/.[!.]* deploy-temp/ 2>/dev/null || true
+    
+    # Copy static files (standalone output needs these at the root level)
+    echo "📋 Copying static files..."
+    if [ -d ".next/static" ]; then
+        mkdir -p deploy-temp/.next
+        cp -r .next/static deploy-temp/.next/static
+    fi
+    
+    # Copy public folder if it exists
+    if [ -d "public" ]; then
+        cp -r public deploy-temp/public
+    fi
+else
+    # For non-standalone, copy source files and build output
+    echo "📋 Copying source files and build output..."
+    
+    # Copy essential files
+    cp package.json package-lock.json deploy-temp/ 2>/dev/null || cp package.json deploy-temp/
+    cp next.config.ts deploy-temp/ 2>/dev/null || true
+    cp tsconfig.json deploy-temp/ 2>/dev/null || true
+    cp tailwind.config.ts deploy-temp/ 2>/dev/null || true
+    cp postcss.config.mjs deploy-temp/ 2>/dev/null || true
+    cp components.json deploy-temp/ 2>/dev/null || true
+    cp middleware.ts deploy-temp/ 2>/dev/null || true
+    
+    # Copy source directory
+    if [ -d "src" ]; then
+        cp -r src deploy-temp/src
+    fi
+    
+    # Copy build output
+    if [ -d ".next" ]; then
+        cp -r .next deploy-temp/.next
+    fi
+    
+    # Copy public folder
+    if [ -d "public" ]; then
+        cp -r public deploy-temp/public
+    fi
+    
 fi
 
 # Create .env.production with our variables
@@ -87,15 +120,36 @@ if az webapp deployment source config-zip \
     --src deploy-package.zip; then
     echo "✅ Deployment successful!"
     
-    # Configure Azure App Service to use the standalone server
+    # Configure Azure App Service startup command
     echo "⚙️ Configuring Azure App Service..."
-    # For Linux App Service, set startup command via app settings
+    if [ "$USE_STANDALONE" = true ]; then
+        # For standalone builds, use node server.js
+        STARTUP_CMD="node server.js"
+    else
+        # For non-standalone builds, use the startup script
+        STARTUP_CMD="./start.sh"
+    fi
+    
+    echo "   Startup command: $STARTUP_CMD"
     az webapp config set \
         --resource-group $RESOURCE_GROUP \
         --name $WEBAPP_NAME \
-        --startup-file "node server.js" \
+        --startup-file "$STARTUP_CMD" \
         --always-on true \
         --output none
+    
+    # Configure Azure build settings (only needed for non-standalone)
+    if [ "$USE_STANDALONE" != true ]; then
+        echo "🔧 Configuring build settings for non-standalone build..."
+        az webapp config appsettings set \
+            --resource-group $RESOURCE_GROUP \
+            --name $WEBAPP_NAME \
+            --settings \
+            SCM_DO_BUILD_DURING_DEPLOYMENT=true \
+            --output none
+    else
+        echo "ℹ️  Standalone build - no build configuration needed"
+    fi
     
     # Set environment variables
     echo "🔧 Setting environment variables..."
