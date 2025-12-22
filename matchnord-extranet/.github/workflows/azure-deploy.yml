@@ -56,45 +56,81 @@ jobs:
           echo "📦 Creating deployment package..."
           rm -rf deploy-temp
           mkdir -p deploy-temp
-          
+
           # Copy standalone files (excluding node_modules - we'll install Linux-compatible ones)
           echo "📋 Copying standalone files..."
           cd .next/standalone
-          find . -mindepth 1 -maxdepth 1 ! -name node_modules -exec cp -r {} ../deploy-temp/ \;
+
+          # Copy all files except node_modules
+          for item in * .[!.]*; do
+            if [ -e "$item" ] && [ "$item" != "node_modules" ]; then
+              cp -r "$item" ../deploy-temp/
+            fi
+          done
           cd ../..
-          
-          # Copy static files
-          if [ -d ".next/static" ]; then
+
+          # Copy the complete .next directory structure from build output
+          # This includes required-server-files.json and all necessary files
+          echo "📋 Copying .next directory structure..."
+          if [ -d ".next" ]; then
             mkdir -p deploy-temp/.next
-            cp -r .next/static deploy-temp/.next/static
+            
+            # Copy required-server-files.json (critical for Next.js standalone)
+            if [ -f ".next/required-server-files.json" ]; then
+              cp .next/required-server-files.json deploy-temp/.next/
+              echo "✅ Copied required-server-files.json"
+            fi
+            
+            # Copy static files (if not already copied from standalone)
+            if [ -d ".next/static" ]; then
+              cp -r .next/static deploy-temp/.next/static
+              echo "✅ Copied .next/static"
+            fi
+            
+            # Copy server directory (if not already copied from standalone)
+            if [ -d ".next/server" ]; then
+              cp -r .next/server deploy-temp/.next/server
+              echo "✅ Copied .next/server"
+            fi
+            
+            # Copy any other .next files that might be needed
+            for file in .next/*.json .next/*.js .next/*.txt 2>/dev/null; do
+              if [ -f "$file" ]; then
+                cp "$file" deploy-temp/.next/
+              fi
+            done
           fi
-          
-          # Copy server directory
-          if [ -d ".next/server" ]; then
-            mkdir -p deploy-temp/.next
-            cp -r .next/server deploy-temp/.next/server
+
+          # Verify required-server-files.json exists
+          if [ ! -f "deploy-temp/.next/required-server-files.json" ]; then
+            echo "❌ ERROR: required-server-files.json not found in deployment package!"
+            echo "   Listing .next directory contents:"
+            ls -la deploy-temp/.next/ 2>/dev/null || echo "   .next directory doesn't exist"
+            exit 1
+          else
+            echo "✅ Verified: required-server-files.json exists"
           fi
-          
+
           # Copy package files
           cp package.json deploy-temp/
           cp package-lock.json deploy-temp/ 2>/dev/null || true
-          
+
           # Copy Prisma schema
           cp -r prisma deploy-temp/
-          
+
           # Copy public folder
           [ -d public ] && cp -r public deploy-temp/ || echo "⚠️  public directory not found"
-          
+
           # Copy middleware if it exists
           [ -f middleware.ts ] && cp middleware.ts deploy-temp/ || true
-          
+
           # Verify server.js exists (required for standalone build)
           if [ ! -f "deploy-temp/server.js" ]; then
             echo "❌ ERROR: server.js not found in deployment package!"
             exit 1
           fi
           echo "✅ Verified: server.js exists in deployment package"
-          
+
           echo "✅ Files copied to deployment package"
 
       - name: Install production dependencies
@@ -102,13 +138,13 @@ jobs:
         run: |
           echo "📦 Installing production dependencies with Linux-compatible binaries..."
           npm ci --production --ignore-scripts || npm install --production --ignore-scripts
-          
+
           echo "🔧 Generating Prisma Client with Linux-compatible binaries..."
           if [ -f "node_modules/.bin/prisma" ]; then
             DATABASE_URL="${DATABASE_URL:-postgresql://dummy:dummy@localhost:5432/dummy}" \
             ./node_modules/.bin/prisma generate || echo "⚠️  Prisma generate had issues, but continuing..."
           fi
-          
+
           echo "✅ Production dependencies installed"
 
       - name: Create .env.production
@@ -147,7 +183,7 @@ jobs:
           cd ..
           echo "📦 Deployment package created: deploy-package.zip"
           echo "📊 Package size: $(du -h deploy-package.zip | cut -f1)"
-          
+
           # Verify server.js is in the zip
           if unzip -l deploy-package.zip | grep -q "server.js"; then
             echo "✅ Verified: server.js is included in deployment zip"
@@ -187,16 +223,16 @@ jobs:
               AZURE_STORAGE_CONTAINER_NAME="${{ secrets.AZURE_STORAGE_CONTAINER_NAME }}" \
               NODE_ENV=production \
               --output none
-            
+
             # Set startup command to directly run server.js
             az webapp config set \
               --resource-group ${{ env.RESOURCE_GROUP }} \
               --name ${{ env.AZURE_WEBAPP_NAME }} \
               --startup-file "node server.js" \
               --output none
-            
+
             echo "✅ Startup command set to: node server.js"
-      
+
       - name: Warning about startup command
         if: ${{ secrets.AZURE_CREDENTIALS == '' }}
         run: |
