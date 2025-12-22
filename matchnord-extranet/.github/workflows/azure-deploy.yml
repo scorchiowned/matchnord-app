@@ -7,8 +7,8 @@ on:
 
 env:
   AZURE_WEBAPP_NAME: matchnord
-  AZURE_WEBAPP_PACKAGE_PATH: '.'
-  NODE_VERSION: '18'
+  RESOURCE_GROUP: matchnord-rg
+  NODE_VERSION: '20'
 
 jobs:
   build-and-deploy:
@@ -28,8 +28,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Generate Prisma client
-        run: npm run prisma:generate
+      - name: Generate Prisma Client
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: npx prisma generate
 
       - name: Build application
         env:
@@ -41,15 +43,145 @@ jobs:
           AZURE_STORAGE_CONTAINER_NAME: ${{ secrets.AZURE_STORAGE_CONTAINER_NAME }}
         run: npm run build
 
+      - name: Verify standalone build
+        run: |
+          if [ ! -d ".next/standalone" ]; then
+            echo "❌ Standalone build not found!"
+            exit 1
+          fi
+          echo "✅ Standalone build created successfully"
+
+      - name: Create deployment package
+        run: |
+          echo "📦 Creating deployment package..."
+          rm -rf deploy-temp
+          mkdir -p deploy-temp
+          
+          # Copy standalone files (excluding node_modules - we'll install Linux-compatible ones)
+          echo "📋 Copying standalone files..."
+          cd .next/standalone
+          find . -mindepth 1 -maxdepth 1 ! -name node_modules -exec cp -r {} ../deploy-temp/ \;
+          cd ../..
+          
+          # Copy static files
+          if [ -d ".next/static" ]; then
+            mkdir -p deploy-temp/.next
+            cp -r .next/static deploy-temp/.next/static
+          fi
+          
+          # Copy server directory
+          if [ -d ".next/server" ]; then
+            mkdir -p deploy-temp/.next
+            cp -r .next/server deploy-temp/.next/server
+          fi
+          
+          # Copy package files
+          cp package.json deploy-temp/
+          cp package-lock.json deploy-temp/ 2>/dev/null || true
+          
+          # Copy Prisma schema
+          cp -r prisma deploy-temp/
+          
+          # Copy public folder
+          [ -d public ] && cp -r public deploy-temp/ || echo "⚠️  public directory not found"
+          
+          # Copy middleware if it exists
+          [ -f middleware.ts ] && cp middleware.ts deploy-temp/ || true
+          
+          # Copy startup script
+          cp start.sh deploy-temp/ 2>/dev/null || true
+          chmod +x deploy-temp/start.sh
+          
+          echo "✅ Files copied to deployment package"
+
+      - name: Install production dependencies
+        working-directory: deploy-temp
+        run: |
+          echo "📦 Installing production dependencies with Linux-compatible binaries..."
+          npm ci --production --ignore-scripts || npm install --production --ignore-scripts
+          
+          echo "🔧 Generating Prisma Client with Linux-compatible binaries..."
+          if [ -f "node_modules/.bin/prisma" ]; then
+            DATABASE_URL="${DATABASE_URL:-postgresql://dummy:dummy@localhost:5432/dummy}" \
+            ./node_modules/.bin/prisma generate || echo "⚠️  Prisma generate had issues, but continuing..."
+          fi
+          
+          echo "✅ Production dependencies installed"
+
+      - name: Create .env.production
+        working-directory: deploy-temp
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+          NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }}
+          AZURE_STORAGE_ACCOUNT_NAME: ${{ secrets.AZURE_STORAGE_ACCOUNT_NAME }}
+          AZURE_STORAGE_ACCOUNT_KEY: ${{ secrets.AZURE_STORAGE_ACCOUNT_KEY }}
+          AZURE_STORAGE_CONTAINER_NAME: ${{ secrets.AZURE_STORAGE_CONTAINER_NAME }}
+        run: |
+          cat > .env.production << EOF
+          DATABASE_URL="${DATABASE_URL}"
+          NEXTAUTH_SECRET="${NEXTAUTH_SECRET}"
+          NEXTAUTH_URL="${NEXTAUTH_URL}"
+          AZURE_STORAGE_ACCOUNT_NAME="${AZURE_STORAGE_ACCOUNT_NAME}"
+          AZURE_STORAGE_ACCOUNT_KEY="${AZURE_STORAGE_ACCOUNT_KEY}"
+          AZURE_STORAGE_CONTAINER_NAME="${AZURE_STORAGE_CONTAINER_NAME}"
+          NODE_ENV=production
+          EOF
+
+      - name: Create deployment zip
+        run: |
+          cd deploy-temp
+          zip -r ../deploy-package.zip . -x "*.DS_Store"
+          cd ..
+          echo "📦 Deployment package created: deploy-package.zip"
+          echo "📊 Package size: $(du -h deploy-package.zip | cut -f1)"
+
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
           app-name: ${{ env.AZURE_WEBAPP_NAME }}
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-          package: ${{ env.AZURE_WEBAPP_PACKAGE_PATH }}
+          package: ./deploy-package.zip
 
-      - name: Run database migrations
+      - name: Configure Azure App Settings
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+        if: ${{ secrets.AZURE_CREDENTIALS != '' }}
+
+      - name: Set Azure environment variables
+        uses: azure/CLI@v2
+        if: ${{ secrets.AZURE_CREDENTIALS != '' }}
+        with:
+          inlineScript: |
+            az webapp config appsettings set \
+              --resource-group ${{ env.RESOURCE_GROUP }} \
+              --name ${{ env.AZURE_WEBAPP_NAME }} \
+              --settings \
+              DATABASE_URL="${{ secrets.DATABASE_URL }}" \
+              NEXTAUTH_SECRET="${{ secrets.NEXTAUTH_SECRET }}" \
+              NEXTAUTH_URL="${{ secrets.NEXTAUTH_URL }}" \
+              AZURE_STORAGE_ACCOUNT_NAME="${{ secrets.AZURE_STORAGE_ACCOUNT_NAME }}" \
+              AZURE_STORAGE_ACCOUNT_KEY="${{ secrets.AZURE_STORAGE_ACCOUNT_KEY }}" \
+              AZURE_STORAGE_CONTAINER_NAME="${{ secrets.AZURE_STORAGE_CONTAINER_NAME }}" \
+              NODE_ENV=production \
+              --output none
+
+      - name: Run database migrations (optional)
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        continue-on-error: true
         run: |
-          npx prisma migrate deploy || echo "No migrations to run"
+          echo "🔄 Running database migrations (migrations will also run on Azure startup)..."
+          cd deploy-temp
+          if [ -f "node_modules/.bin/prisma" ]; then
+            ./node_modules/.bin/prisma migrate deploy || echo "⚠️  Migration check completed (startup script will run migrations on Azure)"
+          else
+            echo "⚠️  Prisma CLI not found, migrations will run via startup script on Azure"
+          fi
+
+      - name: Cleanup
+        if: always()
+        run: |
+          rm -rf deploy-temp
+          rm -f deploy-package.zip
