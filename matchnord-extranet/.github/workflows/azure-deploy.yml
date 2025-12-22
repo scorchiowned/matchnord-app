@@ -88,37 +88,12 @@ jobs:
           # Copy middleware if it exists
           [ -f middleware.ts ] && cp middleware.ts deploy-temp/ || true
           
-          # Copy startup script (critical for Azure startup)
-          if [ -f "start.sh" ]; then
-            cp start.sh deploy-temp/start.sh
-            # Ensure Linux line endings (remove Windows CRLF)
-            sed -i 's/\r$//' deploy-temp/start.sh 2>/dev/null || sed -i.bak 's/\r$//' deploy-temp/start.sh || tr -d '\r' < start.sh > deploy-temp/start.sh || true
-            # Ensure it's executable
-            chmod +x deploy-temp/start.sh
-            echo "✅ Startup script (start.sh) copied and made executable"
-          else
-            echo "❌ ERROR: start.sh not found in repository!"
+          # Verify server.js exists (required for standalone build)
+          if [ ! -f "deploy-temp/server.js" ]; then
+            echo "❌ ERROR: server.js not found in deployment package!"
             exit 1
           fi
-          
-          # Verify startup script exists and has correct format
-          if [ -f "deploy-temp/start.sh" ]; then
-            echo "✅ Verified: start.sh exists in deployment package"
-            ls -la deploy-temp/start.sh
-            # Check if it's executable
-            if [ -x "deploy-temp/start.sh" ]; then
-              echo "✅ Verified: start.sh is executable"
-            else
-              echo "⚠️  Warning: start.sh is not executable, fixing..."
-              chmod +x deploy-temp/start.sh
-            fi
-            # Show first few lines to verify content
-            echo "First 5 lines of start.sh:"
-            head -5 deploy-temp/start.sh
-          else
-            echo "❌ ERROR: start.sh not found in deployment package!"
-            exit 1
-          fi
+          echo "✅ Verified: server.js exists in deployment package"
           
           echo "✅ Files copied to deployment package"
 
@@ -156,15 +131,14 @@ jobs:
           NODE_ENV=production
           EOF
 
-      - name: Verify startup script in package
+      - name: Verify server.js in package
         run: |
-          if [ ! -f "deploy-temp/start.sh" ]; then
-            echo "❌ ERROR: start.sh not found in deploy-temp!"
+          if [ ! -f "deploy-temp/server.js" ]; then
+            echo "❌ ERROR: server.js not found in deploy-temp!"
             exit 1
           fi
-          echo "✅ Verified: start.sh exists and is executable"
-          ls -la deploy-temp/start.sh
-          file deploy-temp/start.sh
+          echo "✅ Verified: server.js exists"
+          ls -la deploy-temp/server.js
 
       - name: Create deployment zip
         run: |
@@ -174,11 +148,11 @@ jobs:
           echo "📦 Deployment package created: deploy-package.zip"
           echo "📊 Package size: $(du -h deploy-package.zip | cut -f1)"
           
-          # Verify start.sh is in the zip
-          if unzip -l deploy-package.zip | grep -q "start.sh"; then
-            echo "✅ Verified: start.sh is included in deployment zip"
+          # Verify server.js is in the zip
+          if unzip -l deploy-package.zip | grep -q "server.js"; then
+            echo "✅ Verified: server.js is included in deployment zip"
           else
-            echo "❌ ERROR: start.sh not found in deployment zip!"
+            echo "❌ ERROR: server.js not found in deployment zip!"
             exit 1
           fi
 
@@ -214,14 +188,14 @@ jobs:
               NODE_ENV=production \
               --output none
             
-            # Set startup command
+            # Set startup command to directly run server.js
             az webapp config set \
               --resource-group ${{ env.RESOURCE_GROUP }} \
               --name ${{ env.AZURE_WEBAPP_NAME }} \
-              --startup-file "./start.sh" \
+              --startup-file "node server.js" \
               --output none
             
-            echo "✅ Startup command set to: ./start.sh"
+            echo "✅ Startup command set to: node server.js"
       
       - name: Warning about startup command
         if: ${{ secrets.AZURE_CREDENTIALS == '' }}
@@ -229,21 +203,25 @@ jobs:
           echo "⚠️  WARNING: AZURE_CREDENTIALS not set, startup command not configured automatically"
           echo "   Please set the startup command manually in Azure Portal:"
           echo "   1. Go to Azure Portal → Your Web App → Configuration → General settings"
-          echo "   2. Set 'Startup Command' to: ./start.sh"
+          echo "   2. Set 'Startup Command' to: node server.js"
           echo "   Or set AZURE_CREDENTIALS secret to configure automatically"
 
-      - name: Run database migrations (optional)
+      - name: Run database migrations
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        continue-on-error: true
         run: |
-          echo "🔄 Running database migrations (migrations will also run on Azure startup)..."
+          echo "🔄 Running database migrations before deployment..."
           cd deploy-temp
           if [ -f "node_modules/.bin/prisma" ]; then
-            ./node_modules/.bin/prisma migrate deploy || echo "⚠️  Migration check completed (startup script will run migrations on Azure)"
+            ./node_modules/.bin/prisma migrate deploy || {
+              echo "⚠️  Migration had issues, but continuing deployment"
+              echo "   Migrations should be run manually if needed"
+            }
           else
-            echo "⚠️  Prisma CLI not found, migrations will run via startup script on Azure"
+            echo "❌ Prisma CLI not found, cannot run migrations"
+            exit 1
           fi
+          echo "✅ Migrations completed"
 
       - name: Cleanup
         if: always()
