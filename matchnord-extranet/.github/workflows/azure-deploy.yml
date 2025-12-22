@@ -14,6 +14,9 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     environment: production
+    defaults:
+      run:
+        working-directory: ./matchnord-extranet
 
     steps:
       - name: Checkout code
@@ -24,6 +27,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
+          cache-dependency-path: './matchnord-extranet/package-lock.json'
 
       - name: Install dependencies
         run: npm ci
@@ -51,119 +55,67 @@ jobs:
           fi
           echo "✅ Standalone build created successfully"
 
-      - name: Create deployment package
+      - name: Prepare standalone deployment package
+        working-directory: ./matchnord-extranet
         run: |
-          echo "📦 Creating deployment package..."
-          rm -rf deploy-temp
-          mkdir -p deploy-temp
+          echo "📦 Preparing standalone deployment package..."
 
-          # Copy standalone files (excluding node_modules - we'll install Linux-compatible ones)
-          echo "📋 Copying standalone files..."
-          cd .next/standalone
-
-          # Copy all files except node_modules (this includes .next directory from standalone)
-          for item in * .[!.]*; do
-            if [ -e "$item" ] && [ "$item" != "node_modules" ]; then
-              echo "   Copying: $item"
-              cp -r "$item" ../deploy-temp/
-            fi
-          done
-          cd ../..
-
-          # The standalone build includes .next directory with required-server-files.json
-          # But we also need to ensure static files are copied from the root .next directory
-          echo "📋 Ensuring complete .next directory structure..."
-
-          # Ensure .next directory exists
-          if [ ! -d "deploy-temp/.next" ]; then
-            echo "⚠️  .next directory not found in standalone, creating from root..."
-            mkdir -p deploy-temp/.next
-          fi
-
-          # Copy required-server-files.json from standalone's .next (should already be there, but ensure it)
-          if [ -f ".next/standalone/.next/required-server-files.json" ]; then
-            cp .next/standalone/.next/required-server-files.json deploy-temp/.next/required-server-files.json
-            echo "✅ Copied required-server-files.json from standalone"
-          elif [ -f ".next/required-server-files.json" ]; then
-            cp .next/required-server-files.json deploy-temp/.next/required-server-files.json
-            echo "✅ Copied required-server-files.json from root .next"
-          fi
-
-          # Copy static files from root .next (standalone might have a minimal version)
+          # Move static files into standalone (matching working example pattern)
+          echo "📋 Moving .next/static into standalone..."
           if [ -d ".next/static" ]; then
-            mkdir -p deploy-temp/.next
-            cp -r .next/static deploy-temp/.next/static
-            echo "✅ Copied .next/static"
+            # Ensure .next directory exists in standalone
+            mkdir -p .next/standalone/.next
+            cp -r .next/static .next/standalone/.next/static
+            echo "✅ Copied .next/static to standalone/.next/static"
           fi
 
-          # Ensure server directory is complete
-          if [ -d ".next/server" ] && [ ! -d "deploy-temp/.next/server" ]; then
-            mkdir -p deploy-temp/.next
-            cp -r .next/server deploy-temp/.next/server
-            echo "✅ Copied .next/server"
+          # Move public folder into standalone (matching working example pattern)
+          echo "📋 Moving public folder into standalone..."
+          if [ -d "public" ]; then
+            cp -r public .next/standalone/public
+            echo "✅ Copied public to standalone/public"
           fi
 
-          # Verify required-server-files.json exists
-          if [ ! -f "deploy-temp/.next/required-server-files.json" ]; then
-            echo "❌ ERROR: required-server-files.json not found in deployment package!"
-            echo "   Checking what's in deploy-temp/.next:"
-            ls -la deploy-temp/.next/ 2>/dev/null || echo "   .next directory doesn't exist"
-            echo "   Checking standalone .next:"
-            ls -la .next/standalone/.next/ 2>/dev/null || echo "   standalone .next doesn't exist"
-            echo "   Checking root .next:"
-            ls -la .next/ 2>/dev/null | grep -E "(required|json)" || echo "   root .next doesn't have it"
-            exit 1
-          else
-            echo "✅ Verified: required-server-files.json exists at deploy-temp/.next/required-server-files.json"
+          # Ensure required-server-files.json is in standalone/.next
+          echo "📋 Ensuring required-server-files.json is present..."
+          if [ -f ".next/required-server-files.json" ]; then
+            mkdir -p .next/standalone/.next
+            cp .next/required-server-files.json .next/standalone/.next/required-server-files.json
+            echo "✅ Copied required-server-files.json to standalone/.next/"
           fi
 
-          # Copy package files
-          cp package.json deploy-temp/
-          cp package-lock.json deploy-temp/ 2>/dev/null || true
+          # Copy Prisma schema for migrations
+          if [ -d "prisma" ]; then
+            cp -r prisma .next/standalone/prisma
+            echo "✅ Copied prisma schema"
+          fi
 
-          # Copy Prisma schema
-          cp -r prisma deploy-temp/
-
-          # Copy public folder
-          [ -d public ] && cp -r public deploy-temp/ || echo "⚠️  public directory not found"
-
-          # Copy middleware if it exists
-          [ -f middleware.ts ] && cp middleware.ts deploy-temp/ || true
-
-          # Verify server.js exists (required for standalone build)
-          if [ ! -f "deploy-temp/server.js" ]; then
-            echo "❌ ERROR: server.js not found in deployment package!"
+          # Verify critical files exist
+          if [ ! -f ".next/standalone/server.js" ]; then
+            echo "❌ ERROR: server.js not found in standalone!"
             exit 1
           fi
-          echo "✅ Verified: server.js exists in deployment package"
 
-          echo "✅ Files copied to deployment package"
+          if [ ! -f ".next/standalone/.next/required-server-files.json" ]; then
+            echo "❌ ERROR: required-server-files.json not found in standalone/.next/"
+            ls -la .next/standalone/.next/ 2>/dev/null || echo "   .next directory doesn't exist in standalone"
+            exit 1
+          fi
 
-      - name: Install production dependencies
-        working-directory: deploy-temp
+          echo "✅ Standalone package prepared successfully"
+          echo "   Structure:"
+          ls -la .next/standalone/ | head -10
+
+      - name: Install production dependencies in standalone
+        working-directory: ./matchnord-extranet/.next/standalone
         run: |
           echo "📦 Installing production dependencies with Linux-compatible binaries..."
 
-          # Verify .next directory exists before npm install (npm might clean it)
-          if [ ! -f ".next/required-server-files.json" ]; then
-            echo "❌ ERROR: required-server-files.json missing before npm install!"
-            exit 1
-          fi
+          # Remove existing node_modules if present (from build)
+          rm -rf node_modules
 
+          # Install production dependencies
           npm ci --production --ignore-scripts || npm install --production --ignore-scripts
-
-          # Verify .next directory still exists after npm install
-          if [ ! -f ".next/required-server-files.json" ]; then
-            echo "❌ ERROR: required-server-files.json missing after npm install!"
-            echo "   npm install may have removed it. Restoring..."
-            # Try to restore from source if available
-            if [ -f "../../.next/required-server-files.json" ]; then
-              cp ../../.next/required-server-files.json .next/required-server-files.json
-              echo "✅ Restored required-server-files.json"
-            else
-              exit 1
-            fi
-          fi
 
           echo "🔧 Generating Prisma Client with Linux-compatible binaries..."
           if [ -f "node_modules/.bin/prisma" ]; then
@@ -172,10 +124,9 @@ jobs:
           fi
 
           echo "✅ Production dependencies installed"
-          echo "✅ Verified: required-server-files.json still exists after npm install"
 
       - name: Create .env.production
-        working-directory: deploy-temp
+        working-directory: ./matchnord-extranet/.next/standalone
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
@@ -194,65 +145,31 @@ jobs:
           NODE_ENV=production
           EOF
 
-      - name: Verify server.js and .next directory in package
+      - name: Verify deployment package
+        working-directory: ./matchnord-extranet
         run: |
-          if [ ! -f "deploy-temp/server.js" ]; then
-            echo "❌ ERROR: server.js not found in deploy-temp!"
+          echo "📋 Verifying deployment package structure..."
+          if [ ! -f ".next/standalone/server.js" ]; then
+            echo "❌ ERROR: server.js not found!"
             exit 1
           fi
-          echo "✅ Verified: server.js exists"
-          ls -la deploy-temp/server.js
-
-          # Verify .next directory structure
-          echo ""
-          echo "📋 Checking .next directory structure:"
-          if [ -d "deploy-temp/.next" ]; then
-            echo "✅ .next directory exists"
-            ls -la deploy-temp/.next/ | head -20
-            if [ -f "deploy-temp/.next/required-server-files.json" ]; then
-              echo "✅ required-server-files.json found"
-            else
-              echo "❌ ERROR: required-server-files.json NOT found in deploy-temp/.next/"
-              echo "   Contents of deploy-temp/.next/:"
-              find deploy-temp/.next -type f | head -20
-              exit 1
-            fi
-          else
-            echo "❌ ERROR: .next directory not found!"
+          if [ ! -f ".next/standalone/.next/required-server-files.json" ]; then
+            echo "❌ ERROR: required-server-files.json not found!"
+            ls -la .next/standalone/.next/ 2>/dev/null || echo "   .next directory doesn't exist"
             exit 1
           fi
-
-      - name: Create deployment zip
-        run: |
-          cd deploy-temp
-          zip -r ../deploy-package.zip . -x "*.DS_Store"
-          cd ..
-          echo "📦 Deployment package created: deploy-package.zip"
-          echo "📊 Package size: $(du -h deploy-package.zip | cut -f1)"
-
-          # Verify critical files are in the zip
-          if unzip -l deploy-package.zip | grep -q "server.js"; then
-            echo "✅ Verified: server.js is included in deployment zip"
-          else
-            echo "❌ ERROR: server.js not found in deployment zip!"
+          if [ ! -d ".next/standalone/.next/static" ]; then
+            echo "❌ ERROR: .next/static not found!"
             exit 1
           fi
-
-          if unzip -l deploy-package.zip | grep -q "required-server-files.json"; then
-            echo "✅ Verified: required-server-files.json is included in deployment zip"
-          else
-            echo "❌ ERROR: required-server-files.json not found in deployment zip!"
-            echo "   Listing .next files in zip:"
-            unzip -l deploy-package.zip | grep "\.next" | head -20
-            exit 1
-          fi
+          echo "✅ All critical files verified"
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
           app-name: ${{ env.AZURE_WEBAPP_NAME }}
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-          package: ./deploy-package.zip
+          package: ./matchnord-extranet/.next/standalone
 
       - name: Configure Azure App Settings
         uses: azure/login@v2
@@ -298,11 +215,11 @@ jobs:
           echo "   Or set AZURE_CREDENTIALS secret to configure automatically"
 
       - name: Run database migrations
+        working-directory: ./matchnord-extranet/.next/standalone
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
           echo "🔄 Running database migrations before deployment..."
-          cd deploy-temp
           if [ -f "node_modules/.bin/prisma" ]; then
             ./node_modules/.bin/prisma migrate deploy || {
               echo "⚠️  Migration had issues, but continuing deployment"
@@ -313,9 +230,3 @@ jobs:
             exit 1
           fi
           echo "✅ Migrations completed"
-
-      - name: Cleanup
-        if: always()
-        run: |
-          rm -rf deploy-temp
-          rm -f deploy-package.zip
