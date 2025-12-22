@@ -60,28 +60,49 @@ jobs:
         run: |
           echo "📦 Preparing standalone deployment package..."
 
-          # Move static files into standalone (matching working example pattern)
-          echo "📋 Moving .next/static into standalone..."
-          if [ -d ".next/static" ]; then
-            # Ensure .next directory exists in standalone
+          # The standalone build already has .next directory with server files
+          # We need to ensure static files and required-server-files.json are present
+
+          # Check what's already in standalone/.next
+          echo "📋 Checking standalone/.next structure..."
+          if [ -d ".next/standalone/.next" ]; then
+            echo "✅ Found .next directory in standalone"
+            ls -la .next/standalone/.next/ | head -10
+          else
+            echo "⚠️  .next directory not found in standalone, creating..."
             mkdir -p .next/standalone/.next
+          fi
+
+          # Copy static files into standalone/.next (matching working example pattern)
+          echo "📋 Copying .next/static into standalone/.next..."
+          if [ -d ".next/static" ]; then
             cp -r .next/static .next/standalone/.next/static
             echo "✅ Copied .next/static to standalone/.next/static"
           fi
 
-          # Move public folder into standalone (matching working example pattern)
-          echo "📋 Moving public folder into standalone..."
+          # Ensure required-server-files.json is in standalone/.next (CRITICAL)
+          echo "📋 Ensuring required-server-files.json is present..."
+          if [ -f ".next/required-server-files.json" ]; then
+            cp .next/required-server-files.json .next/standalone/.next/required-server-files.json
+            echo "✅ Copied required-server-files.json to standalone/.next/"
+            # Verify it was copied
+            if [ -f ".next/standalone/.next/required-server-files.json" ]; then
+              echo "✅ Verified: required-server-files.json exists"
+              ls -la .next/standalone/.next/required-server-files.json
+            else
+              echo "❌ ERROR: Copy failed!"
+              exit 1
+            fi
+          else
+            echo "❌ ERROR: required-server-files.json not found in source .next/"
+            exit 1
+          fi
+
+          # Copy public folder into standalone (matching working example pattern)
+          echo "📋 Copying public folder into standalone..."
           if [ -d "public" ]; then
             cp -r public .next/standalone/public
             echo "✅ Copied public to standalone/public"
-          fi
-
-          # Ensure required-server-files.json is in standalone/.next
-          echo "📋 Ensuring required-server-files.json is present..."
-          if [ -f ".next/required-server-files.json" ]; then
-            mkdir -p .next/standalone/.next
-            cp .next/required-server-files.json .next/standalone/.next/required-server-files.json
-            echo "✅ Copied required-server-files.json to standalone/.next/"
           fi
 
           # Copy Prisma schema for migrations
@@ -98,24 +119,63 @@ jobs:
 
           if [ ! -f ".next/standalone/.next/required-server-files.json" ]; then
             echo "❌ ERROR: required-server-files.json not found in standalone/.next/"
-            ls -la .next/standalone/.next/ 2>/dev/null || echo "   .next directory doesn't exist in standalone"
+            echo "   Contents of standalone/.next/:"
+            ls -la .next/standalone/.next/ 2>/dev/null || echo "   .next directory doesn't exist"
             exit 1
           fi
 
           echo "✅ Standalone package prepared successfully"
           echo "   Structure:"
           ls -la .next/standalone/ | head -10
+          echo "   .next structure:"
+          ls -la .next/standalone/.next/ | head -10
 
       - name: Install production dependencies in standalone
         working-directory: ./matchnord-extranet/.next/standalone
         run: |
           echo "📦 Installing production dependencies with Linux-compatible binaries..."
 
+          # CRITICAL: Verify .next directory exists before npm install
+          if [ ! -d ".next" ]; then
+            echo "❌ ERROR: .next directory missing before npm install!"
+            exit 1
+          fi
+
+          if [ ! -f ".next/required-server-files.json" ]; then
+            echo "❌ ERROR: required-server-files.json missing before npm install!"
+            exit 1
+          fi
+
+          echo "✅ Verified: .next directory and required-server-files.json exist before npm install"
+
           # Remove existing node_modules if present (from build)
           rm -rf node_modules
 
-          # Install production dependencies
+          # Install production dependencies (this should NOT touch .next directory)
           npm ci --production --ignore-scripts || npm install --production --ignore-scripts
+
+          # CRITICAL: Verify .next directory still exists after npm install
+          if [ ! -f ".next/required-server-files.json" ]; then
+            echo "❌ ERROR: required-server-files.json missing after npm install!"
+            echo "   Restoring from source..."
+            if [ -f "../../.next/required-server-files.json" ]; then
+              mkdir -p .next
+              cp ../../.next/required-server-files.json .next/required-server-files.json
+              echo "✅ Restored required-server-files.json"
+            else
+              echo "❌ Cannot restore - source file not found"
+              exit 1
+            fi
+          fi
+
+          # Ensure .next/static still exists
+          if [ ! -d ".next/static" ]; then
+            echo "⚠️  .next/static missing after npm install, restoring..."
+            if [ -d "../../.next/static" ]; then
+              cp -r ../../.next/static .next/static
+              echo "✅ Restored .next/static"
+            fi
+          fi
 
           echo "🔧 Generating Prisma Client with Linux-compatible binaries..."
           if [ -f "node_modules/.bin/prisma" ]; then
@@ -124,6 +184,24 @@ jobs:
           fi
 
           echo "✅ Production dependencies installed"
+          echo "✅ Verified: required-server-files.json still exists after npm install"
+
+          # Ensure file permissions are correct (readable by all)
+          chmod 644 .next/required-server-files.json
+          chmod 755 .next
+
+          # Verify it's not a symlink and is readable
+          if [ -L ".next/required-server-files.json" ]; then
+            echo "⚠️  WARNING: required-server-files.json is a symlink, converting to regular file..."
+            cp .next/required-server-files.json .next/required-server-files.json.tmp
+            rm .next/required-server-files.json
+            mv .next/required-server-files.json.tmp .next/required-server-files.json
+          fi
+
+          # Final verification
+          ls -la .next/required-server-files.json
+          file .next/required-server-files.json
+          test -r .next/required-server-files.json && echo "✅ File is readable" || echo "❌ File is NOT readable"
 
       - name: Create .env.production
         working-directory: ./matchnord-extranet/.next/standalone
@@ -153,16 +231,57 @@ jobs:
             echo "❌ ERROR: server.js not found!"
             exit 1
           fi
-          if [ ! -f ".next/standalone/.next/required-server-files.json" ]; then
-            echo "❌ ERROR: required-server-files.json not found!"
-            ls -la .next/standalone/.next/ 2>/dev/null || echo "   .next directory doesn't exist"
+
+          # Verify .next directory structure
+          if [ ! -d ".next/standalone/.next" ]; then
+            echo "❌ ERROR: .next directory not found in standalone!"
             exit 1
           fi
+
+          if [ ! -f ".next/standalone/.next/required-server-files.json" ]; then
+            echo "❌ ERROR: required-server-files.json not found!"
+            echo "   Contents of standalone/.next/:"
+            ls -la .next/standalone/.next/ 2>/dev/null || echo "   .next directory doesn't exist"
+            echo "   Looking for required-server-files.json:"
+            find .next/standalone -name "required-server-files.json" || echo "   Not found anywhere"
+            exit 1
+          fi
+
+          # Verify file permissions and ensure it's a regular file (not symlink)
+          if [ ! -r ".next/standalone/.next/required-server-files.json" ]; then
+            echo "⚠️  WARNING: required-server-files.json exists but is not readable!"
+            ls -la .next/standalone/.next/required-server-files.json
+            chmod 644 .next/standalone/.next/required-server-files.json
+            echo "✅ Fixed permissions"
+          fi
+
+          # Ensure it's not a symlink
+          if [ -L ".next/standalone/.next/required-server-files.json" ]; then
+            echo "⚠️  WARNING: required-server-files.json is a symlink, converting to regular file..."
+            cp .next/standalone/.next/required-server-files.json .next/standalone/.next/required-server-files.json.tmp
+            rm .next/standalone/.next/required-server-files.json
+            mv .next/standalone/.next/required-server-files.json.tmp .next/standalone/.next/required-server-files.json
+            chmod 644 .next/standalone/.next/required-server-files.json
+            echo "✅ Converted symlink to regular file"
+          fi
+
+          # Ensure .next directory is readable
+          chmod 755 .next/standalone/.next
+
+          # Final verification
+          echo "   File details:"
+          ls -la .next/standalone/.next/required-server-files.json
+          file .next/standalone/.next/required-server-files.json
+          test -r .next/standalone/.next/required-server-files.json && echo "✅ File is readable" || echo "❌ File is NOT readable"
+
           if [ ! -d ".next/standalone/.next/static" ]; then
             echo "❌ ERROR: .next/static not found!"
             exit 1
           fi
+
           echo "✅ All critical files verified"
+          echo "   File structure:"
+          tree .next/standalone/.next -L 2 2>/dev/null || find .next/standalone/.next -maxdepth 2 -type f | head -10
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
