@@ -202,6 +202,7 @@ jobs:
 
           # Create a manifest file listing all critical files for debugging
           echo "📋 Creating deployment manifest..."
+          MANIFEST_FILE="./build/standalone/DEPLOYMENT_MANIFEST.txt"
           {
             echo "Deployment Manifest - $(date)"
             echo "================================"
@@ -218,9 +219,9 @@ jobs:
             echo "- JS chunk files: $(find ./build/standalone/.next/static/chunks -type f 2>/dev/null | wc -l)"
             echo ""
             echo "Directory Structure:"
-            cd ./build/standalone && find . -maxdepth 3 -type d | head -20
-          } > ./build/standalone/DEPLOYMENT_MANIFEST.txt
-          cat ./build/standalone/DEPLOYMENT_MANIFEST.txt
+            (cd ./build/standalone && find . -maxdepth 3 -type d | head -20)
+          } > "$MANIFEST_FILE" 2>&1
+          cat "$MANIFEST_FILE"
 
       - name: Verify standalone build exists
         working-directory: ./matchnord-extranet
