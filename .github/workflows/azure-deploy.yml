@@ -80,6 +80,12 @@ jobs:
           npm run build
           mkdir -p ./build/standalone/.next
           mv ./build/static ./build/standalone/.next/static
+          # Move public folder into standalone (matching working example pattern)
+          echo "📋 Moving public folder into standalone..."
+          if [ -d "public" ]; then
+            cp -r public .next/standalone/public
+            echo "✅ Copied public to standalone/public"
+          fi
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
