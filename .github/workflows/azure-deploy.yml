@@ -78,57 +78,7 @@ jobs:
           fi
           set -e
           npm run build
-          # Copy static files to .next/static (Next.js standalone expects this path)
-          echo "📋 Setting up static files for standalone build..."
-          echo "   Checking for static files location..."
-
-          # With distDir: 'build', static files should be at build/static
-          STATIC_SOURCE=""
-          if [ -d "./build/static" ]; then
-            STATIC_SOURCE="./build/static"
-            echo "   ✅ Found static files at build/static"
-          elif [ -d "./build/build/static" ]; then
-            STATIC_SOURCE="./build/build/static"
-            echo "   ✅ Found static files at build/build/static"
-          else
-            echo "   ⚠️  Static files not found in expected locations"
-            echo "   Listing build directory structure:"
-            ls -la ./build/ || true
-            echo "   Listing build/standalone structure:"
-            ls -la ./build/standalone/ || true
-          fi
-
-          if [ -n "$STATIC_SOURCE" ]; then
-            mkdir -p ./build/standalone/.next
-            cp -r "$STATIC_SOURCE" ./build/standalone/.next/static
-            echo "✅ Copied static files from $STATIC_SOURCE to build/standalone/.next/static"
-            
-            # Verify the copy
-            if [ -d "./build/standalone/.next/static" ]; then
-              echo "   ✅ Verification: Static files directory exists"
-              FILE_COUNT=$(find ./build/standalone/.next/static -type f | wc -l)
-              echo "   📊 Found $FILE_COUNT static files"
-              ls -la ./build/standalone/.next/static | head -10 || true
-            else
-              echo "   ❌ ERROR: Static files directory missing after copy!"
-            fi
-          else
-            echo "   ❌ ERROR: Cannot copy static files - source not found!"
-          fi
-
-          # Copy public folder into standalone
-          echo "📋 Copying public folder into standalone..."
-          if [ -d "./public" ]; then
-            cp -r ./public ./build/standalone/public
-            echo "✅ Copied public to build/standalone/public"
-          else
-            echo "⚠️  Warning: public directory not found, skipping..."
-          fi
-
-          # Final verification
-          echo "📋 Final verification of standalone build structure..."
-          echo "   Standalone directory contents:"
-          ls -la ./build/standalone/ | head -15 || true
+          cp -r public .next/standalone/ && cp -r .next/static .next/standalone/.next/
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
