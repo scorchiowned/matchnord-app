@@ -104,6 +104,35 @@ jobs:
             find ./build -type d -maxdepth 3 | head -20 || true
           fi
 
+          # Copy server directory - standalone build puts it in build/server, but Next.js expects .next/server
+          if [ -d "./build/standalone/build/server" ]; then
+            mkdir -p ./build/standalone/.next
+            cp -r ./build/standalone/build/server ./build/standalone/.next/server
+            echo "✅ Copied server directory from build/standalone/build/server to build/standalone/.next/server"
+          elif [ -d "./build/server" ]; then
+            mkdir -p ./build/standalone/.next
+            cp -r ./build/server ./build/standalone/.next/server
+            echo "✅ Copied server directory from build/server to build/standalone/.next/server"
+          else
+            echo "⚠️  Warning: server directory not found in expected locations"
+          fi
+
+          # Copy server directory - standalone build puts it in build/server, but Next.js expects .next/server
+          echo "📋 Copying server directory for standalone build..."
+          if [ -d "./build/standalone/build/server" ]; then
+            mkdir -p ./build/standalone/.next
+            cp -r ./build/standalone/build/server ./build/standalone/.next/server
+            echo "✅ Copied server directory from build/standalone/build/server to build/standalone/.next/server"
+          elif [ -d "./build/server" ]; then
+            mkdir -p ./build/standalone/.next
+            cp -r ./build/server ./build/standalone/.next/server
+            echo "✅ Copied server directory from build/server to build/standalone/.next/server"
+          else
+            echo "⚠️  Warning: server directory not found in expected locations"
+            echo "   Looking for server directory..."
+            find ./build -type d -name "server" | head -5 || true
+          fi
+
           # Verify static files were copied and show structure
           if [ -d "./build/standalone/.next/static" ]; then
             FILE_COUNT=$(find ./build/standalone/.next/static -type f 2>/dev/null | wc -l)
