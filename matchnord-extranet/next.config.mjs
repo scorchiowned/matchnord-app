@@ -5,7 +5,7 @@ const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   distDir: 'build',
-  output: 'standalone', // Bundle dependencies - no need to install at runtime!
+  output: 'standalone',
   outputFileTracingRoot: process.cwd(),
   typescript: {
     ignoreBuildErrors: true,
