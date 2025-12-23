@@ -78,7 +78,7 @@ jobs:
           fi
           set -e
           npm run build
-          cp -r .next/standalone/ && cp -r .next/static .next/standalone/.next/
+          cp -r build/.next/standalone/ && cp -r .next/static .next/standalone/.next/
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
