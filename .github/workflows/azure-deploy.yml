@@ -93,22 +93,35 @@ jobs:
           echo "✅ Standalone build prepared with all necessary files"
 
       - name: Verify standalone build exists
+        working-directory: ./matchnord-extranet
         run: |
+          echo "Current directory: $(pwd)"
+          echo "Checking for standalone build..."
           if [ ! -d "./build/standalone" ]; then
             echo "❌ Error: Standalone build directory does not exist!"
-            echo "Current directory: $(pwd)"
             echo "Directory contents:"
             ls -la
             echo "Build directory contents:"
             ls -la ./build/ 2>/dev/null || echo "Build directory does not exist"
+            if [ -d "./build" ]; then
+              echo "Contents of build directory:"
+              ls -la ./build/
+            fi
             exit 1
           fi
           echo "✅ Standalone build directory verified"
-          ls -la ./build/standalone/ | head -10
+          echo "Standalone directory structure:"
+          ls -la ./build/standalone/ | head -15
+          echo ""
+          echo "Checking for server.js:"
+          test -f ./build/standalone/server.js && echo "✅ server.js exists" || echo "❌ server.js missing"
+          echo ""
+          echo "Full path to standalone:"
+          echo "$(pwd)/build/standalone"
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
           app-name: ${{ env.AZURE_WEBAPP_NAME }}
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-          package: ./build/standalone
+          package: ${{ github.workspace }}/matchnord-extranet/build/standalone
