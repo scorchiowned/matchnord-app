@@ -80,19 +80,77 @@ jobs:
           npm run build
           # Copy static files to .next/static (Next.js standalone expects this path)
           echo "📋 Setting up static files for standalone build..."
+          echo "   Checking build structure..."
+          ls -la ./build/ | head -20 || true
+
+          # Ensure .next directory exists in standalone
           mkdir -p ./build/standalone/.next
+
+          # Copy static files - they should be at build/static (not build/.next/static)
+          # With distDir: 'build', static files are at build/static
           if [ -d "./build/static" ]; then
-            cp -r ./build/static ./build/standalone/.next/static
-            echo "✅ Copied static files to build/standalone/.next/static"
+            # Ensure .next directory exists
+            mkdir -p ./build/standalone/.next
+            # Copy static files
+            cp -r ./build/static/* ./build/standalone/.next/static/ 2>/dev/null || cp -r ./build/static ./build/standalone/.next/static
+            echo "✅ Copied static files from build/static to build/standalone/.next/static"
+          elif [ -d "./build/build/static" ]; then
+            mkdir -p ./build/standalone/.next
+            cp -r ./build/build/static/* ./build/standalone/.next/static/ 2>/dev/null || cp -r ./build/build/static ./build/standalone/.next/static
+            echo "✅ Copied static files from build/build/static to build/standalone/.next/static"
           else
             echo "⚠️  Warning: build/static directory not found"
-            echo "   Listing build directory:"
-            ls -la ./build/ || true
+            echo "   Listing build directory structure:"
+            find ./build -type d -maxdepth 3 | head -20 || true
           fi
+
+          # Verify static files were copied and show structure
+          if [ -d "./build/standalone/.next/static" ]; then
+            FILE_COUNT=$(find ./build/standalone/.next/static -type f 2>/dev/null | wc -l)
+            echo "   ✅ Static files directory exists with $FILE_COUNT files"
+            echo "   Sample static files:"
+            find ./build/standalone/.next/static -type f | head -5 || true
+          else
+            echo "   ❌ ERROR: Static files directory missing!"
+          fi
+
+          # Also verify the .next structure is correct
+          echo "   Verifying .next structure:"
+          ls -la ./build/standalone/.next/ || echo "   .next directory missing!"
+
+          # Check if server directory exists (it should be created by standalone build)
+          if [ -d "./build/standalone/.next/server" ]; then
+            echo "   ✅ .next/server directory exists"
+          else
+            echo "   ⚠️  .next/server directory missing - this might be an issue"
+          fi
+
+          # Verify static directory has actual content
+          if [ -d "./build/standalone/.next/static" ]; then
+            echo "   Checking static directory contents:"
+            ls -la ./build/standalone/.next/static/ | head -10 || true
+            if [ -d "./build/standalone/.next/static/chunks" ]; then
+              echo "   ✅ chunks directory exists"
+              ls ./build/standalone/.next/static/chunks/ | head -5 || true
+            fi
+            if [ -d "./build/standalone/.next/static/css" ]; then
+              echo "   ✅ css directory exists"
+              ls ./build/standalone/.next/static/css/ | head -3 || true
+            fi
+          fi
+
           # Copy public folder into standalone
           if [ -d "./public" ]; then
             cp -r ./public ./build/standalone/public
             echo "✅ Copied public to build/standalone/public"
+          fi
+
+          # Final verification of standalone structure
+          echo "📋 Final standalone structure:"
+          ls -la ./build/standalone/ | head -15 || true
+          if [ -d "./build/standalone/.next" ]; then
+            echo "   .next directory contents:"
+            ls -la ./build/standalone/.next/ || true
           fi
 
       - name: Deploy to Azure Web App
