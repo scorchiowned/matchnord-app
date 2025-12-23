@@ -53,43 +53,106 @@ jobs:
           echo "Standalone directory contents:"
           ls -la ./build/standalone/ | head -20
 
+          # Ensure project root has .next/static (Next.js may resolve paths relative to outputFileTracingRoot)
+          # This is important because outputFileTracingRoot is set to process.cwd()
+          if [ ! -d ".next/static" ] && [ -d "build/static" ]; then
+            echo "📋 Creating .next/static at project root (for outputFileTracingRoot)..."
+            mkdir -p .next
+            cp -r build/static .next/static || {
+              echo "⚠️  Warning: Failed to create .next/static at project root"
+            }
+            echo "✅ Created .next/static at project root"
+          fi
+
           # Copy necessary files to standalone build directory
           # Static files (CSS, JS chunks, media) - required for CSS and assets to load
           if [ ! -d "./build/static" ]; then
             echo "❌ Error: Static files directory not found!"
             exit 1
           fi
+
+          echo "📋 Copying static files..."
+          echo "Source static files count: $(find ./build/static -type f | wc -l)"
           mkdir -p ./build/standalone/.next
-          cp -r ./build/static ./build/standalone/.next/static
+          cp -rv ./build/static ./build/standalone/.next/static || {
+            echo "❌ Error: Failed to copy static files!"
+            exit 1
+          }
+
+          # Verify static files were copied
+          STATIC_COUNT=$(find ./build/standalone/.next/static -type f 2>/dev/null | wc -l)
+          echo "✅ Copied $STATIC_COUNT static files"
+          if [ "$STATIC_COUNT" -eq 0 ]; then
+            echo "❌ Error: No static files were copied!"
+            exit 1
+          fi
+
+          # Verify CSS files exist
+          CSS_COUNT=$(find ./build/standalone/.next/static/css -name "*.css" 2>/dev/null | wc -l)
+          echo "✅ Found $CSS_COUNT CSS files"
+          if [ "$CSS_COUNT" -eq 0 ]; then
+            echo "⚠️  Warning: No CSS files found in static directory!"
+          fi
 
           # Server directory (needed for Next.js routing and static file serving)
           if [ ! -d "./build/server" ]; then
             echo "❌ Error: Server directory not found!"
             exit 1
           fi
-          cp -r ./build/server ./build/standalone/.next/server
+          echo "📋 Copying server directory..."
+          cp -rv ./build/server ./build/standalone/.next/server || {
+            echo "❌ Error: Failed to copy server directory!"
+            exit 1
+          }
 
           # Build metadata files (BUILD_ID and manifests) - required for Next.js to recognize production build
           if [ ! -f "./build/BUILD_ID" ]; then
             echo "❌ Error: BUILD_ID not found!"
             exit 1
           fi
-          cp ./build/BUILD_ID ./build/standalone/.next/BUILD_ID
-          cp ./build/*.json ./build/standalone/.next/ 2>/dev/null || true
+          echo "📋 Copying build metadata files..."
+          cp -v ./build/BUILD_ID ./build/standalone/.next/BUILD_ID || {
+            echo "❌ Error: Failed to copy BUILD_ID!"
+            exit 1
+          }
+          cp -v ./build/*.json ./build/standalone/.next/ 2>/dev/null || {
+            echo "⚠️  Warning: Some manifest JSON files may not have been copied"
+          }
 
           # Public directory (if it exists)
           if [ -d "./public" ]; then
-            cp -r ./public ./build/standalone/public
+            echo "📋 Copying public directory..."
+            cp -rv ./public ./build/standalone/public || {
+              echo "⚠️  Warning: Failed to copy public directory"
+            }
+          fi
+
+          # Copy Prisma schema (needed for Prisma client at runtime)
+          if [ -d "./prisma" ]; then
+            echo "📋 Copying Prisma schema..."
+            cp -r ./prisma ./build/standalone/prisma || {
+              echo "⚠️  Warning: Failed to copy Prisma schema"
+            }
           fi
 
           # Verify the standalone directory structure
+          echo ""
           echo "✅ Verifying standalone build structure..."
+          echo "Directory structure:"
           ls -la ./build/standalone/ | head -10
+          echo ""
+          echo "File verification:"
           test -f ./build/standalone/server.js && echo "✅ server.js exists" || echo "❌ server.js missing"
-          test -d ./build/standalone/.next/static && echo "✅ .next/static exists" || echo "❌ .next/static missing"
+          test -d ./build/standalone/.next/static && echo "✅ .next/static exists ($(find ./build/standalone/.next/static -type f | wc -l) files)" || echo "❌ .next/static missing"
           test -d ./build/standalone/.next/server && echo "✅ .next/server exists" || echo "❌ .next/server missing"
           test -f ./build/standalone/.next/BUILD_ID && echo "✅ BUILD_ID exists" || echo "❌ BUILD_ID missing"
 
+          # List CSS files to verify they're there
+          echo ""
+          echo "CSS files in standalone build:"
+          find ./build/standalone/.next/static/css -name "*.css" 2>/dev/null | head -5 || echo "No CSS files found"
+
+          echo ""
           echo "✅ Standalone build prepared with all necessary files"
 
       - name: Verify standalone build exists
@@ -110,11 +173,21 @@ jobs:
             exit 1
           fi
           echo "✅ Standalone build directory verified"
+          echo ""
           echo "Standalone directory structure:"
           ls -la ./build/standalone/ | head -15
           echo ""
-          echo "Checking for server.js:"
+          echo "Checking critical files:"
           test -f ./build/standalone/server.js && echo "✅ server.js exists" || echo "❌ server.js missing"
+          test -d ./build/standalone/.next && echo "✅ .next directory exists" || echo "❌ .next directory missing"
+          test -d ./build/standalone/.next/static && echo "✅ .next/static exists" || echo "❌ .next/static missing"
+          test -d ./build/standalone/.next/static/css && echo "✅ .next/static/css exists" || echo "❌ .next/static/css missing"
+          test -d ./build/standalone/.next/server && echo "✅ .next/server exists" || echo "❌ .next/server missing"
+          test -f ./build/standalone/.next/BUILD_ID && echo "✅ BUILD_ID exists" || echo "❌ BUILD_ID missing"
+          echo ""
+          echo "Static files count: $(find ./build/standalone/.next/static -type f 2>/dev/null | wc -l)"
+          echo "CSS files:"
+          find ./build/standalone/.next/static/css -name "*.css" 2>/dev/null | head -5 || echo "No CSS files found"
           echo ""
           echo "Full path to standalone:"
           echo "$(pwd)/build/standalone"
