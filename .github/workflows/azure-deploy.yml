@@ -41,24 +41,70 @@ jobs:
           npm install
           npm run build
 
+          # Verify standalone build was created
+          if [ ! -d "./build/standalone" ]; then
+            echo "❌ Error: Standalone build directory not found!"
+            echo "Build directory contents:"
+            ls -la ./build/ || echo "Build directory does not exist"
+            exit 1
+          fi
+
+          echo "✅ Standalone build directory found"
+          echo "Standalone directory contents:"
+          ls -la ./build/standalone/ | head -20
+
           # Copy necessary files to standalone build directory
           # Static files (CSS, JS chunks, media) - required for CSS and assets to load
+          if [ ! -d "./build/static" ]; then
+            echo "❌ Error: Static files directory not found!"
+            exit 1
+          fi
           mkdir -p ./build/standalone/.next
           cp -r ./build/static ./build/standalone/.next/static
 
           # Server directory (needed for Next.js routing and static file serving)
+          if [ ! -d "./build/server" ]; then
+            echo "❌ Error: Server directory not found!"
+            exit 1
+          fi
           cp -r ./build/server ./build/standalone/.next/server
 
           # Build metadata files (BUILD_ID and manifests) - required for Next.js to recognize production build
+          if [ ! -f "./build/BUILD_ID" ]; then
+            echo "❌ Error: BUILD_ID not found!"
+            exit 1
+          fi
           cp ./build/BUILD_ID ./build/standalone/.next/BUILD_ID
-          cp ./build/*.json ./build/standalone/.next/
+          cp ./build/*.json ./build/standalone/.next/ 2>/dev/null || true
 
           # Public directory (if it exists)
           if [ -d "./public" ]; then
             cp -r ./public ./build/standalone/public
           fi
 
+          # Verify the standalone directory structure
+          echo "✅ Verifying standalone build structure..."
+          ls -la ./build/standalone/ | head -10
+          test -f ./build/standalone/server.js && echo "✅ server.js exists" || echo "❌ server.js missing"
+          test -d ./build/standalone/.next/static && echo "✅ .next/static exists" || echo "❌ .next/static missing"
+          test -d ./build/standalone/.next/server && echo "✅ .next/server exists" || echo "❌ .next/server missing"
+          test -f ./build/standalone/.next/BUILD_ID && echo "✅ BUILD_ID exists" || echo "❌ BUILD_ID missing"
+
           echo "✅ Standalone build prepared with all necessary files"
+
+      - name: Verify standalone build exists
+        run: |
+          if [ ! -d "./build/standalone" ]; then
+            echo "❌ Error: Standalone build directory does not exist!"
+            echo "Current directory: $(pwd)"
+            echo "Directory contents:"
+            ls -la
+            echo "Build directory contents:"
+            ls -la ./build/ 2>/dev/null || echo "Build directory does not exist"
+            exit 1
+          fi
+          echo "✅ Standalone build directory verified"
+          ls -la ./build/standalone/ | head -10
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
