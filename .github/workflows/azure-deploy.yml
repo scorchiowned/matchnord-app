@@ -78,7 +78,22 @@ jobs:
           fi
           set -e
           npm run build
-          cp -r build/.next/standalone/ && cp -r .next/static .next/standalone/.next/
+          # Copy static files to .next/static (Next.js standalone expects this path)
+          echo "📋 Setting up static files for standalone build..."
+          mkdir -p ./build/standalone/.next
+          if [ -d "./build/static" ]; then
+            cp -r ./build/static ./build/standalone/.next/static
+            echo "✅ Copied static files to build/standalone/.next/static"
+          else
+            echo "⚠️  Warning: build/static directory not found"
+            echo "   Listing build directory:"
+            ls -la ./build/ || true
+          fi
+          # Copy public folder into standalone
+          if [ -d "./public" ]; then
+            cp -r ./public ./build/standalone/public
+            echo "✅ Copied public to build/standalone/public"
+          fi
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
