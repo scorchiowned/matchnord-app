@@ -41,7 +41,8 @@ jobs:
           npm install
           npx prisma migrate deploy
           npm run build
-          mv ./build/static ./build/standalone/build
+          mkdir -p ./build/standalone/.next
+          mv ./build/static ./build/standalone/.next/static
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
