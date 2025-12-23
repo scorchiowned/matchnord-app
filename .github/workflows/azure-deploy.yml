@@ -135,6 +135,29 @@ jobs:
             }
           fi
 
+          # Copy start.sh if it exists (Azure startup script)
+          if [ -f "./start.sh" ]; then
+            echo "📋 Copying start.sh startup script..."
+            cp -v ./start.sh ./build/standalone/start.sh
+            chmod +x ./build/standalone/start.sh || true
+          fi
+
+          # Create .deployment file to prevent Azure from rebuilding (we're deploying pre-built standalone)
+          echo "📋 Creating .deployment file to prevent Azure rebuild..."
+          echo "[config]" > ./build/standalone/.deployment
+          echo "SCM_DO_BUILD_DURING_DEPLOYMENT=false" >> ./build/standalone/.deployment
+          echo "ENABLE_ORYX_BUILD=false" >> ./build/standalone/.deployment
+          echo "✅ Created .deployment file to prevent rebuild"
+
+          # IMPORTANT: The server.js changes directory to __dirname (standalone directory)
+          # and distDir is set to "./.next", so Next.js looks for .next relative to standalone
+          # We've already copied files to ./build/standalone/.next/static which is correct
+          # But we also need to ensure the structure matches what Next.js expects at runtime
+          echo "📋 Verifying file structure matches Next.js expectations..."
+          echo "   Server will run from: ./build/standalone/"
+          echo "   Next.js will look for: ./.next/static (relative to standalone)"
+          echo "   Files are at: ./build/standalone/.next/static ✅"
+
           # Verify the standalone directory structure
           echo ""
           echo "✅ Verifying standalone build structure..."
@@ -152,8 +175,52 @@ jobs:
           echo "CSS files in standalone build:"
           find ./build/standalone/.next/static/css -name "*.css" 2>/dev/null | head -5 || echo "No CSS files found"
 
+          # Show directory tree structure for debugging
+          echo ""
+          echo "📁 Standalone directory tree structure:"
+          echo "build/standalone/"
+          echo "├── server.js"
+          echo "├── .next/"
+          echo "│   ├── BUILD_ID"
+          echo "│   ├── static/"
+          echo "│   │   ├── css/ ($(find ./build/standalone/.next/static/css -name "*.css" 2>/dev/null | wc -l) CSS files)"
+          echo "│   │   └── chunks/ ($(find ./build/standalone/.next/static/chunks -type f 2>/dev/null | wc -l) JS files)"
+          echo "│   └── server/"
+          if [ -d "./build/standalone/public" ]; then
+            echo "├── public/"
+          fi
+          if [ -d "./build/standalone/prisma" ]; then
+            echo "├── prisma/"
+          fi
+          if [ -f "./build/standalone/start.sh" ]; then
+            echo "├── start.sh"
+          fi
+          echo "└── node_modules/"
+
           echo ""
           echo "✅ Standalone build prepared with all necessary files"
+
+          # Create a manifest file listing all critical files for debugging
+          echo "📋 Creating deployment manifest..."
+          {
+            echo "Deployment Manifest - $(date)"
+            echo "================================"
+            echo ""
+            echo "Critical Files:"
+            echo "- server.js: $(test -f ./build/standalone/server.js && echo "EXISTS" || echo "MISSING")"
+            echo "- .next/BUILD_ID: $(test -f ./build/standalone/.next/BUILD_ID && echo "EXISTS" || echo "MISSING")"
+            echo "- .next/static directory: $(test -d ./build/standalone/.next/static && echo "EXISTS" || echo "MISSING")"
+            echo "- .next/server directory: $(test -d ./build/standalone/.next/server && echo "EXISTS" || echo "MISSING")"
+            echo ""
+            echo "File Counts:"
+            echo "- Total static files: $(find ./build/standalone/.next/static -type f 2>/dev/null | wc -l)"
+            echo "- CSS files: $(find ./build/standalone/.next/static/css -name "*.css" 2>/dev/null | wc -l)"
+            echo "- JS chunk files: $(find ./build/standalone/.next/static/chunks -type f 2>/dev/null | wc -l)"
+            echo ""
+            echo "Directory Structure:"
+            cd ./build/standalone && find . -maxdepth 3 -type d | head -20
+          } > ./build/standalone/DEPLOYMENT_MANIFEST.txt
+          cat ./build/standalone/DEPLOYMENT_MANIFEST.txt
 
       - name: Verify standalone build exists
         working-directory: ./matchnord-extranet
@@ -181,7 +248,7 @@ jobs:
           test -f ./build/standalone/server.js && echo "✅ server.js exists" || echo "❌ server.js missing"
           test -d ./build/standalone/.next && echo "✅ .next directory exists" || echo "❌ .next directory missing"
           test -d ./build/standalone/.next/static && echo "✅ .next/static exists" || echo "❌ .next/static missing"
-          test -d ./build/standalone/.next/static/css && echo "✅ .next/static/css exists" || echo "❌ .next/static/css missing"
+          test -d ./build/standalone/.next/static/css && echo "✅ .next/static/css exists ($(find ./build/standalone/.next/static/css -name "*.css" 2>/dev/null | wc -l) CSS files)" || echo "❌ .next/static/css missing"
           test -d ./build/standalone/.next/server && echo "✅ .next/server exists" || echo "❌ .next/server missing"
           test -f ./build/standalone/.next/BUILD_ID && echo "✅ BUILD_ID exists" || echo "❌ BUILD_ID missing"
           echo ""
@@ -191,6 +258,22 @@ jobs:
           echo ""
           echo "Full path to standalone:"
           echo "$(pwd)/build/standalone"
+          echo ""
+          echo "📦 Package size and contents check:"
+          du -sh ./build/standalone
+          echo "Total files in package: $(find ./build/standalone -type f | wc -l)"
+          echo "Files in .next/static: $(find ./build/standalone/.next/static -type f 2>/dev/null | wc -l)"
+          echo ""
+          echo "🔍 Verifying .next directory is not hidden/excluded:"
+          ls -la ./build/standalone/ | grep "\.next" || echo "⚠️  .next directory not visible in listing"
+          echo ""
+          echo "📋 Final verification - all critical paths:"
+          echo "  ./build/standalone/server.js: $(test -f ./build/standalone/server.js && echo "✅" || echo "❌")"
+          echo "  ./build/standalone/.next/: $(test -d ./build/standalone/.next && echo "✅" || echo "❌")"
+          echo "  ./build/standalone/.next/static/: $(test -d ./build/standalone/.next/static && echo "✅" || echo "❌")"
+          echo "  ./build/standalone/.next/static/css/: $(test -d ./build/standalone/.next/static/css && echo "✅ ($(ls ./build/standalone/.next/static/css/*.css 2>/dev/null | wc -l) files)" || echo "❌")"
+          echo "  ./build/standalone/.next/server/: $(test -d ./build/standalone/.next/server && echo "✅" || echo "❌")"
+          echo "  ./build/standalone/.next/BUILD_ID: $(test -f ./build/standalone/.next/BUILD_ID && echo "✅" || echo "❌")"
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
