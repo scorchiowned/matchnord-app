@@ -39,23 +39,44 @@ jobs:
           AZURE_STORAGE_CONTAINER_NAME: ${{ secrets.AZURE_STORAGE_CONTAINER_NAME }}
         run: |
           npm install
-          # Check for failed migrations and resolve them before deploying new ones
+          # Try to deploy migrations, handling failed migrations
           set +e
-          MIGRATE_STATUS=$(npx prisma migrate status 2>&1)
-          if echo "$MIGRATE_STATUS" | grep -q "failed migrations"; then
+          MIGRATE_OUTPUT=$(npx prisma migrate deploy 2>&1)
+          MIGRATE_EXIT=$?
+
+          # Check if there are failed migrations (error P3009)
+          if [ $MIGRATE_EXIT -ne 0 ] && echo "$MIGRATE_OUTPUT" | grep -qiE "P3009|failed migrations"; then
             echo "⚠️  Found failed migrations, attempting to resolve..."
-            # Extract failed migration name (format: YYYYMMDDHHMMSS_migration_name)
-            FAILED_MIG=$(echo "$MIGRATE_STATUS" | grep -oE "[0-9]{14}_[a-zA-Z0-9_]+" | head -1)
+            # Extract failed migration name from error message
+            # Format: The `20251223114733_add_user_role_back` migration started at...
+            FAILED_MIG=$(echo "$MIGRATE_OUTPUT" | grep -oE "`[0-9]{14}_[a-zA-Z0-9_]+`" | tr -d '`' | head -1)
+            if [ -z "$FAILED_MIG" ]; then
+              # Try alternative format: migration name without backticks
+              FAILED_MIG=$(echo "$MIGRATE_OUTPUT" | grep -oE "[0-9]{14}_[a-zA-Z0-9_]+" | head -1)
+            fi
             if [ -n "$FAILED_MIG" ]; then
               echo "   Resolving failed migration: $FAILED_MIG"
-              npx prisma migrate resolve --rolled-back "$FAILED_MIG" || {
-                echo "   ⚠️  Could not resolve automatically - migration may need manual intervention"
-              }
+              npx prisma migrate resolve --rolled-back "$FAILED_MIG"
+              RESOLVE_EXIT=$?
+              if [ $RESOLVE_EXIT -eq 0 ]; then
+                echo "   ✅ Failed migration resolved, retrying deploy..."
+                # Retry migration deploy after resolving
+                npx prisma migrate deploy
+              else
+                echo "   ⚠️  Could not resolve failed migration automatically"
+                exit 1
+              fi
+            else
+              echo "   ⚠️  Could not extract failed migration name from output:"
+              echo "$MIGRATE_OUTPUT"
+              exit 1
             fi
+          elif [ $MIGRATE_EXIT -ne 0 ]; then
+            echo "❌ Migration failed with error:"
+            echo "$MIGRATE_OUTPUT"
+            exit 1
           fi
           set -e
-          # Deploy migrations (this will apply any new migrations)
-          npx prisma migrate deploy
           npm run build
           mkdir -p ./build/standalone/.next
           mv ./build/static ./build/standalone/.next/static
