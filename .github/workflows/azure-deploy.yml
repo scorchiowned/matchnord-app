@@ -40,7 +40,25 @@ jobs:
         run: |
           npm install
           npm run build
-          mv ./build/static ./build/standalone/build
+
+          # Copy necessary files to standalone build directory
+          # Static files (CSS, JS chunks, media) - required for CSS and assets to load
+          mkdir -p ./build/standalone/.next
+          cp -r ./build/static ./build/standalone/.next/static
+
+          # Server directory (needed for Next.js routing and static file serving)
+          cp -r ./build/server ./build/standalone/.next/server
+
+          # Build metadata files (BUILD_ID and manifests) - required for Next.js to recognize production build
+          cp ./build/BUILD_ID ./build/standalone/.next/BUILD_ID
+          cp ./build/*.json ./build/standalone/.next/
+
+          # Public directory (if it exists)
+          if [ -d "./public" ]; then
+            cp -r ./public ./build/standalone/public
+          fi
+
+          echo "✅ Standalone build prepared with all necessary files"
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
