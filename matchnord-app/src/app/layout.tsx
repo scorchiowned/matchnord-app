@@ -7,7 +7,8 @@ const themeCss = createThemeCss(matchnordAppTemplate);
 
 export const metadata = {
   title: "MatchNord - Tournament Management",
-  description: "The ultimate platform for following tournaments across the Nordic region",
+  description:
+    "The ultimate platform for following tournaments across the Nordic region",
 };
 
 export default function RootLayout({
@@ -29,6 +30,13 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
           }}
         />
         {/* End Google Tag Manager */}
+        {/** Start Google AdSense */}
+        <script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2057727251613557"
+          crossOrigin="anonymous"
+        />
+        {/** End Google AdSense */}
         <style
           data-theme="matchnord-app"
           dangerouslySetInnerHTML={{ __html: themeCss }}
