@@ -50,7 +50,7 @@ export async function GET(
     const hasPermission = 
       session.user.role === 'ADMIN' ||
       division.tournament.assignments.some(
-        assignment => ['MANAGER', 'ADMIN'].includes(assignment.role)
+        assignment => assignment.canConfigure === true
       );
 
     if (!hasPermission) {
@@ -131,7 +131,7 @@ export async function PUT(
     const hasPermission = 
       session.user.role === 'ADMIN' ||
       division.tournament.assignments.some(
-        assignment => ['MANAGER', 'ADMIN'].includes(assignment.role)
+        assignment => assignment.canConfigure === true
       );
 
     if (!hasPermission) {
@@ -257,7 +257,7 @@ export async function POST(
     const hasPermission = 
       session.user.role === 'ADMIN' ||
       division.tournament.assignments.some(
-        assignment => ['MANAGER', 'ADMIN'].includes(assignment.role)
+        assignment => assignment.canConfigure === true
       );
 
     if (!hasPermission) {
