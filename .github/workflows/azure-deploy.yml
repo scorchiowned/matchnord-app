@@ -39,6 +39,7 @@ jobs:
           AZURE_STORAGE_CONTAINER_NAME: ${{ secrets.AZURE_STORAGE_CONTAINER_NAME }}
         run: |
           npm install
+          npx prisma migrate deploy
           npm run build
           cp -R .next/static .next/standalone/.next/static
 
