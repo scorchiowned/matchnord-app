@@ -81,6 +81,28 @@ export async function PUT(
       );
     }
 
+    // Validate division exists and belongs to tournament if provided
+    if (body.divisionId) {
+      const division = await db.division.findUnique({
+        where: { id: body.divisionId },
+        select: { id: true, tournamentId: true },
+      });
+
+      if (!division) {
+        return NextResponse.json(
+          { error: 'Division not found' },
+          { status: 404 }
+        );
+      }
+
+      if (division.tournamentId !== team.tournament.id) {
+        return NextResponse.json(
+          { error: 'Division does not belong to this tournament' },
+          { status: 400 }
+        );
+      }
+    }
+
     // Update the team
     const updatedTeam = await db.team.update({
       where: { id: teamId },
@@ -92,7 +114,7 @@ export async function PUT(
         club: body.club !== undefined ? body.club : undefined,
         city: body.city !== undefined ? body.city : undefined,
         countryId: body.countryId,
-        level: body.level !== undefined ? body.level : undefined,
+        divisionId: body.divisionId !== undefined ? body.divisionId : null,
         managerId: body.managerId !== undefined ? body.managerId : null,
         // Contact details
         contactFirstName: body.contactFirstName !== undefined ? body.contactFirstName : undefined,
