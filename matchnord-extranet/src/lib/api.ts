@@ -1,5 +1,16 @@
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
+// Use relative URLs for same-origin requests (production), or absolute URL if env var is set
+// In production, the extranet app calls its own API endpoints on the same server
+const getApiBaseUrl = () => {
+  // If NEXT_PUBLIC_API_URL is explicitly set, use it (for cross-origin or specific config)
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL;
+  }
+  // Otherwise use relative URLs (same origin) - works in both dev and production
+  // This allows the app to call its own API endpoints
+  return typeof window !== 'undefined' ? '/api/v1' : 'http://localhost:3001/api/v1';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 export async function fetchApi<T>(
   endpoint: string,
