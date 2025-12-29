@@ -1,9 +1,23 @@
 import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcryptjs';
 
 const db = new PrismaClient();
 
 async function main() {
   console.log('🌱 Seeding database...');
+
+  // Drop role column from TournamentAssignment if it exists (legacy column)
+  await db.$executeRawUnsafe(`
+    DO $$ 
+    BEGIN
+      IF EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'TournamentAssignment' AND column_name = 'role'
+      ) THEN
+        ALTER TABLE "TournamentAssignment" DROP COLUMN "role";
+      END IF;
+    END $$;
+  `);
 
   // Create countries
   const countries = await Promise.all([
@@ -74,44 +88,75 @@ async function main() {
   // Get Finland as default country
   const finland = countries.find((c) => c.code === 'FI')!;
 
+  // Hash password for test users (using "password" as the test password)
+  const testPassword = await bcrypt.hash('password', 10);
+
   // Create test users with different roles
   const adminUser = await db.user.upsert({
     where: { email: 'admin@test.com' },
-    update: {},
+    update: {
+      password: testPassword,
+      isActive: true,
+      emailVerified: new Date(),
+    },
     create: {
       name: 'Test Admin',
       email: 'admin@test.com',
       role: 'ADMIN',
+      password: testPassword,
+      isActive: true,
+      emailVerified: new Date(),
     },
   });
 
   const teamManagerUser = await db.user.upsert({
     where: { email: 'manager@test.com' },
-    update: {},
+    update: {
+      password: testPassword,
+      isActive: true,
+      emailVerified: new Date(),
+    },
     create: {
       name: 'Team Manager',
       email: 'manager@test.com',
       role: 'USER',
+      password: testPassword,
+      isActive: true,
+      emailVerified: new Date(),
     },
   });
 
   const tournamentAdminUser = await db.user.upsert({
     where: { email: 'tournament@test.com' },
-    update: {},
+    update: {
+      password: testPassword,
+      isActive: true,
+      emailVerified: new Date(),
+    },
     create: {
       name: 'Tournament Admin',
       email: 'tournament@test.com',
       role: 'USER',
+      password: testPassword,
+      isActive: true,
+      emailVerified: new Date(),
     },
   });
 
   const refereeUser = await db.user.upsert({
     where: { email: 'referee@test.com' },
-    update: {},
+    update: {
+      password: testPassword,
+      isActive: true,
+      emailVerified: new Date(),
+    },
     create: {
       name: 'Test Referee',
       email: 'referee@test.com',
       role: 'USER',
+      password: testPassword,
+      isActive: true,
+      emailVerified: new Date(),
     },
   });
 

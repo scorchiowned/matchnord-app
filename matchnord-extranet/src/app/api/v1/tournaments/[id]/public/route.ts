@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import {
   getTournamentVisibility,
   filterTournamentData,
@@ -78,8 +80,17 @@ export async function GET(
       );
     }
 
+    // Get user session to check if they're the creator or admin
+    const session = await getServerSession(authOptions);
+    const user = session?.user as any;
+    const userId = user?.id;
+    const userRole = user?.role;
+
     // Check tournament visibility for public access
+    // Pass user context so creators/admins can view DRAFT tournaments
     const visibility = await getTournamentVisibility({
+      userId,
+      userRole,
       tournamentId: params.id,
     });
 

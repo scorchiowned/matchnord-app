@@ -57,7 +57,7 @@ export async function getTournamentVisibility(
     tournament
   );
 
-  // If user has management access, they can see everything
+  // If user has management access, they can see everything (including DRAFT tournaments)
   if (hasManagementAccess) {
     return {
       canViewTournament: true,
@@ -71,6 +71,7 @@ export async function getTournamentVisibility(
   }
 
   // For public access, check publication status
+  // Only PUBLISHED tournaments are visible to the public
   const isTournamentPublished = tournament.status === 'PUBLISHED';
 
   return {
