@@ -366,6 +366,21 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Automatically create the first division
+    await db.division.create({
+      data: {
+        tournamentId: tournament.id,
+        name: 'Main Division',
+        description: 'Default division for this tournament',
+        level: 'COMPETITIVE',
+        minTeams: 4,
+        maxTeams: 16,
+        currentTeams: 0,
+        matchDuration: 90,
+        breakDuration: 15,
+      },
+    });
+
     return NextResponse.json(tournament, { status: 201 });
   } catch (error) {
     console.error('Error creating tournament:', error);

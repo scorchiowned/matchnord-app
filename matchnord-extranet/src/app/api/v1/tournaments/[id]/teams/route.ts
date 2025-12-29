@@ -170,6 +170,28 @@ export async function POST(
       );
     }
 
+    // Validate division exists if provided
+    if (body.divisionId) {
+      const division = await db.division.findUnique({
+        where: { id: body.divisionId },
+        select: { id: true, tournamentId: true },
+      });
+
+      if (!division) {
+        return NextResponse.json(
+          { error: 'Division not found' },
+          { status: 404 }
+        );
+      }
+
+      if (division.tournamentId !== tournamentId) {
+        return NextResponse.json(
+          { error: 'Division does not belong to this tournament' },
+          { status: 400 }
+        );
+      }
+    }
+
     // Create the team
     // Teams added directly by admins/managers should be APPROVED by default
     const team = await db.team.create({
@@ -179,7 +201,7 @@ export async function POST(
         club: body.club || '',
         city: body.city || '',
         countryId: body.countryId,
-        level: body.level || '',
+        divisionId: body.divisionId || null,
         tournamentId: tournamentId,
         managerId: body.managerId || null,
         status: 'APPROVED', // Teams added directly are approved immediately

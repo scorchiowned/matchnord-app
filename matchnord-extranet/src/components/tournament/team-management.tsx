@@ -2,13 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -29,7 +23,6 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
@@ -43,17 +36,10 @@ import {
   XCircle,
   Clock,
   Users,
-  MapPin,
-  Mail,
-  Phone,
-  Calendar,
-  Trophy,
   Eye,
   RefreshCw,
   Edit,
   Save,
-  X,
-  Upload,
   Search,
   Building2,
   Plus,
@@ -135,6 +121,15 @@ interface Club {
   };
 }
 
+interface Division {
+  id: string;
+  name: string;
+  description?: string;
+  birthYear?: number;
+  format?: string;
+  level?: string;
+}
+
 interface TeamManagementProps {
   tournamentId: string;
   onTeamsChange?: (teams: Team[]) => void;
@@ -151,6 +146,7 @@ export function TeamManagement({
   const [teams, setTeams] = useState<Team[]>([]);
   const [countries, setCountries] = useState<Country[]>([]);
   const [clubs, setClubs] = useState<Club[]>([]);
+  const [divisions, setDivisions] = useState<Division[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedTeams, setSelectedTeams] = useState<string[]>([]);
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
@@ -177,7 +173,7 @@ export function TeamManagement({
     club: '',
     city: '',
     countryId: '',
-    level: '',
+    divisionId: '',
     contactFirstName: '',
     contactLastName: '',
     contactEmail: '',
@@ -222,6 +218,19 @@ export function TeamManagement({
         if (countriesResponse.ok) {
           const countriesData = await countriesResponse.json();
           setCountries(countriesData.countries || []);
+        }
+
+        // Fetch divisions
+        const divisionsResponse = await fetch(
+          `/api/v1/tournaments/${tournamentId}/divisions`,
+          {
+            credentials: 'include',
+          }
+        );
+
+        if (divisionsResponse.ok) {
+          const divisionsData = await divisionsResponse.json();
+          setDivisions(divisionsData || []);
         }
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -311,6 +320,7 @@ export function TeamManagement({
     } else {
       setClubs([]);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clubSearchTerm, formData.countryId]);
 
   const handleEdit = (team: Team) => {
@@ -325,7 +335,7 @@ export function TeamManagement({
       club: clubName,
       city: team.city || '',
       countryId: team.countryId || team.country?.id || '',
-      level: team.level || '',
+      divisionId: team.division?.id || '',
       contactFirstName: team.contactFirstName || '',
       contactLastName: team.contactLastName || '',
       contactEmail: team.contactEmail || '',
@@ -390,7 +400,7 @@ export function TeamManagement({
       club: '',
       city: '',
       countryId: '',
-      level: '',
+      divisionId: '',
       contactFirstName: '',
       contactLastName: '',
       contactEmail: '',
@@ -736,13 +746,12 @@ export function TeamManagement({
                               clubId: formData.clubId || undefined,
                               city: formData.city || undefined,
                               countryId: formData.countryId,
-                              level: formData.level || undefined,
+                              divisionId: formData.divisionId || undefined,
                             }),
                           }
                         );
 
                         if (response.ok) {
-                          const newTeam = await response.json();
                           // Refresh teams list
                           const teamsResponse = await fetch(
                             `/api/v1/tournaments/${tournamentId}/registrations`,
@@ -765,7 +774,7 @@ export function TeamManagement({
                             club: '',
                             city: '',
                             countryId: '',
-                            level: '',
+                            divisionId: '',
                             contactFirstName: '',
                             contactLastName: '',
                             contactEmail: '',
@@ -840,14 +849,26 @@ export function TeamManagement({
                         />
                       </div>
                       <div>
-                        <Label>Level</Label>
-                        <Input
-                          value={formData.level}
-                          onChange={(e) =>
-                            setFormData({ ...formData, level: e.target.value })
+                        <Label>Division</Label>
+                        <Select
+                          value={formData.divisionId}
+                          onValueChange={(value) =>
+                            setFormData({ ...formData, divisionId: value })
                           }
-                          placeholder="e.g., Elite, Competitive"
-                        />
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select division" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {divisions.map((division) => (
+                              <SelectItem key={division.id} value={division.id}>
+                                {division.name}
+                                {division.birthYear &&
+                                  ` (${division.birthYear})`}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
                     <div>
@@ -1405,18 +1426,33 @@ export function TeamManagement({
                                       </div>
                                       <div>
                                         <Label className="text-sm font-medium">
-                                          Level
+                                          Division *
                                         </Label>
-                                        <Input
-                                          value={formData.level}
-                                          onChange={(e) =>
+                                        <Select
+                                          value={formData.divisionId}
+                                          onValueChange={(value) =>
                                             setFormData({
                                               ...formData,
-                                              level: e.target.value,
+                                              divisionId: value,
                                             })
                                           }
-                                          className="mt-1"
-                                        />
+                                        >
+                                          <SelectTrigger className="mt-1">
+                                            <SelectValue placeholder="Select division" />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            {divisions.map((division) => (
+                                              <SelectItem
+                                                key={division.id}
+                                                value={division.id}
+                                              >
+                                                {division.name}
+                                                {division.birthYear &&
+                                                  ` (${division.birthYear})`}
+                                              </SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
                                       </div>
                                     </div>
 
@@ -1624,10 +1660,10 @@ export function TeamManagement({
                                       </div>
                                       <div>
                                         <Label className="text-sm font-medium">
-                                          Level
+                                          Division
                                         </Label>
                                         <p className="text-sm">
-                                          {selectedTeam.level || 'N/A'}
+                                          {selectedTeam.division?.name || 'N/A'}
                                         </p>
                                       </div>
                                     </div>
