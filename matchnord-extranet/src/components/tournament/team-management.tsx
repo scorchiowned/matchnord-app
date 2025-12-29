@@ -155,8 +155,10 @@ export function TeamManagement({
   const [selectedTeams, setSelectedTeams] = useState<string[]>([]);
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
+  const [isAddTeamDialogOpen, setIsAddTeamDialogOpen] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
 
@@ -275,13 +277,25 @@ export function TeamManagement({
       if (formData.countryId) params.append('countryId', formData.countryId);
       params.append('limit', '20');
 
-      const response = await fetch(`/api/v1/clubs?${params}`);
+      const response = await fetch(`/api/v1/clubs?${params}`, {
+        credentials: 'include',
+      });
       if (response.ok) {
         const data = await response.json();
         setClubs(data.clubs || []);
+      } else {
+        console.error(
+          'Error fetching clubs:',
+          response.status,
+          response.statusText
+        );
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Error details:', errorData);
+        setClubs([]);
       }
     } catch (error) {
       console.error('Error fetching clubs:', error);
+      setClubs([]);
     } finally {
       setIsLoadingClubs(false);
     }
@@ -678,6 +692,285 @@ export function TeamManagement({
               >
                 <RefreshCw className="h-4 w-4" />
               </Button>
+              <Dialog
+                open={isAddTeamDialogOpen}
+                onOpenChange={setIsAddTeamDialogOpen}
+              >
+                <DialogTrigger asChild>
+                  <Button size="sm">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add Team
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Add New Team</DialogTitle>
+                    <DialogDescription>
+                      Create a new team directly in this tournament
+                    </DialogDescription>
+                  </DialogHeader>
+                  <form
+                    onSubmit={async (e) => {
+                      e.preventDefault();
+                      if (!formData.name || !formData.countryId) {
+                        toast.error('Name and country are required');
+                        return;
+                      }
+
+                      try {
+                        setIsSubmitting(true);
+                        const response = await fetch(
+                          `/api/v1/tournaments/${tournamentId}/teams`,
+                          {
+                            method: 'POST',
+                            headers: {
+                              'Content-Type': 'application/json',
+                            },
+                            credentials: 'include',
+                            body: JSON.stringify({
+                              name: formData.name,
+                              shortName: formData.name
+                                .substring(0, 3)
+                                .toUpperCase(),
+                              club: formData.club || undefined,
+                              clubId: formData.clubId || undefined,
+                              city: formData.city || undefined,
+                              countryId: formData.countryId,
+                              level: formData.level || undefined,
+                            }),
+                          }
+                        );
+
+                        if (response.ok) {
+                          const newTeam = await response.json();
+                          // Refresh teams list
+                          const teamsResponse = await fetch(
+                            `/api/v1/tournaments/${tournamentId}/registrations`,
+                            {
+                              credentials: 'include',
+                            }
+                          );
+                          if (teamsResponse.ok) {
+                            const teamsData = await teamsResponse.json();
+                            setTeams(teamsData);
+                            onTeamsChange?.(teamsData);
+                          }
+                          toast.success('Team added successfully');
+                          setIsAddTeamDialogOpen(false);
+                          // Reset form
+                          setFormData({
+                            name: '',
+                            logo: '',
+                            clubId: '',
+                            club: '',
+                            city: '',
+                            countryId: '',
+                            level: '',
+                            contactFirstName: '',
+                            contactLastName: '',
+                            contactEmail: '',
+                            contactPhone: '',
+                            contactAddress: '',
+                            contactPostalCode: '',
+                            contactCity: '',
+                            billingName: '',
+                            billingAddress: '',
+                            billingPostalCode: '',
+                            billingCity: '',
+                            billingEmail: '',
+                          });
+                          setClubSelectionType('existing');
+                          setClubSearchTerm('');
+                        } else {
+                          const error = await response.json();
+                          toast.error(error.error || 'Failed to add team');
+                        }
+                      } catch (error) {
+                        console.error('Error adding team:', error);
+                        toast.error('Failed to add team');
+                      } finally {
+                        setIsSubmitting(false);
+                      }
+                    }}
+                    className="space-y-4"
+                  >
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label>
+                          Team Name * <span className="text-red-500">*</span>
+                        </Label>
+                        <Input
+                          value={formData.name}
+                          onChange={(e) =>
+                            setFormData({ ...formData, name: e.target.value })
+                          }
+                          required
+                        />
+                      </div>
+                      <div>
+                        <Label>
+                          Country * <span className="text-red-500">*</span>
+                        </Label>
+                        <Select
+                          value={formData.countryId}
+                          onValueChange={(value) =>
+                            setFormData({ ...formData, countryId: value })
+                          }
+                          required
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select country" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {countries.map((country) => (
+                              <SelectItem key={country.id} value={country.id}>
+                                {country.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label>City</Label>
+                        <Input
+                          value={formData.city}
+                          onChange={(e) =>
+                            setFormData({ ...formData, city: e.target.value })
+                          }
+                        />
+                      </div>
+                      <div>
+                        <Label>Level</Label>
+                        <Input
+                          value={formData.level}
+                          onChange={(e) =>
+                            setFormData({ ...formData, level: e.target.value })
+                          }
+                          placeholder="e.g., Elite, Competitive"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <Label>Club</Label>
+                      <div className="mt-1 space-y-2">
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            variant={
+                              clubSelectionType === 'existing'
+                                ? 'default'
+                                : 'outline'
+                            }
+                            size="sm"
+                            onClick={() => setClubSelectionType('existing')}
+                          >
+                            <Search className="mr-2 h-4 w-4" />
+                            Existing
+                          </Button>
+                          <Button
+                            type="button"
+                            variant={
+                              clubSelectionType === 'custom'
+                                ? 'default'
+                                : 'outline'
+                            }
+                            size="sm"
+                            onClick={() => {
+                              setClubSelectionType('custom');
+                              setFormData({ ...formData, clubId: '' });
+                            }}
+                          >
+                            <Plus className="mr-2 h-4 w-4" />
+                            Custom
+                          </Button>
+                        </div>
+                        {clubSelectionType === 'existing' ? (
+                          <div className="space-y-2">
+                            <Input
+                              placeholder="Search clubs..."
+                              value={clubSearchTerm}
+                              onChange={(e) =>
+                                setClubSearchTerm(e.target.value)
+                              }
+                            />
+                            {isLoadingClubs ? (
+                              <div className="py-2 text-center text-sm text-muted-foreground">
+                                Loading clubs...
+                              </div>
+                            ) : clubs.length > 0 ? (
+                              <div className="max-h-40 overflow-y-auto rounded-md border">
+                                {clubs.map((club) => (
+                                  <div
+                                    key={club.id}
+                                    className={`cursor-pointer p-2 hover:bg-gray-50 ${
+                                      formData.clubId === club.id
+                                        ? 'bg-blue-50'
+                                        : ''
+                                    }`}
+                                    onClick={() => handleClubSelect(club.id)}
+                                  >
+                                    <div className="flex items-center gap-2">
+                                      {club.logo ? (
+                                        <Image
+                                          src={club.logo}
+                                          alt={club.name}
+                                          width={24}
+                                          height={24}
+                                          className="rounded object-cover"
+                                        />
+                                      ) : (
+                                        <Building2 className="h-5 w-5 text-gray-400" />
+                                      )}
+                                      <div className="flex-1">
+                                        <div className="text-sm font-medium">
+                                          {club.name}
+                                        </div>
+                                        {club.city && (
+                                          <div className="text-xs text-muted-foreground">
+                                            {club.city}
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : clubSearchTerm ? (
+                              <div className="py-2 text-center text-sm text-muted-foreground">
+                                No clubs found. Try a different search term.
+                              </div>
+                            ) : (
+                              <div className="py-2 text-center text-sm text-muted-foreground">
+                                Start typing to search clubs...
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <Input
+                            placeholder="Enter club name"
+                            value={formData.club}
+                            onChange={(e) =>
+                              setFormData({ ...formData, club: e.target.value })
+                            }
+                          />
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setIsAddTeamDialogOpen(false)}
+                      >
+                        Cancel
+                      </Button>
+                      <Button type="submit" disabled={isSubmitting}>
+                        {isSubmitting ? 'Adding...' : 'Add Team'}
+                      </Button>
+                    </div>
+                  </form>
+                </DialogContent>
+              </Dialog>
             </div>
           </div>
         </CardHeader>

@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { getTournamentVisibility } from '@/lib/tournament/visibility';
+import { PermissionManager } from '@/lib/permissions';
 
 export async function GET(
   request: NextRequest,
@@ -156,18 +157,11 @@ export async function POST(
       );
     }
 
-    // Check permissions
-    const canAddTeam =
-      user.role === 'ADMIN' ||
-      tournament.createdById === user.id ||
-      (await db.tournamentAssignment.findFirst({
-        where: {
-          tournamentId: tournament.id,
-          userId: user.id,
-          isActive: true,
-          role: { in: ['ADMIN', 'MANAGER'] },
-        },
-      }));
+    // Check permissions - user must have canConfigure permission
+    const canAddTeam = await PermissionManager.canConfigureTournament(
+      user.id,
+      tournamentId
+    );
 
     if (!canAddTeam) {
       return NextResponse.json(
@@ -177,6 +171,7 @@ export async function POST(
     }
 
     // Create the team
+    // Teams added directly by admins/managers should be APPROVED by default
     const team = await db.team.create({
       data: {
         name: body.name,
@@ -187,6 +182,9 @@ export async function POST(
         level: body.level || '',
         tournamentId: tournamentId,
         managerId: body.managerId || null,
+        status: 'APPROVED', // Teams added directly are approved immediately
+        approvedAt: new Date(),
+        submittedAt: new Date(),
       },
       include: {
         country: {
