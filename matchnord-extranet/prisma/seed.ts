@@ -1,7 +1,283 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import * as fs from 'fs';
+import * as path from 'path';
+import { config } from 'dotenv';
+import { BlobServiceClient } from '@azure/storage-blob';
+
+// Load environment variables - prioritize .env.local for local development
+const envPaths = [
+  path.join(process.cwd(), '.env.local'), // Local development
+  path.join(process.cwd(), '.env'),
+];
+
+let loadedEnv = false;
+for (const envPath of envPaths) {
+  if (fs.existsSync(envPath)) {
+    config({ path: envPath });
+    loadedEnv = true;
+    break;
+  }
+}
+
+if (!loadedEnv) {
+  config(); // Fallback to default dotenv behavior
+}
 
 const db = new PrismaClient();
+
+// Get filename from URL
+function getFilenameFromUrl(imageUrl: string): string {
+  try {
+    const url = new URL(imageUrl);
+    const urlPath = url.pathname;
+    return path.basename(urlPath);
+  } catch {
+    // Fallback if URL parsing fails
+    return 'logo.png';
+  }
+}
+
+// Construct Azure blob URL
+function constructAzureUrl(
+  accountName: string,
+  container: string,
+  blobName: string
+): string {
+  return `https://${accountName}.blob.core.windows.net/${container}/${blobName}`;
+}
+
+async function seedClubsFromCSV() {
+  console.log('\n🏢 Seeding clubs from CSV with Azure Storage logos...');
+
+  // Get Finland (should already exist from earlier seeding)
+  const finland = await db.country.findFirst({
+    where: { code: 'FI' },
+  });
+
+  if (!finland) {
+    console.log('   ⚠️  Finland not found, skipping club seeding');
+    return;
+  }
+
+  console.log(`📍 Using country: ${finland.name} (${finland.code})`);
+
+  // Check for Azure Storage credentials (for local development)
+  const azureAccountName =
+    process.env.AZURE_STORAGE_ACCOUNT_NAME || 'matchnordstorage';
+  const azureAccountKey = process.env.AZURE_STORAGE_ACCOUNT_KEY;
+  const container = 'clubs';
+
+  if (!azureAccountKey) {
+    console.log(
+      '   ⚠️  AZURE_STORAGE_ACCOUNT_KEY not found. Skipping club seeding.'
+    );
+    console.log('      Set AZURE_STORAGE_ACCOUNT_KEY in .env.local to enable club seeding.');
+    return;
+  }
+
+  // Read CSV file - check multiple possible locations
+  const possiblePaths = [
+    path.join(process.cwd(), 'team_names_and_logos.csv'),
+    path.join(process.cwd(), '..', 'team_names_and_logos.csv'),
+    path.join(__dirname, '..', 'team_names_and_logos.csv'),
+  ];
+
+  let csvPath: string | null = null;
+  for (const possiblePath of possiblePaths) {
+    if (fs.existsSync(possiblePath)) {
+      csvPath = possiblePath;
+      break;
+    }
+  }
+
+  if (!csvPath) {
+    console.log(`   ⚠️  CSV file not found. Skipping club seeding. Checked paths:`);
+    possiblePaths.forEach((p) => console.log(`      - ${p}`));
+    return;
+  }
+
+  console.log(`📂 Reading CSV from: ${csvPath}`);
+  console.log(`📦 Azure Storage: ${azureAccountName}/${container}`);
+
+  // Scan Azure Storage to get all club IDs and their filenames
+  console.log('📦 Scanning Azure Storage for club logos...');
+  const connectionString = `DefaultEndpointsProtocol=https;AccountName=${azureAccountName};AccountKey=${azureAccountKey};EndpointSuffix=core.windows.net`;
+  const blobServiceClient =
+    BlobServiceClient.fromConnectionString(connectionString);
+  const containerClient = blobServiceClient.getContainerClient(container);
+
+  // Map: filename (lowercase) -> { clubId, filename }
+  const azureClubsByFilename = new Map<
+    string,
+    { clubId: string; filename: string }
+  >();
+
+  let blobCount = 0;
+  try {
+    for await (const blob of containerClient.listBlobsFlat()) {
+      blobCount++;
+      // Blob names: {clubId}/{filename}
+      const parts = blob.name.split('/');
+      if (parts.length === 2) {
+        const clubId = parts[0];
+        const filename = parts[1];
+        if (clubId && filename) {
+          // Store by filename (case-insensitive for matching)
+          const key = filename.toLowerCase();
+          if (!azureClubsByFilename.has(key)) {
+            azureClubsByFilename.set(key, { clubId, filename });
+          }
+        }
+      }
+    }
+    console.log(`   Scanned ${blobCount} blobs`);
+    console.log(
+      `   Found ${azureClubsByFilename.size} unique club IDs in Azure Storage\n`
+    );
+  } catch (error: any) {
+    console.error(`   ❌ Error scanning Azure Storage: ${error.message}`);
+    console.log('   ⚠️  Skipping club seeding due to Azure Storage error.');
+    return;
+  }
+
+  // Parse CSV file
+  const csvContent = fs.readFileSync(csvPath, 'utf-8');
+  const lines = csvContent.split('\n').filter((line) => line.trim() !== '');
+
+  // Skip header row (first line is empty, second is header)
+  const dataLines = lines.slice(2);
+
+  console.log(`📄 Found ${dataLines.length} teams in CSV\n`);
+
+  let created = 0;
+  let matched = 0;
+  let notMatched = 0;
+  let skipped = 0;
+  let errors = 0;
+
+  // Process in batches to avoid overwhelming the database
+  const batchSize = 50;
+  for (let i = 0; i < dataLines.length; i += batchSize) {
+    const batch = dataLines.slice(i, i + batchSize);
+
+    await Promise.all(
+      batch.map(async (line) => {
+        try {
+          // Parse CSV line - format: name,image_url
+          // Find the last comma which separates name from URL
+          const lastCommaIndex = line.lastIndexOf(',');
+
+          if (lastCommaIndex === -1) {
+            skipped++;
+            return;
+          }
+
+          let name = line.substring(0, lastCommaIndex).trim();
+          const csvImageUrl = line.substring(lastCommaIndex + 1).trim();
+
+          // Remove quotes if present
+          name = name.replace(/^"|"$/g, '').trim();
+
+          if (!name || name === '') {
+            skipped++;
+            return;
+          }
+
+          // Extract filename from CSV URL for matching
+          const filename = getFilenameFromUrl(csvImageUrl);
+          const filenameKey = filename.toLowerCase();
+
+          // Find matching club ID in Azure Storage by filename
+          const azureClub = azureClubsByFilename.get(filenameKey);
+
+          // Check if club already exists by name
+          const existing = await db.club.findUnique({
+            where: { name },
+          });
+
+          if (existing) {
+            // Update with Azure Storage logo if matched
+            if (azureClub) {
+              const azureLogoUrl = constructAzureUrl(
+                azureAccountName,
+                container,
+                `${azureClub.clubId}/${azureClub.filename}`
+              );
+              if (existing.logo !== azureLogoUrl) {
+                await db.club.update({
+                  where: { name },
+                  data: { logo: azureLogoUrl },
+                });
+                matched++;
+              } else {
+                skipped++;
+              }
+            } else {
+              skipped++; // Already exists, no Azure match
+            }
+          } else {
+            // Create new club
+            if (azureClub) {
+              // Use Azure Storage club ID and URL
+              const azureLogoUrl = constructAzureUrl(
+                azureAccountName,
+                container,
+                `${azureClub.clubId}/${azureClub.filename}`
+              );
+
+              // Create club with the specific ID from Azure Storage using raw SQL
+              await db.$executeRawUnsafe(
+                `INSERT INTO "Club" (id, name, "countryId", logo, "createdAt", "updatedAt") 
+                 VALUES ($1, $2, $3, $4, NOW(), NOW()) 
+                 ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, logo = EXCLUDED.logo, "updatedAt" = NOW()`,
+                azureClub.clubId,
+                name,
+                finland.id,
+                azureLogoUrl
+              );
+              matched++;
+              created++;
+            } else {
+              // No matching logo in Azure Storage - create with new ID
+              await db.club.create({
+                data: {
+                  name,
+                  countryId: finland.id,
+                  // No logo if not found in Azure Storage
+                },
+              });
+              notMatched++;
+              created++;
+            }
+          }
+        } catch (error: any) {
+          // Handle unique constraint errors gracefully
+          if (error.code === 'P2002' && error.meta?.target?.includes('name')) {
+            skipped++; // Duplicate name, skip it
+          } else {
+            console.error(
+              `   ❌ Error processing line ${i + batch.indexOf(line) + 3}:`,
+              error.message
+            );
+            errors++;
+          }
+        }
+      })
+    );
+
+    // Progress indicator
+    const processed = Math.min(i + batchSize, dataLines.length);
+    if (processed % 500 === 0 || processed === dataLines.length) {
+      console.log(`   Processed ${processed}/${dataLines.length} teams...`);
+    }
+  }
+
+  console.log(`\n✅ Club seeding completed!`);
+  console.log(`   - Created: ${created} (${matched} with Azure match, ${notMatched} without)`);
+  console.log(`   - Skipped: ${skipped}`);
+  console.log(`   - Errors: ${errors}`);
+}
 
 async function main() {
   console.log('🌱 Seeding database...');
@@ -1550,6 +1826,12 @@ async function main() {
 
   console.log('✅ FC Kasiysi Syysturnaus data created successfully!');
 
+  // Seed clubs from CSV
+  await seedClubsFromCSV();
+
+  // Get club count for statistics
+  const clubCount = await db.club.count();
+
   console.log('✅ Database seeded successfully!');
   console.log(`📊 Created:
     - 1 organization
@@ -1564,7 +1846,8 @@ async function main() {
     - 6 match events
     - 10 standings (6 original + 4 for FC Kasiysi)
     - 3 tournament assignments
-    - 3 match assignments`);
+    - 3 match assignments
+    - ${clubCount} clubs (from CSV)`);
 }
 
 main()
