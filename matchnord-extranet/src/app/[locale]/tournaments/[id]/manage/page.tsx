@@ -589,7 +589,7 @@ export default function TournamentManagePage() {
           {/* Header */}
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-style-primary/10">
+              <div className="bg-style-primary/10 flex h-12 w-12 items-center justify-center rounded-lg">
                 <Trophy className="h-6 w-6 text-style-primary" />
               </div>
               <div>
@@ -622,7 +622,11 @@ export default function TournamentManagePage() {
           </div>
 
           {/* Management Tabs */}
-          <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
+          <Tabs
+            value={activeTab}
+            onValueChange={handleTabChange}
+            className="space-y-6"
+          >
             <TabsList>
               <TabsTrigger value="overview">
                 {t('tournament.tabs.overview')}
@@ -816,27 +820,6 @@ export default function TournamentManagePage() {
                             checked={tournament.isLocked}
                             onCheckedChange={updateLockStatus}
                           />
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-xs font-medium">
-                              {t('common.edit')}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {t('tournament.settings.modifyDetails')}
-                            </p>
-                          </div>
-                          <Button
-                            asChild
-                            variant="outline"
-                            size="sm"
-                            className="h-7 px-2 text-xs"
-                          >
-                            <Link href={`/tournaments/${tournamentId}/edit`}>
-                              <Edit className="mr-1 h-3 w-3" />
-                              {t('common.edit')}
-                            </Link>
-                          </Button>
                         </div>
                       </div>
                     </CardContent>
