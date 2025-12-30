@@ -112,7 +112,7 @@ export default function TournamentManagePage() {
   const params = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { data: session } = useSession();
+  const { data: session, status: sessionStatus } = useSession();
   const t = useTranslations();
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [matches, setMatches] = useState<any[]>([]);
@@ -418,15 +418,24 @@ export default function TournamentManagePage() {
 
   useEffect(() => {
     const checkPermissions = async () => {
-      if (!user || !tournamentId) {
+      // Wait for session to finish loading
+      if (sessionStatus === 'loading') {
+        return;
+      }
+
+      // If no session after loading, user is not authenticated
+      if (!session || !user || !tournamentId) {
         setCanManage(false);
         setPermissionsLoading(false);
         return;
       }
 
       try {
-        const permissions = await api.tournaments.getPermissions(tournamentId);
-        setCanManage(permissions.canConfigure || permissions.isOwner);
+        setPermissionsLoading(true);
+        const permissions = (await api.tournaments.getPermissions(
+          tournamentId
+        )) as { canConfigure?: boolean; isOwner?: boolean };
+        setCanManage(permissions.canConfigure || permissions.isOwner || false);
       } catch (error) {
         console.error('Error checking permissions:', error);
         setCanManage(false);
@@ -436,9 +445,36 @@ export default function TournamentManagePage() {
     };
 
     checkPermissions();
-  }, [user, tournamentId]);
+  }, [session, user, tournamentId, sessionStatus]);
 
-  if (!session) {
+  // Consolidated loading state - show single spinner for all loading states
+  // Only show loading if we're actively loading, not if data failed to load
+  const isInitialLoading =
+    sessionStatus === 'loading' || permissionsLoading || isLoading;
+
+  if (isInitialLoading) {
+    return (
+      <div className="min-h-screen bg-style-background">
+        <MainNavigation />
+        <main className="container mx-auto py-6">
+          <div className="flex min-h-[400px] items-center justify-center">
+            <div className="text-center">
+              <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-style-primary"></div>
+              <h3 className="mb-2 text-lg font-semibold">
+                {t('tournament.loading')}
+              </h3>
+              <p className="text-style-text-secondary">
+                {t('tournament.loadingDescription')}
+              </p>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  // Show login prompt only after session is confirmed to be unauthenticated
+  if (sessionStatus === 'unauthenticated' || !session) {
     return (
       <div className="min-h-screen bg-background">
         <MainNavigation />
@@ -458,38 +494,28 @@ export default function TournamentManagePage() {
     );
   }
 
+  // Show error state if tournament not found (after loading is complete)
   if (!tournament) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-style-background">
         <MainNavigation />
         <main className="container mx-auto py-6">
-          <Card>
-            <CardContent className="py-12 text-center">
-              <p className="text-muted-foreground">
+          <div className="flex min-h-[400px] items-center justify-center">
+            <div className="text-center">
+              <Trophy className="mx-auto mb-4 h-12 w-12 text-style-text-secondary" />
+              <h3 className="mb-2 text-lg font-semibold">
                 {t('tournament.tournamentNotFound')}
+              </h3>
+              <p className="mb-4 text-style-text-secondary">
+                {t('tournament.unableToLoad')}
               </p>
-              <Button asChild className="mt-4">
+              <Button asChild>
                 <Link href="/tournaments">
                   {t('tournament.backToTournaments')}
                 </Link>
               </Button>
-            </CardContent>
-          </Card>
-        </main>
-      </div>
-    );
-  }
-
-  if (permissionsLoading) {
-    return (
-      <div className="min-h-screen bg-background">
-        <MainNavigation />
-        <main className="container mx-auto py-6">
-          <Card>
-            <CardContent className="py-12 text-center">
-              <p className="text-muted-foreground">Loading...</p>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </main>
       </div>
     );
@@ -531,55 +557,6 @@ export default function TournamentManagePage() {
         return <Badge variant="secondary">{status}</Badge>;
     }
   };
-
-  // Show global loading state until tournament data is loaded
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-style-background">
-        <MainNavigation />
-        <main className="container mx-auto py-6">
-          <div className="flex min-h-[400px] items-center justify-center">
-            <div className="text-center">
-              <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-style-primary"></div>
-              <h3 className="mb-2 text-lg font-semibold">
-                {t('tournament.loading')}
-              </h3>
-              <p className="text-style-text-secondary">
-                {t('tournament.loadingDescription')}
-              </p>
-            </div>
-          </div>
-        </main>
-      </div>
-    );
-  }
-
-  // Show error state if tournament not found
-  if (!tournament) {
-    return (
-      <div className="min-h-screen bg-style-background">
-        <MainNavigation />
-        <main className="container mx-auto py-6">
-          <div className="flex min-h-[400px] items-center justify-center">
-            <div className="text-center">
-              <Trophy className="mx-auto mb-4 h-12 w-12 text-style-text-secondary" />
-              <h3 className="mb-2 text-lg font-semibold">
-                {t('tournament.tournamentNotFound')}
-              </h3>
-              <p className="mb-4 text-style-text-secondary">
-                {t('tournament.unableToLoad')}
-              </p>
-              <Button asChild>
-                <Link href="/tournaments">
-                  {t('tournament.backToTournaments')}
-                </Link>
-              </Button>
-            </div>
-          </div>
-        </main>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-style-background">
