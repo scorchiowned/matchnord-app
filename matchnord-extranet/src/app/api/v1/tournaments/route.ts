@@ -165,7 +165,6 @@ export async function GET(request: NextRequest) {
             canConfigure: true,
             canManageScores: true,
             isReferee: true,
-            permissions: true,
           },
         },
         teams: {
