@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Fragment, useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -481,6 +481,7 @@ export function VenuesManagement({
                   </DialogDescription>
                 </DialogHeader>
                 <VenueLocationFormV2
+                  key={`venue-form-${isDialogOpen ? 'open' : 'closed'}-${editingVenue?.id || 'new'}`}
                   initialData={{
                     name: formData.name,
                     address: formData.address,
@@ -536,8 +537,8 @@ export function VenuesManagement({
                     const isLoadingPitches = loadingPitches.has(venue.id);
 
                     return (
-                      <>
-                        <TableRow key={venue.id}>
+                      <Fragment key={venue.id}>
+                        <TableRow>
                           <TableCell>
                             <Button
                               variant="ghost"
@@ -755,7 +756,7 @@ export function VenuesManagement({
                             </TableCell>
                           </TableRow>
                         )}
-                      </>
+                      </Fragment>
                     );
                   })}
                 </TableBody>

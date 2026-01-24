@@ -29,6 +29,8 @@ declare module '@/styles/globals.css' {
   export default content;
 }
 
+declare module 'leaflet/dist/leaflet.css';
+
 import 'next-auth';
 
 declare module 'next-auth' {

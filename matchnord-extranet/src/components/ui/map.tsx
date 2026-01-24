@@ -46,5 +46,5 @@ export function Map({
   );
 }
 
-// Re-export marker components from the internal map
-export { DraggableMarker, StaticMarker } from './map-internal';
+// Re-export marker components from client-only markers
+export { DraggableMarker, StaticMarker } from './map-markers';
