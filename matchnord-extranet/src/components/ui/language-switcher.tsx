@@ -43,19 +43,9 @@ export function LanguageSwitcher() {
     // Save language preference to localStorage
     localStorage.setItem(LANGUAGE_STORAGE_KEY, newLocale);
 
-    // Get the pathname without the locale prefix
-    const segments = pathname.split('/').filter(Boolean);
-    const currentLocaleInPath = segments.length > 0 && locales.includes(segments[0] as Locale);
-    
-    // Remove locale from segments if present
-    const pathWithoutLocale = currentLocaleInPath 
-      ? '/' + segments.slice(1).join('/')
-      : pathname;
-    
-    // Construct new path with new locale (always include locale prefix per routing config)
-    const newPath = `/${newLocale}${pathWithoutLocale === '/' ? '' : pathWithoutLocale}`;
-
-    router.push(newPath);
+    // usePathname from next-intl already returns pathname without locale prefix
+    // router.push with locale option will navigate to the same path with the new locale
+    router.push(pathname, { locale: newLocale });
     setCurrentLocale(newLocale);
   };
 
@@ -118,19 +108,9 @@ export function LanguageSwitcherCompact() {
     // Save language preference to localStorage
     localStorage.setItem(LANGUAGE_STORAGE_KEY, newLocale);
 
-    // Get the pathname without the locale prefix
-    const segments = pathname.split('/').filter(Boolean);
-    const currentLocaleInPath = segments.length > 0 && locales.includes(segments[0] as Locale);
-    
-    // Remove locale from segments if present
-    const pathWithoutLocale = currentLocaleInPath 
-      ? '/' + segments.slice(1).join('/')
-      : pathname;
-    
-    // Construct new path with new locale (always include locale prefix per routing config)
-    const newPath = `/${newLocale}${pathWithoutLocale === '/' ? '' : pathWithoutLocale}`;
-
-    router.push(newPath);
+    // usePathname from next-intl already returns pathname without locale prefix
+    // router.push with locale option will navigate to the same path with the new locale
+    router.push(pathname, { locale: newLocale });
     setCurrentLocale(newLocale);
   };
 
