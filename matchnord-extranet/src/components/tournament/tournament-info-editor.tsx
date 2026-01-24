@@ -101,23 +101,6 @@ export function TournamentInfoEditor({
   const prevTournamentIdRef = useRef<string | null>(null);
   const prevTournamentRef = useRef<Tournament | null>(null);
 
-  // Status options with translations
-  const statusOptions = [
-    { value: 'DRAFT', label: t('tournament.status.draft') },
-    { value: 'PUBLISHED', label: t('tournament.status.published') },
-    {
-      value: 'REGISTRATION_OPEN',
-      label: t('tournament.status.registrationOpen'),
-    },
-    {
-      value: 'REGISTRATION_CLOSED',
-      label: t('tournament.status.registrationClosed'),
-    },
-    { value: 'IN_PROGRESS', label: t('tournament.status.inProgress') },
-    { value: 'COMPLETED', label: t('tournament.status.completed') },
-    { value: 'CANCELLED', label: t('tournament.status.cancelled') },
-  ];
-
   // Use tournamentId prop or fallback to tournament.id
   const currentTournamentId = tournamentId || tournament.id;
 
@@ -214,7 +197,6 @@ export function TournamentInfoEditor({
         address: formData.address || null,
         contactEmail: formData.contactEmail || null,
         contactPhone: formData.contactPhone || null,
-        status: formData.status,
         autoAcceptTeams: formData.autoAcceptTeams,
         allowWaitlist: formData.allowWaitlist,
       };
@@ -372,26 +354,6 @@ export function TournamentInfoEditor({
                   max={2030}
                 />
               </div>
-              <div className="space-y-1">
-                <Label htmlFor="status" className="text-sm font-medium">
-                  Status *
-                </Label>
-                <Select
-                  value={formData.status}
-                  onValueChange={(value) => handleInputChange('status', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={t('tournament.selectStatus')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {statusOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
               <div className="space-y-1 md:col-span-2">
                 <Label htmlFor="description" className="text-sm font-medium">
                   {t('tournament.description')}
@@ -419,17 +381,6 @@ export function TournamentInfoEditor({
                   {t('tournament.season')}
                 </Label>
                 <p className="text-sm">{tournament.season}</p>
-              </div>
-              <div className="space-y-1">
-                <Label className="text-sm font-medium text-muted-foreground">
-                  Status
-                </Label>
-                <p className="text-sm">
-                  {
-                    statusOptions.find((opt) => opt.value === tournament.status)
-                      ?.label
-                  }
-                </p>
               </div>
               <div className="space-y-1 md:col-span-2">
                 <Label className="text-sm font-medium text-muted-foreground">

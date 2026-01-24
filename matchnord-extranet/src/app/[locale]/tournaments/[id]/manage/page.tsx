@@ -546,13 +546,19 @@ export default function TournamentManagePage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'DRAFT':
-        return <Badge variant="secondary">Draft</Badge>;
+        return <Badge variant="secondary">{t('tournament.status.draft')}</Badge>;
       case 'PUBLISHED':
-        return <Badge variant="default">Published</Badge>;
-      case 'ACTIVE':
-        return <Badge variant="default">Active</Badge>;
+        return <Badge variant="default">{t('tournament.status.published')}</Badge>;
+      case 'REGISTRATION_OPEN':
+        return <Badge variant="default">{t('tournament.status.registrationOpen')}</Badge>;
+      case 'REGISTRATION_CLOSED':
+        return <Badge variant="secondary">{t('tournament.status.registrationClosed')}</Badge>;
+      case 'IN_PROGRESS':
+        return <Badge variant="default">{t('tournament.status.inProgress')}</Badge>;
       case 'COMPLETED':
-        return <Badge variant="outline">Completed</Badge>;
+        return <Badge variant="outline">{t('tournament.status.completed')}</Badge>;
+      case 'CANCELLED':
+        return <Badge variant="destructive">{t('tournament.status.cancelled')}</Badge>;
       default:
         return <Badge variant="secondary">{status}</Badge>;
     }
@@ -729,6 +735,18 @@ export default function TournamentManagePage() {
                               </SelectItem>
                               <SelectItem value="PUBLISHED">
                                 {t('tournament.status.published')}
+                              </SelectItem>
+                              <SelectItem value="REGISTRATION_OPEN">
+                                {t('tournament.status.registrationOpen')}
+                              </SelectItem>
+                              <SelectItem value="REGISTRATION_CLOSED">
+                                {t('tournament.status.registrationClosed')}
+                              </SelectItem>
+                              <SelectItem value="IN_PROGRESS">
+                                {t('tournament.status.inProgress')}
+                              </SelectItem>
+                              <SelectItem value="COMPLETED">
+                                {t('tournament.status.completed')}
                               </SelectItem>
                               <SelectItem value="CANCELLED">
                                 {t('tournament.status.cancelled')}
