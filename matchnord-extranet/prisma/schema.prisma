@@ -58,8 +58,6 @@ model User {
   receivedInvitations UserInvitation[] @relation("InvitedUser")
   accounts      Account[]
   sessions      Session[]
-  // Organization relationships (deprecated - kept for backward compatibility)
-  organizations UserOrganization[]
   // Tournament management (via createdById on Tournament - kept for relation)
   managedTournaments Tournament[]
   // Team management (via managerId on Team - kept for relation)
@@ -147,33 +145,9 @@ model Organization {
   country     Country      @relation(fields: [countryId], references: [id])
   countryId   String
   // Relationships
-  users       UserOrganization[]
   tournaments Tournament[]
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
-}
-
-model UserOrganization {
-  id             String       @id @default(cuid())
-  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId         String
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  organizationId String
-  role           OrganizationRole @default(MEMBER)
-  invitedBy      String?
-  invitedAt      DateTime?
-  joinedAt       DateTime     @default(now())
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-
-  @@unique([userId, organizationId])
-}
-
-enum OrganizationRole {
-  OWNER
-  ADMIN
-  MANAGER
-  MEMBER
 }
 
 model Tournament {
@@ -224,7 +198,6 @@ model Tournament {
   venues         Venue[]
   teams          Team[]
   matches        Match[]
-  scheduleSlots  ScheduleSlot[]
   rules          Rule[]
   announcements  Announcement[]
   documents      Document[]
@@ -397,7 +370,6 @@ model Venue {
   // Relationships
   pitches       Pitch[]
   matches       Match[]
-  scheduleSlots ScheduleSlot[]
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
 }
@@ -416,7 +388,6 @@ model Pitch {
   isAvailable Boolean  @default(true)
   // Relationships
   matches     Match[]
-  scheduleSlots ScheduleSlot[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -521,45 +492,12 @@ model Standing {
   @@unique([teamId, groupId])
 }
 
-model Official {
-  id        String   @id @default(cuid())
-  firstName String
-  lastName  String
-  email     String?  @unique
-  phone     String?
-  type      OfficialType
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-enum OfficialType {
-  REFEREE
-  ASSISTANT_REFEREE
-  FOURTH_OFFICIAL
-}
-
-
 enum TeamStatus {
   PENDING
   APPROVED
   REJECTED
   CANCELLED
   WAITLISTED
-}
-
-model ScheduleSlot {
-  id           String     @id @default(cuid())
-  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
-  tournamentId String
-  venue        Venue      @relation(fields: [venueId], references: [id])
-  venueId      String
-  pitch        Pitch?     @relation(fields: [pitchId], references: [id])
-  pitchId      String?
-  startTime    DateTime
-  endTime      DateTime
-  isAvailable  Boolean    @default(true)
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
 }
 
 // New models for tournament creation wizard
