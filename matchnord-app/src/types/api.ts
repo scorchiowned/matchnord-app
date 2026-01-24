@@ -9,7 +9,6 @@ export interface Tournament {
   startDate: string;
   endDate: string;
   status: TournamentStatus;
-  publishedAt?: string;
   contactEmail?: string;
   contactPhone?: string;
   logo?: string;
@@ -17,8 +16,6 @@ export interface Tournament {
   country: Country;
   city?: string;
   address?: string;
-  latitude?: number;
-  longitude?: number;
   registrationDeadline?: string;
   autoAcceptTeams: boolean;
   allowWaitlist: boolean;
@@ -130,7 +127,6 @@ export interface Match {
   notes?: string;
   assignmentType: AssignmentType;
   scheduledAt?: string;
-  scheduledBy?: string;
   createdAt: string;
   updatedAt: string;
   // Relations
@@ -242,6 +238,10 @@ export interface User {
 export enum TournamentStatus {
   DRAFT = "DRAFT",
   PUBLISHED = "PUBLISHED",
+  REGISTRATION_OPEN = "REGISTRATION_OPEN",
+  REGISTRATION_CLOSED = "REGISTRATION_CLOSED",
+  IN_PROGRESS = "IN_PROGRESS",
+  COMPLETED = "COMPLETED",
   CANCELLED = "CANCELLED",
 }
 
