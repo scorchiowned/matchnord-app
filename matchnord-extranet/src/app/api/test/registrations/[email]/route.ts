@@ -8,11 +8,18 @@ export async function GET(
   try {
     const email = decodeURIComponent(params.email);
 
-    const registrations = await db.registration.findMany({
+    const registrations = await db.team.findMany({
       where: {
-        manager: {
-          email,
-        },
+        OR: [
+          {
+            manager: {
+              email,
+            },
+          },
+          {
+            contactEmail: email,
+          },
+        ],
       },
       include: {
         tournament: {

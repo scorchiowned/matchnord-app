@@ -12,7 +12,6 @@ const UpdateRegistrationInput = z.object({
     .enum(['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED', 'WAITLISTED'])
     .optional(),
   notes: z.string().optional(),
-  processedAt: z.string().optional(),
 });
 
 export async function GET(
@@ -22,7 +21,7 @@ export async function GET(
   try {
     const { id } = ParamsSchema.parse(params);
 
-    const registration = await db.registration.findUnique({
+    const registration = await db.team.findUnique({
       where: { id },
       include: {
         tournament: {
@@ -58,18 +57,12 @@ export async function GET(
             paidAt: true,
           },
         },
-        team: {
+        players: {
           select: {
             id: true,
-            name: true,
-            players: {
-              select: {
-                id: true,
-                firstName: true,
-                lastName: true,
-                jerseyNumber: true,
-              },
-            },
+            firstName: true,
+            lastName: true,
+            jerseyNumber: true,
           },
         },
       },
@@ -108,7 +101,7 @@ export async function PATCH(
     const body = await request.json();
     const input = UpdateRegistrationInput.parse(body);
 
-    const registration = await db.registration.findUnique({
+    const registration = await db.team.findUnique({
       where: { id },
       include: {
         division: true,
@@ -124,14 +117,11 @@ export async function PATCH(
     }
 
     // Update registration
-    const updatedRegistration = await db.registration.update({
+    const updatedRegistration = await db.team.update({
       where: { id },
       data: {
         status: input.status,
         notes: input.notes,
-        processedAt: input.processedAt
-          ? new Date(input.processedAt)
-          : undefined,
       },
       include: {
         tournament: {
@@ -178,11 +168,11 @@ export async function PATCH(
     if (input.status && input.status !== registration.status) {
       try {
         await emailService.sendRegistrationStatusUpdate({
-          to: updatedRegistration.manager.email || '',
-          teamName: updatedRegistration.teamName,
+          to: updatedRegistration.manager?.email || updatedRegistration.contactEmail || '',
+          teamName: updatedRegistration.name,
           tournamentName: updatedRegistration.tournament.name,
           status: input.status as 'APPROVED' | 'REJECTED' | 'WAITLISTED',
-          managerName: updatedRegistration.manager.name || '',
+          managerName: updatedRegistration.manager?.name || `${updatedRegistration.contactFirstName} ${updatedRegistration.contactLastName}`,
           notes: input.notes,
         });
         console.log('✅ Registration status update email sent successfully');
@@ -226,7 +216,7 @@ export async function DELETE(
   try {
     const { id } = ParamsSchema.parse(params);
 
-    const registration = await db.registration.findUnique({
+    const registration = await db.team.findUnique({
       where: { id },
       include: {
         division: true,
@@ -253,17 +243,19 @@ export async function DELETE(
     }
 
     // Update division team count
-    await db.division.update({
-      where: { id: registration.divisionId || undefined },
-      data: {
-        currentTeams: {
-          decrement: 1,
+    if (registration.divisionId) {
+      await db.division.update({
+        where: { id: registration.divisionId },
+        data: {
+          currentTeams: {
+            decrement: 1,
+          },
         },
-      },
-    });
+      });
+    }
 
     // Delete registration (this will cascade to payment due to foreign key)
-    await db.registration.delete({
+    await db.team.delete({
       where: { id },
     });
 
