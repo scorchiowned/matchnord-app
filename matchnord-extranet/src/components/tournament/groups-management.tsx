@@ -876,11 +876,12 @@ export function GroupsManagement({
                               <p className="text-sm font-semibold text-gray-900">
                                 {team.name}
                               </p>
-                              {team.club && (
+                              {(team.clubRef?.name || team.club) && (
                                 <p className="text-xs text-gray-600">
-                                  {typeof team.club === 'string'
-                                    ? team.club
-                                    : (team.club as { name: string }).name}
+                                  {team.clubRef?.name || 
+                                    (typeof team.club === 'string'
+                                      ? team.club
+                                      : (team.club as { name: string }).name)}
                                 </p>
                               )}
                               {team.level && (
@@ -982,10 +983,7 @@ export function GroupsManagement({
                           name: team.name,
                           shortName: team.shortName,
                           logo: undefined,
-                          club:
-                            typeof team.club === 'string'
-                              ? team.club
-                              : undefined,
+                          club: team.clubRef?.name || (typeof team.club === 'string' ? team.club : undefined),
                           clubRef: team.clubRef,
                           city: team.city,
                           level: team.level,
@@ -1099,11 +1097,12 @@ export function GroupsManagement({
                       >
                         <div>
                           <p className="text-sm font-medium">{team.name}</p>
-                          {team.club && (
+                          {(team.clubRef?.name || team.club) && (
                             <p className="text-xs text-muted-foreground">
-                              {typeof team.club === 'string'
-                                ? team.club
-                                : (team.club as { name: string }).name}
+                              {team.clubRef?.name || 
+                                (typeof team.club === 'string'
+                                  ? team.club
+                                  : (team.club as { name: string }).name)}
                             </p>
                           )}
                           {team.level && (

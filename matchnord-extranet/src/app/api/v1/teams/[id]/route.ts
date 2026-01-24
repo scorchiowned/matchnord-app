@@ -111,7 +111,6 @@ export async function PUT(
         shortName: body.shortName || body.name.substring(0, 3).toUpperCase(),
         logo: body.logo !== undefined ? body.logo : undefined,
         clubId: body.clubId !== undefined ? body.clubId : null,
-        club: body.club !== undefined ? body.club : undefined,
         city: body.city !== undefined ? body.city : undefined,
         countryId: body.countryId,
         divisionId: body.divisionId !== undefined ? body.divisionId : null,

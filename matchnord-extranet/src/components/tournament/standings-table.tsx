@@ -137,9 +137,9 @@ export function StandingsTable({
                       <div className="font-medium text-blue-600">
                         {standing.team.name}
                       </div>
-                      {(standing.team.club || standing.team.clubRef?.name) && (
+                      {(standing.team.clubRef?.name || standing.team.club) && (
                         <div className="text-xs text-muted-foreground">
-                          {standing.team.club || standing.team.clubRef?.name}
+                          {standing.team.clubRef?.name || standing.team.club}
                         </div>
                       )}
                     </div>

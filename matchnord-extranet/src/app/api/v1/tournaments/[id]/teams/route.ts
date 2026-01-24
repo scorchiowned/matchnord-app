@@ -198,7 +198,7 @@ export async function POST(
       data: {
         name: body.name,
         shortName: body.shortName || body.name.substring(0, 3).toUpperCase(),
-        club: body.club || '',
+        clubId: body.clubId || null,
         city: body.city || '',
         countryId: body.countryId,
         divisionId: body.divisionId || null,

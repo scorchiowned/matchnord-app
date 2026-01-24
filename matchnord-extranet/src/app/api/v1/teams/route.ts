@@ -144,7 +144,7 @@ export async function POST(request: NextRequest) {
       data: {
         name: body.name,
         shortName: body.shortName,
-        club: body.club,
+        clubId: body.clubId || null,
         city: body.city,
         countryId: body.countryId,
         level: body.level,

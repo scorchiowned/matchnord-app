@@ -8,7 +8,7 @@ const CreateRegistrationInput = z.object({
   tournamentId: z.string().min(1),
   divisionId: z.string().min(1),
   teamName: z.string().min(1).max(255),
-  club: z.string().min(1).max(255),
+  club: z.string().min(1).max(255), // Keep for backward compatibility with UI, but use clubId for storage
   clubId: z.string().optional(),
   clubLogo: z.string().optional(),
   clubSelectionType: z.enum(['existing', 'new']),

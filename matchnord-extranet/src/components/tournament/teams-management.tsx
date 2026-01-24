@@ -199,7 +199,7 @@ export function TeamsManagement({
     setFormData({
       name: team.name,
       shortName: team.shortName || '',
-      club: team.club?.name || '',
+      club: team.clubRef?.name || team.club?.name || '',
       city: team.city || '',
       countryId: team.country.id,
       level: team.level || '',
@@ -444,7 +444,7 @@ export function TeamsManagement({
                         )}
                       </div>
                     </TableCell>
-                    <TableCell>{team.club?.name || '-'}</TableCell>
+                    <TableCell>{team.clubRef?.name || team.club?.name || '-'}</TableCell>
                     <TableCell>
                       <div className="flex items-center space-x-1">
                         <MapPin className="h-3 w-3 text-muted-foreground" />

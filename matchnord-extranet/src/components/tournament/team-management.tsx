@@ -326,7 +326,7 @@ export function TeamManagement({
   const handleEdit = (team: Team) => {
     setSelectedTeam(team);
     const clubId = team.clubRef?.id || '';
-    const clubName = team.club || team.clubRef?.name || '';
+    const clubName = team.clubRef?.name || team.club || ''; // Prefer clubRef.name, fallback to old club field
 
     setFormData({
       name: team.name || '',
@@ -475,9 +475,9 @@ export function TeamManagement({
       setIsUpdating(true);
       const updateData = {
         ...formData,
-        // Only send clubId if an existing club is selected, otherwise send club name
-        clubId: formData.clubId || undefined,
-        club: formData.clubId ? undefined : formData.club, // Don't send club name if clubId is set
+        // Only send clubId (never send club string field)
+        clubId: formData.clubId || null,
+        club: undefined, // Don't send deprecated club field
       };
 
       const response = await fetch(`/api/v1/teams/${selectedTeam.id}`, {
@@ -742,8 +742,7 @@ export function TeamManagement({
                               shortName: formData.name
                                 .substring(0, 3)
                                 .toUpperCase(),
-                              club: formData.club || undefined,
-                              clubId: formData.clubId || undefined,
+                              clubId: formData.clubId || null,
                               city: formData.city || undefined,
                               countryId: formData.countryId,
                               divisionId: formData.divisionId || undefined,
@@ -1090,8 +1089,8 @@ export function TeamManagement({
                         <div>
                           <div className="font-medium">{team.name}</div>
                           <div className="text-sm text-gray-500">
-                            {(team.club || team.clubRef?.name) &&
-                              `${team.club || team.clubRef?.name} • `}
+                            {(team.clubRef?.name || team.club) &&
+                              `${team.clubRef?.name || team.club} • `}
                             {team.city && `${team.city}, `}
                             {team.country?.name}
                           </div>

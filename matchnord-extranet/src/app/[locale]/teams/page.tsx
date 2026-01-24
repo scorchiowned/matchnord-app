@@ -100,12 +100,13 @@ export default function TeamsPage() {
 
   // Filter teams based on search and filters
   const filteredTeams = teams.filter((team) => {
+    const clubName = team.clubRef?.name || team.club;
     const matchesSearch =
       team.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (team.city &&
         team.city.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (team.club &&
-        team.club.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (clubName &&
+        clubName.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (team.shortName &&
         team.shortName.toLowerCase().includes(searchTerm.toLowerCase()));
 
@@ -331,7 +332,7 @@ export default function TeamsPage() {
                         <TableCell>
                           <div className="flex items-center space-x-2">
                             <Users className="h-4 w-4 text-muted-foreground" />
-                            <span>{team.club || 'N/A'}</span>
+                            <span>{team.clubRef?.name || team.club || 'N/A'}</span>
                           </div>
                         </TableCell>
                         <TableCell>
