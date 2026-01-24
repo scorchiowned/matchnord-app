@@ -58,8 +58,6 @@ interface Tournament {
   autoAcceptTeams?: boolean;
   allowWaitlist?: boolean;
   maxTeams?: number;
-  latitude?: number;
-  longitude?: number;
   logo?: string;
   heroImage?: string;
   organization: {

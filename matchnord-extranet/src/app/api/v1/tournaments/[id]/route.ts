@@ -164,8 +164,6 @@ const updateTournamentSchema = z.object({
   autoAcceptTeams: z.boolean().optional(),
   allowWaitlist: z.boolean().optional(),
   maxTeams: z.number().int().positive().optional().or(z.null()),
-  latitude: z.number().optional(),
-  longitude: z.number().optional(),
   logo: z.string().optional(),
   heroImage: z.string().optional(),
   isLocked: z.boolean().optional(),

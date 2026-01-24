@@ -167,8 +167,6 @@ model Tournament {
   countryId      String
   city           String?
   address        String?
-  latitude       Float?
-  longitude      Float?
   // Tournament status and settings
   status         TournamentStatus @default(DRAFT)
   publishedAt    DateTime?
