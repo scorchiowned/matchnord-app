@@ -50,7 +50,6 @@ model User {
   // Account status
   isActive      Boolean   @default(true)  // Users are active by default
   approvedAt    DateTime? // When admin approved the account (if needed)
-  approvedBy    String?   // Admin who approved the account
   // Email verification
   emailVerificationTokens EmailVerificationToken[]
   // Invitations
@@ -169,7 +168,6 @@ model Tournament {
   address        String?
   // Tournament status and settings
   status         TournamentStatus @default(DRAFT)
-  publishedAt    DateTime?
   // Contact information
   contactEmail   String?
   contactPhone   String?
@@ -418,7 +416,6 @@ model Match {
   // Assignment and scheduling
   assignmentType AssignmentType @default(AUTO)
   scheduledAt    DateTime?
-  scheduledBy    String?        // User ID who scheduled this match
   // Events and assignments
   events       MatchEvent[]
   assignments  MatchAssignment[]
@@ -577,7 +574,6 @@ model Payment {
   // Payment provider details
   provider       String?
   providerId     String?
-  providerData   String?       @db.Text
   // Timestamps
   paidAt         DateTime?
   refundedAt     DateTime?
@@ -650,11 +646,9 @@ model TournamentAssignment {
   canConfigure   Boolean        @default(false)  // Can manage tournament settings, divisions, venues, etc.
   canManageScores Boolean       @default(false)  // Can manage match scores, events, results
   isReferee      Boolean        @default(false)  // Can be assigned to matches as referee
-  // Additional metadata
-  permissions    Json?          // Granular permissions for future extensibility
+  // Metadata
   assignedBy     String?        // User ID who assigned these permissions
   assignedAt     DateTime       @default(now())
-  expiresAt      DateTime?      // Optional expiration date
   isActive       Boolean        @default(true)
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt

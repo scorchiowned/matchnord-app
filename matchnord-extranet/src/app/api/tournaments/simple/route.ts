@@ -49,7 +49,6 @@ export async function POST(request: NextRequest) {
         startDate: new Date(validatedData.startDate),
         endDate: new Date(validatedData.endDate),
         status: 'DRAFT',
-        publishedAt: null,
         maxTeams: validatedData.maxTeams,
         countryId: validatedData.countryId,
         city: validatedData.city,

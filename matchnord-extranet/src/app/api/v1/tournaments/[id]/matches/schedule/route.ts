@@ -97,7 +97,6 @@ export async function POST(
             : undefined,
           matchNumber: matchData.matchNumber || null,
           scheduledAt: new Date(), // Server timestamp, already UTC
-          scheduledBy: session.user.id,
           assignmentType: 'MANUAL',
         };
 

@@ -93,7 +93,6 @@ export async function POST(request: NextRequest) {
 
     // Determine tournament status
     const status = 'DRAFT';
-    const publishedAt = null;
 
     // Create the tournament
     const tournament = await prisma.tournament.create({
@@ -108,7 +107,6 @@ export async function POST(request: NextRequest) {
         createdById: user.id,
         countryId: '1', // Default country ID
         status,
-        publishedAt,
         registrationDeadline: validatedData.registrationDeadline
           ? new Date(validatedData.registrationDeadline)
           : null,
@@ -228,7 +226,6 @@ export async function GET(request: NextRequest) {
       organizationId: tournament.organizationId,
       status: tournament.status.toLowerCase(),
       isPublished: tournament.status === 'PUBLISHED',
-      publishedAt: tournament.publishedAt?.toISOString(),
       registrationDeadline: tournament.registrationDeadline?.toISOString(),
       maxTeams: tournament.maxTeams,
       contactEmail: tournament.contactEmail,
