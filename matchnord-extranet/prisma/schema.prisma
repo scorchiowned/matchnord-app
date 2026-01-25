@@ -52,6 +52,8 @@ model User {
   approvedAt    DateTime? // When admin approved the account (if needed)
   // Email verification
   emailVerificationTokens EmailVerificationToken[]
+  // Password reset
+  passwordResetTokens PasswordResetToken[]
   // Invitations
   sentInvitations UserInvitation[] @relation("InviterUser")
   receivedInvitations UserInvitation[] @relation("InvitedUser")
@@ -83,6 +85,20 @@ model VerificationToken {
 }
 
 model EmailVerificationToken {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  token     String   @unique
+  expires   DateTime
+  used      Boolean  @default(false)
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, token])
+}
+
+model PasswordResetToken {
   id        String   @id @default(cuid())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    String

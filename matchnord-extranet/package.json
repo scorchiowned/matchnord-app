@@ -18,6 +18,7 @@
         "e2e:report": "playwright show-report",
         "e2e:install": "playwright install",
         "prisma:migrate": "prisma migrate dev",
+        "prisma:migrate:local": "dotenv -e .env.local -- prisma migrate dev",
         "prisma:deploy": "prisma migrate deploy",
         "prisma:generate": "prisma generate",
         "deploy": "./deploy-local.sh",

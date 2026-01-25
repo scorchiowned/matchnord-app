@@ -113,20 +113,17 @@ export class EmailService {
     html: string;
     from?: string;
   }) {
+    
     if (!resend) {
-      console.warn(
-        'Resend not configured - email would be sent:',
-        data.subject
-      );
       return { success: false, error: 'Email service not configured' };
     }
 
+    const emailFrom = data.from || env.EMAIL_FROM || 'Tournament System <noreply@tournament.com>';
+
     try {
+  
       const result = await resend.emails.send({
-        from:
-          data.from ||
-          env.EMAIL_FROM ||
-          'Tournament System <noreply@tournament.com>',
+        from: emailFrom,
         to: data.to,
         subject: data.subject,
         html: data.html,
@@ -134,7 +131,6 @@ export class EmailService {
 
       return { success: true, data: result };
     } catch (error) {
-      console.error('Failed to send email:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -882,6 +878,76 @@ export class EmailService {
         </body>
       </html>
     `;
+  }
+
+  // Password reset email
+  async sendPasswordReset(data: {
+    to: string;
+    userName: string;
+    resetUrl: string;
+  }) {
+
+    const subject = 'Reset Your Password';
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Reset Your Password</title>
+        </head>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background-color: #f8f9fa; border-radius: 10px; padding: 30px; margin-bottom: 20px;">
+            <h2 style="color: #2c3e50; margin-top: 0;">Password Reset Request</h2>
+            <p>Hi ${data.userName},</p>
+            <p>We received a request to reset your password. Click the button below to set a new password:</p>
+            
+            <div style="margin: 30px 0; text-align: center;">
+              <a href="${data.resetUrl}" 
+                 style="background-color: #007bff; 
+                        color: white; 
+                        padding: 14px 28px; 
+                        text-decoration: none; 
+                        border-radius: 6px; 
+                        display: inline-block;
+                        font-weight: bold;
+                        font-size: 16px;">
+                Reset Password
+              </a>
+            </div>
+            
+            <p style="color: #666; font-size: 14px;">
+              <strong>This link will expire in 24 hours.</strong>
+            </p>
+            
+            <p style="color: #666; font-size: 14px;">
+              If you didn't request this password reset, you can safely ignore this email. 
+              Your password will not be changed.
+            </p>
+            
+            <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #dee2e6;">
+              <p style="color: #868e96; font-size: 12px; margin: 0;">
+                <strong>Security Notice:</strong> For your protection, this link can only be used once. 
+                If you need to reset your password again, please request a new reset link.
+              </p>
+            </div>
+          </div>
+          
+          <div style="text-align: center; color: #868e96; font-size: 12px; margin-top: 20px;">
+            <p>This is an automated email. Please do not reply to this message.</p>
+          </div>
+        </body>
+      </html>
+    `;
+
+
+    const result = await this.sendEmail({
+      to: data.to,
+      subject,
+      html,
+    });
+
+    return result;
   }
 }
 
